@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import { isCommitMessage } from '../src/index.ts';
 
+test('rejects an exclamation followed by another sentence', () => {
+  expect(isCommitMessage('Implemented the guard! Added another rule')).toBe(false);
+});
+
 test('rejects a question followed by another sentence', () => {
   expect(isCommitMessage('Implemented the guard? Added another rule')).toBe(false);
 });
