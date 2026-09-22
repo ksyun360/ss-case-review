@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import { isPublishablePath } from '../src/index.ts';
 
+test('accepts shared documentation', () => {
+  expect(isPublishablePath('docs/design/brand-and-interaction.md')).toBe(true);
+});
+
 test('rejects the private design document in a nested directory', () => {
   expect(isPublishablePath('docs/design/application-design.md')).toBe(false);
 });
