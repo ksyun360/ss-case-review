@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1180" viewBox="0 0 1440 1180" role="img" aria-labelledby="title description">
+  <title id="title">RFC arguments and linked evidence</title>
+  <desc id="description">A fictional case presents attributed ALJ, plaintiff, and commissioner quotations alongside a cited medical passage. Statement and evidence controls remain separate.</desc>
+  <defs><style>
+    text { font-family:Arial, Helvetica, sans-serif; fill:#183247; font-size:16px; }
+    .small { font-size:14px; } .muted { fill:#52636F; } .bold { font-weight:700; }
+    .serif { font-family:Georgia, 'Times New Roman', serif; } .link { fill:#245C89; text-decoration:underline; }
+  </style></defs>
+  <rect width="1440" height="1180" fill="#F6F5F1"/>
+  <rect width="1440" height="72" fill="#FFFFFF"/>
+  <path d="M34 20h18l8 8v26H34zM52 20v9h8M28 27v33h25M40 36h12M40 43h12" fill="none" stroke="#176864" stroke-width="2" stroke-linecap="round"/>
+  <text x="76" y="46" class="serif bold" style="font-size:26px">Record Review</text>
+  <text x="1150" y="43">Cases</text><circle cx="1357" cy="36" r="19" fill="#E8F2EF"/><text x="1357" y="42" text-anchor="middle" class="small bold">JR</text>
+  <line x1="0" y1="72" x2="1440" y2="72" stroke="#D8DEDE"/>
+  <text x="32" y="110" class="small muted">Cases / Demonstration case</text>
+  <text x="32" y="153" style="font-size:28px;font-weight:700">Taylor v. Commissioner</text>
+  <text x="32" y="183" class="small muted">DEMO-001 · Synthetic record · 14 documents · 1,318 pages</text>
+  <rect x="1228" y="131" width="180" height="36" rx="6" fill="#FFF2D8"/><text x="1318" y="154" text-anchor="middle" style="font-size:14px;fill:#80590D">3 items need review</text>
+  <text x="48" y="234" class="muted">Summary</text><text x="176" y="234" class="muted">Medical chronology</text>
+  <text x="389" y="234" class="muted">Procedural chronology</text><text x="624" y="234" class="bold" style="fill:#176864">Five-step review</text>
+  <line x1="32" y1="254" x2="1408" y2="254" stroke="#D8DEDE"/><rect x="608" y="251" width="169" height="3" fill="#176864"/>
+
+  <text x="32" y="293" class="small bold">Evaluation section</text>
+  <rect x="32" y="308" width="58" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/><text x="61" y="336" text-anchor="middle">1</text>
+  <rect x="98" y="308" width="58" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/><text x="127" y="336" text-anchor="middle">2</text>
+  <rect x="164" y="308" width="58" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/><text x="193" y="336" text-anchor="middle">3</text>
+  <rect x="230" y="308" width="79" height="44" rx="8" fill="#176864"/><text x="269" y="336" text-anchor="middle" style="font-weight:700;fill:#FFFFFF">RFC</text>
+  <rect x="317" y="308" width="58" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/><text x="346" y="336" text-anchor="middle">4</text>
+  <rect x="383" y="308" width="58" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/><text x="412" y="336" text-anchor="middle">5</text>
+  <text x="468" y="336" class="link">Other brief issues</text>
+  <text x="32" y="393" style="font-size:20px;font-weight:700">Standing and walking limitations</text>
+  <text x="32" y="420" class="small muted">Issue raised in plaintiff’s brief, page 9 · 3 attributed passages</text>
+
+  <rect x="32" y="444" width="696" height="175" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="52" y="477" class="bold">ALJ decision</text><text x="708" y="477" text-anchor="end" class="small muted">Tr. 24</text>
+  <text x="52" y="516" class="serif" style="font-size:18px">“The claimant can stand or walk for six hours</text>
+  <text x="52" y="544" class="serif" style="font-size:18px">in an eight-hour workday.”</text>
+  <text x="52" y="586" class="link">View statement</text><text x="262" y="586" class="small muted">Decision · RFC finding</text>
+
+  <rect x="32" y="635" width="696" height="198" rx="8" fill="#FFFFFF" stroke="#176864" stroke-width="2"/>
+  <rect x="33" y="651" width="4" height="70" fill="#176864"/>
+  <text x="52" y="669" class="bold">Plaintiff</text><text x="708" y="669" text-anchor="end" class="small muted">Opening brief · p. 9</text>
+  <text x="52" y="709" class="serif" style="font-size:18px">“The July treatment note records continued difficulty</text>
+  <text x="52" y="737" class="serif" style="font-size:18px">with prolonged standing. Tr. 432.”</text>
+  <text x="52" y="787" class="link">View statement</text>
+  <rect x="258" y="758" width="258" height="44" rx="8" fill="#E9F1F7"/><text x="387" y="786" text-anchor="middle" class="link">View cited evidence · Tr. 432</text>
+
+  <rect x="32" y="849" width="696" height="174" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="52" y="883" class="bold">Commissioner</text><text x="708" y="883" text-anchor="end" class="small muted">Response brief · p. 7</text>
+  <text x="52" y="923" class="serif" style="font-size:18px">“The ALJ considered the examination findings</text>
+  <text x="52" y="951" class="serif" style="font-size:18px">alongside the claimant’s reported limitations.”</text>
+  <text x="52" y="992" class="link">View statement</text><text x="262" y="992" class="small muted">Response to the RFC issue</text>
+  <text x="32" y="1065" class="small muted">Quotations retain the source wording and speaker.</text>
+  <text x="32" y="1088" class="small muted">Opening a source does not mark the argument as reviewed.</text>
+
+  <rect x="752" y="278" width="656" height="824" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="776" y="314" style="font-size:20px;font-weight:700">Source for plaintiff’s statement</text>
+  <path d="M1373 296l14 14m0-14l-14 14" stroke="#52636F" stroke-width="1.7"/>
+  <rect x="776" y="336" width="314" height="44" rx="8" fill="#EDF0F1"/>
+  <text x="840" y="364" text-anchor="middle" class="muted">Statement</text>
+  <rect x="911" y="339" width="176" height="38" rx="6" fill="#FFFFFF" stroke="#7C8B94"/><text x="999" y="364" text-anchor="middle" class="bold">Cited evidence</text>
+  <text x="776" y="414" class="small muted">12-7.pdf · PDF page 19 of 84</text><text x="776" y="439" class="small bold">Tr. 432 · Ex. 8F/12</text>
+  <line x1="752" y1="460" x2="1408" y2="460" stroke="#D8DEDE"/>
+  <text x="776" y="492" class="small">‹ Previous passage</text><text x="968" y="492" class="small">Next passage ›</text><text x="1382" y="492" text-anchor="end" class="small">100%  −  +</text>
+  <rect x="772" y="516" width="616" height="435" fill="#EDF0F1"/>
+  <rect x="796" y="536" width="568" height="395" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="827" y="572" class="small muted">SYNTHETIC DOCUMENT · DESIGN REFERENCE</text>
+  <text x="827" y="616" class="serif bold" style="font-size:24px">Clinical visit note</text>
+  <text x="827" y="649" class="serif">July 18, 2022 · Morgan Lee, MD</text>
+  <rect x="819" y="676" width="513" height="71" fill="#FFF0B6"/><rect x="819" y="676" width="3" height="71" fill="#80590D"/>
+  <text x="831" y="705" class="serif" style="font-size:18px">The patient reports continued difficulty</text>
+  <text x="831" y="733" class="serif" style="font-size:18px">with prolonged standing.</text>
+  <text x="827" y="789" class="serif">Examination findings appear below.</text>
+  <text x="827" y="819" class="serif">Review the full note and relevant time period.</text>
+  <text x="1327" y="901" text-anchor="end" class="small muted">432</text>
+  <circle cx="782" cy="984" r="4" fill="#176864"/><text x="796" y="990" class="small" style="fill:#176864">Passage located</text>
+  <text x="776" y="1025" class="small muted">The passage matches the cited page.</text>
+  <text x="776" y="1049" class="small muted">Review the context to assess the argument.</text>
+  <text x="1408" y="1150" text-anchor="end" class="small muted">Static design reference · all case names and quotations are fictional</text>
+</svg>

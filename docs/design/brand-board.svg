@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1040" viewBox="0 0 1440 1040" role="img" aria-labelledby="title description">
+  <title id="title">Record Review brand direction</title>
+  <desc id="description">A restrained navy, teal, and warm white identity with readable typography, source controls, and explicitly labeled evidence states.</desc>
+  <defs>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #183247; }
+      .serif { font-family: Georgia, 'Times New Roman', serif; }
+      .muted { fill: #52636F; }
+      .small { font-size: 14px; }
+      .label { font-size: 12px; font-weight: 700; letter-spacing: 1.8px; }
+      .body { font-size: 16px; }
+      .heading { font-size: 20px; font-weight: 700; }
+    </style>
+    <g id="mark" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 4h16l7 7v25H7z"/><path d="M23 4v8h7M2 11v30h23M13 19h11M13 25h11M13 31h6"/>
+    </g>
+  </defs>
+  <rect width="1440" height="1040" fill="#F6F5F1"/>
+  <rect width="1440" height="116" fill="#183247"/>
+  <use href="#mark" x="52" y="33" color="#FFFFFF"/>
+  <text x="102" y="64" class="serif" style="font-size:30px;font-weight:700;fill:#FFFFFF">Record Review</text>
+  <text x="103" y="86" style="font-size:12px;letter-spacing:1.9px;fill:#FFFFFF">SOCIAL SECURITY APPEALS</text>
+  <text x="1384" y="65" text-anchor="end" style="font-size:14px;fill:#FFFFFF">VISUAL DIRECTION · 01</text>
+
+  <text x="56" y="177" class="label muted">IDENTITY</text>
+  <text x="56" y="231" class="serif" style="font-size:38px">Careful review.</text>
+  <text x="56" y="278" class="serif" style="font-size:38px">The record in view.</text>
+  <text x="57" y="317" class="body muted">Clear text, visible sources, and room to read.</text>
+  <text x="57" y="342" class="body muted">Every action supports the reviewer’s examination.</text>
+
+  <text x="638" y="177" class="label muted">CORE PALETTE</text>
+  <rect x="638" y="201" width="170" height="96" rx="8" fill="#183247"/>
+  <rect x="826" y="201" width="170" height="96" rx="8" fill="#176864"/>
+  <rect x="1014" y="201" width="170" height="96" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <rect x="1202" y="201" width="182" height="96" rx="8" fill="#E8F2EF" stroke="#D8DEDE"/>
+  <text x="638" y="326" class="body" font-weight="700">Navy</text><text x="638" y="349" class="small muted">#183247 · text</text>
+  <text x="826" y="326" class="body" font-weight="700">Teal</text><text x="826" y="349" class="small muted">#176864 · action</text>
+  <text x="1014" y="326" class="body" font-weight="700">White</text><text x="1014" y="349" class="small muted">#FFFFFF · surface</text>
+  <text x="1202" y="326" class="body" font-weight="700">Soft teal</text><text x="1202" y="349" class="small muted">#E8F2EF · selection</text>
+
+  <rect x="56" y="393" width="638" height="303" rx="12" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="80" y="429" class="label muted">TYPOGRAPHY</text>
+  <text x="80" y="477" style="font-size:28px;font-weight:700">Medical chronology</text>
+  <text x="80" y="512" class="body muted">Arial · 28/36 headings · 16/24 body</text>
+  <text x="80" y="559" class="serif" style="font-size:22px">“The patient reports persistent discomfort.”</text>
+  <text x="80" y="590" class="small muted">Georgia · source excerpts · original wording preserved</text>
+  <line x1="80" y1="613" x2="670" y2="613" stroke="#D8DEDE"/>
+  <text x="80" y="646" class="small muted">Jul 18, 2022</text><text x="250" y="646" class="small muted">Tr. 432</text><text x="420" y="646" class="small muted">PDF page 19 of 84</text>
+  <text x="80" y="671" class="small muted">Consistent dates and clearly separated page references</text>
+
+  <rect x="718" y="393" width="666" height="303" rx="12" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="742" y="429" class="label muted">CONTROLS</text>
+  <rect x="742" y="454" width="194" height="44" rx="8" fill="#176864"/>
+  <text x="839" y="482" text-anchor="middle" style="font-size:16px;font-weight:700;fill:#FFFFFF">Upload case record</text>
+  <rect x="952" y="454" width="181" height="44" rx="8" fill="#FFFFFF" stroke="#7C8B94"/>
+  <text x="1042" y="482" text-anchor="middle" class="body" font-weight="700">Open existing case</text>
+  <rect x="742" y="518" width="130" height="44" rx="8" fill="#E9F1F7"/>
+  <text x="807" y="546" text-anchor="middle" style="font-size:16px;fill:#245C89;text-decoration:underline">Tr. 432 ↗</text>
+  <rect x="893" y="517" width="165" height="46" rx="8" fill="#FFFFFF" stroke="#245C89" stroke-width="3"/>
+  <text x="975" y="546" text-anchor="middle" class="body" font-weight="700">Correct entry</text>
+  <text x="742" y="602" class="small muted">44 px minimum height · 8 px corners · visible focus</text>
+  <text x="742" y="630" class="small muted">Source links keep a distinct color and underline.</text>
+  <text x="742" y="658" class="small muted">Primary actions use one consistent accent.</text>
+
+  <rect x="56" y="720" width="1328" height="252" rx="12" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="80" y="756" class="label muted">EVIDENCE STATES</text>
+  <rect x="80" y="780" width="207" height="36" rx="6" fill="#E8F2EF"/>
+  <circle cx="98" cy="798" r="4" fill="#176864"/>
+  <text x="113" y="803" style="font-size:14px;fill:#176864">Passage located</text>
+  <rect x="313" y="780" width="210" height="36" rx="6" fill="#FFF2D8"/>
+  <path d="M329 789l8 16h-16z" fill="none" stroke="#80590D" stroke-width="1.7"/>
+  <text x="347" y="803" style="font-size:14px;fill:#80590D">Passage needs review</text>
+  <rect x="549" y="780" width="209" height="36" rx="6" fill="#EDF0F1"/>
+  <text x="565" y="803" class="small muted">Source not yet indexed</text>
+  <rect x="784" y="780" width="174" height="36" rx="6" fill="#FBEDEE"/>
+  <text x="800" y="803" style="font-size:14px;fill:#A3313A">Upload failed</text>
+  <rect x="80" y="843" width="978" height="45" rx="3" fill="#FFF0B6"/>
+  <rect x="80" y="843" width="4" height="45" fill="#80590D"/>
+  <text x="97" y="872" class="serif" style="font-size:20px">A highlight identifies the selected passage. The reviewer assesses the evidence.</text>
+  <text x="80" y="931" class="body muted">Status labels distinguish locating a passage, reading a scan, and completing a human review.</text>
+  <text x="1384" y="1010" text-anchor="end" class="small muted">Design reference · fictional text · proposed version 0.1</text>
+</svg>

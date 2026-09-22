@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1080" viewBox="0 0 1440 1080" role="img" aria-labelledby="title description">
+  <title id="title">Upload complete and document processing</title>
+  <desc id="description">A fictional case processing screen confirms that uploads have reached the server, shows document stages and counts, and identifies pages that need review without blocking access to completed documents.</desc>
+  <defs><style>
+    text { font-family:Arial, Helvetica, sans-serif; fill:#183247; font-size:16px; }
+    .small { font-size:14px; } .muted { fill:#52636F; } .bold { font-weight:700; }
+    .serif { font-family:Georgia, 'Times New Roman', serif; } .link { fill:#245C89; text-decoration:underline; }
+  </style></defs>
+  <rect width="1440" height="1080" fill="#F6F5F1"/>
+  <rect width="1440" height="72" fill="#FFFFFF"/>
+  <path d="M34 20h18l8 8v26H34zM52 20v9h8M28 27v33h25M40 36h12M40 43h12" fill="none" stroke="#176864" stroke-width="2" stroke-linecap="round"/>
+  <text x="76" y="46" class="serif bold" style="font-size:26px">Record Review</text><text x="1190" y="43">Cases</text>
+  <circle cx="1357" cy="36" r="19" fill="#E8F2EF"/><text x="1357" y="42" text-anchor="middle" class="small bold">JR</text>
+  <line x1="0" y1="72" x2="1440" y2="72" stroke="#D8DEDE"/>
+  <text x="96" y="125" class="small muted">Upload case record / Processing</text>
+  <text x="96" y="177" style="font-size:28px;font-weight:700">Preparing your case</text>
+  <text x="96" y="209" class="muted">Taylor v. Commissioner · DEMO-001 · Synthetic record</text>
+  <rect x="96" y="239" width="1248" height="76" rx="8" fill="#E8F2EF"/>
+  <circle cx="126" cy="277" r="11" fill="none" stroke="#176864" stroke-width="2"/><path d="M121 277l4 4 7-9" fill="none" stroke="#176864" stroke-width="2"/>
+  <text x="153" y="270" class="bold" style="fill:#176864">Upload complete</text>
+  <text x="153" y="296" style="fill:#176864">You can close this tab while processing continues. Reopen the case from Cases.</text>
+
+  <rect x="96" y="339" width="800" height="207" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="120" y="377" style="font-size:20px;font-weight:700">Reading and checking documents</text>
+  <text x="120" y="410" class="muted">9 of 14 documents processed · 924 of 1,318 pages indexed</text>
+  <rect x="120" y="431" width="752" height="10" rx="5" fill="#EDF0F1"/><rect x="120" y="431" width="483" height="10" rx="5" fill="#176864"/>
+  <text x="120" y="476" class="small muted">Inspect files</text><text x="260" y="476" class="small bold" style="fill:#176864">Read documents</text><text x="431" y="476" class="small muted">Map sources</text>
+  <text x="574" y="476" class="small muted">Extract entries</text><text x="736" y="476" class="small muted">Check citations</text>
+  <text x="120" y="519" class="small muted">Elapsed 08:42 · Time estimate updates as document reading completes.</text>
+
+  <rect x="920" y="339" width="424" height="207" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <text x="944" y="378" class="bold">Review while processing continues</text>
+  <text x="944" y="412" class="muted">Completed documents are available.</text>
+  <text x="944" y="437" class="muted">The case summary is still in progress.</text>
+  <rect x="944" y="466" width="213" height="44" rx="8" fill="#176864"/><text x="1050" y="494" text-anchor="middle" style="font-weight:700;fill:#FFFFFF">Open case documents</text>
+
+  <rect x="96" y="570" width="1248" height="398" rx="8" fill="#FFFFFF" stroke="#D8DEDE"/>
+  <path d="M104 570h1232q8 0 8 8v44H96v-44q0-8 8-8" fill="#EDF0F1"/>
+  <text x="120" y="603" class="small bold">Document</text><text x="440" y="603" class="small bold">Detected content</text>
+  <text x="810" y="603" class="small bold">Pages</text><text x="920" y="603" class="small bold">Status</text><text x="1190" y="603" class="small bold">Action</text>
+  <text x="120" y="655">12-1.pdf</text><text x="440" y="655">Table of contents</text><text x="810" y="655">8</text><text x="920" y="655" style="fill:#176864">Ready</text><text x="1190" y="655" class="link">Open</text>
+  <line x1="96" y1="676" x2="1344" y2="676" stroke="#D8DEDE"/>
+  <text x="120" y="709">12-2.pdf</text><text x="440" y="709">ALJ decision · Hearing transcript</text><text x="810" y="709">126</text><text x="920" y="709" style="fill:#176864">Ready</text><text x="1190" y="709" class="link">Open</text>
+  <line x1="96" y1="730" x2="1344" y2="730" stroke="#D8DEDE"/>
+  <text x="120" y="763">12-3.pdf</text><text x="440" y="763">Disability determination</text><text x="810" y="763">64</text><text x="920" y="763" style="fill:#176864">Ready</text><text x="1190" y="763" class="link">Open</text>
+  <line x1="96" y1="784" x2="1344" y2="784" stroke="#D8DEDE"/>
+  <text x="120" y="817">12-4.pdf</text><text x="440" y="817">Procedural documents</text><text x="810" y="817">83</text><text x="920" y="817">Checking citations</text><text x="1190" y="817" class="link">Details</text>
+  <line x1="96" y1="838" x2="1344" y2="838" stroke="#D8DEDE"/>
+  <text x="120" y="871">12-7.pdf</text><text x="440" y="871">Medical records</text><text x="810" y="871">84</text>
+  <text x="920" y="862">Reading</text><text x="920" y="884" style="font-size:14px;fill:#80590D">2 pages need review</text><text x="1190" y="871" class="link">Review details</text>
+  <line x1="96" y1="896" x2="1344" y2="896" stroke="#D8DEDE"/>
+  <text x="120" y="929">12-8.pdf</text><text x="440" y="929" class="muted">Classification pending</text><text x="810" y="929">152</text><text x="920" y="929" class="muted">Queued</text>
+  <text x="96" y="1003" class="small muted">Showing 6 of 14 documents</text><text x="1344" y="1003" text-anchor="end" class="link">Show all documents</text>
+  <text x="1344" y="1050" text-anchor="end" class="small muted">Static design reference · fictional processing state</text>
+</svg>

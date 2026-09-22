@@ -1,0 +1,17 @@
+{
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/application-design.md",
+    "**/session-log.md",
+    "node_modules/**",
+    ".tools/**",
+    ".stryker-tmp/**",
+    "coverage/**",
+    "reports/**",
+  ],
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD060": false,
+  },
+}

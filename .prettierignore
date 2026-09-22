@@ -1,0 +1,10 @@
+application-design.md
+session-log.md
+node_modules/
+.tools/
+.git/
+.stryker-tmp/
+coverage/
+reports/
+dist/
+package-lock.json

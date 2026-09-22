@@ -1,0 +1,16 @@
+application-design.md
+session-log.md
+node_modules/
+.tools/
+.stryker-tmp/
+coverage/
+reports/
+dist/
+playwright-report/
+test-results/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.DS_Store

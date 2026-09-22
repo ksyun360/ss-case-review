@@ -1,0 +1,6 @@
+node_modules/
+.tools/
+.stryker-tmp/
+coverage/
+reports/
+dist/
