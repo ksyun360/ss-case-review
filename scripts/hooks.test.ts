@@ -1,5 +1,20 @@
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
+
+test('runs the commit-message policy with a quoted message-file argument', () => {
+  const result = spawnSync(
+    'sh',
+    [
+      fileURLToPath(new URL('../.husky/commit-msg', import.meta.url)),
+      fileURLToPath(new URL('./fixtures/invalid commit message.txt', import.meta.url)),
+    ],
+    { encoding: 'utf8' },
+  );
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('AssertionError');
+});
 
 test('wires the pre-commit gate between staged-snapshot checks', () => {
   expect(readFileSync(new URL('../.husky/pre-commit', import.meta.url), 'utf8')).toBe(
