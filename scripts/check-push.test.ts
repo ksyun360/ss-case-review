@@ -3,6 +3,13 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 vi.mock('node:fs', () => ({ readFileSync: vi.fn() }));
 
+test('accepts a push whose destination is a named feature branch', async () => {
+  vi.mocked(readFileSync).mockReturnValue(
+    'refs/heads/feature/test aaaa refs/heads/feature/test bbbb\n',
+  );
+  await expect(import('./check-push.ts')).resolves.toBeDefined();
+});
+
 afterEach(() => {
   vi.resetModules();
   vi.resetAllMocks();
