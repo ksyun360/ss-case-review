@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { isFeatureBranch } from '../packages/repository-policy/src/index.ts';
+import { isFeatureBranch, isPublishablePath } from '../packages/repository-policy/src/index.ts';
 
 const branch = execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' });
 assert.ok(isFeatureBranch(branch));
+
+const paths = execFileSync('git', ['ls-files', '--cached', '-z'], { encoding: 'utf8' });
+assert.ok(paths.split('\0').every(isPublishablePath));
