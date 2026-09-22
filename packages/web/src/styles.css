@@ -536,3 +536,84 @@ a.primary-button:hover {
 .checklist-note p {
   margin-top: 8px;
 }
+
+@media (width < 768px) {
+  h1 {
+    font-size: 24px;
+    line-height: 32px;
+  }
+
+  .header-inner,
+  .page,
+  .site-footer {
+    padding-inline: 16px;
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+
+  .brand {
+    min-height: 72px;
+    padding-left: 5px;
+  }
+
+  .brand-name {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  .brand-symbol {
+    flex-shrink: 0;
+  }
+
+  .primary-nav {
+    width: 100%;
+    gap: 0;
+    flex-wrap: wrap;
+  }
+
+  .primary-nav a {
+    flex: 1;
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .development-banner {
+    padding-inline: 16px;
+  }
+
+  .page {
+    padding-block: 32px;
+  }
+
+  .start-grid,
+  .upload-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .start-card,
+  .panel {
+    padding: 24px;
+  }
+
+  .primary-card {
+    padding-top: 22px;
+  }
+
+  .review-principle,
+  .site-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .file-picker {
+    padding: 24px 12px;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

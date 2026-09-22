@@ -1,5 +1,23 @@
 import { expect, test } from '@playwright/test';
 
+test('keeps the home-to-upload workflow usable at 320 pixels', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/home');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  const cards = await page.locator('.start-card').evaluateAll((elements) =>
+    elements.map((element) => {
+      const { top, bottom } = element.getBoundingClientRect();
+      return { top, bottom };
+    }),
+  );
+  expect(cards[1]?.top).toBeGreaterThan(cards[0]?.bottom ?? 0);
+  await page.getByRole('link', { name: 'Upload case record', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Prepare a case record' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  await expect(page.getByLabel('Choose case documents')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Upload and process' })).toBeDisabled();
+});
+
 test('renders the approved desktop workspace with a visible keyboard skip link', async ({
   page,
 }) => {
