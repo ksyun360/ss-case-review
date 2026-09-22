@@ -3,6 +3,15 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 
+test('runs the pre-push guard against the actual remote destination', () => {
+  const result = spawnSync('sh', [fileURLToPath(new URL('../.husky/pre-push', import.meta.url))], {
+    encoding: 'utf8',
+    input: 'refs/heads/feature/test aaaa refs/heads/main bbbb\n',
+  });
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain('AssertionError');
+});
+
 test('runs the commit-message policy with a quoted message-file argument', () => {
   const result = spawnSync(
     'sh',

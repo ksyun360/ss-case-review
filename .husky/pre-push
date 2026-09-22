@@ -1,0 +1,3 @@
+set -eu
+node scripts/check-push.ts
+npm run check:repository
