@@ -1,6 +1,7 @@
 import { NavLink, Route, Routes } from 'react-router';
 import { Brand } from './brand.tsx';
 import { HomePage } from './home-page.tsx';
+import { UploadPage } from './upload-page.tsx';
 
 export function App() {
   return (
@@ -31,6 +32,7 @@ export function App() {
       </div>
       <Routes>
         <Route path="/home" element={<HomePage />} />
+        <Route path="/upload" element={<UploadPage />} />
       </Routes>
       <footer className="site-footer">
         <span>Record Review</span>
