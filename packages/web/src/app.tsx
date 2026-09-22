@@ -1,0 +1,41 @@
+import { NavLink, Route, Routes } from 'react-router';
+import { Brand } from './brand.tsx';
+import { HomePage } from './home-page.tsx';
+
+export function App() {
+  return (
+    <>
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
+      <header className="site-header">
+        <div className="header-inner">
+          <Brand />
+          <nav className="primary-nav" aria-label="Main navigation">
+            <NavLink to="/home">Workspace</NavLink>
+            <NavLink to="/upload">Upload record</NavLink>
+            <NavLink to="/cases">Saved cases</NavLink>
+          </nav>
+        </div>
+      </header>
+      <div className="development-banner">
+        <span className="preview-indicator" aria-hidden="true" />
+        <p>
+          <strong>Local preview</strong>
+          <span className="banner-separator" aria-hidden="true">
+            {' '}
+            ·{' '}
+          </span>
+          Use synthetic documents only. Storage, processing, and court sign-in are not connected.
+        </p>
+      </div>
+      <Routes>
+        <Route path="/home" element={<HomePage />} />
+      </Routes>
+      <footer className="site-footer">
+        <span>Record Review</span>
+        <span>Development workspace · Not for court records</span>
+      </footer>
+    </>
+  );
+}
