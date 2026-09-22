@@ -1,0 +1,4 @@
+set -eu
+node scripts/check-staging.ts
+npm run verify:commit
+node scripts/check-staging.ts
