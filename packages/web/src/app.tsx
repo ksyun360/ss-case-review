@@ -32,6 +32,21 @@ export function App() {
         </p>
       </div>
       <Routes>
+        <Route
+          path="*"
+          element={
+            <main id="main-content" className="page" tabIndex={-1}>
+              <div className="empty-state panel">
+                <p className="eyebrow">WORKSPACE / PAGE UNAVAILABLE</p>
+                <h1>Page not found</h1>
+                <p>The requested page is not available in this preview.</p>
+                <a className="button primary-button" href="/home">
+                  Return to workspace
+                </a>
+              </div>
+            </main>
+          }
+        />
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/cases" element={<CasesPage />} />

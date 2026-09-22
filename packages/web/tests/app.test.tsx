@@ -3,6 +3,17 @@ import { MemoryRouter } from 'react-router';
 import { expect, test } from 'vitest';
 import { App } from '../src/app.tsx';
 
+test('provides a recovery page for an unknown address', () => {
+  const html = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/missing']}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(html).toContain('<h1>Page not found</h1>');
+  expect(html).toContain('<main id="main-content" class="page" tabindex="-1">');
+  expect(html).toContain('href="/home">Return to workspace</a>');
+});
+
 test('opens the /cases route directly', () => {
   const html = renderToStaticMarkup(
     <MemoryRouter initialEntries={['/cases']}>
