@@ -6,7 +6,7 @@ Dependency installation disables lifecycle scripts. This policy avoids implicit 
 
 ## Development sequence
 
-Architecture and visual design have approval. Engineering foundation work currently precedes application implementation. Obtain project-owner approval before advancing to the application phase.
+Architecture and visual design have approval. The project owner authorized application implementation and deferred the remaining hosted foundation setup until the end. Keep the existing local TDD, coverage, mutation, and hook requirements active throughout implementation.
 
 Author changes on a `feature/` branch. Never author development commits on `main`, `master`, or `mainline`. The project owner performs final PR integration manually.
 
@@ -36,7 +36,7 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 
 Coverage must reach 93% for each metric and each first-party source file. Mutation testing currently requires 100% because the initial executable package enforces repository policy. The approved general application threshold remains 95%, with 100% for critical source-acceptance and authorization rules. Do not reduce thresholds or exclude production logic to make a commit pass.
 
-The first package contains repository-policy utilities. Application screens, browser workflows, document parsing, database access, and model clients do not exist yet. Browser and accessibility test dependencies are available for later application work; the foundation does not report a passing browser suite where no browser tests exist. CSS linting permits an empty input set until the application supplies CSS.
+The repository-policy package contains local safeguards. The web workspace introduces the approved application identity and will add responsive navigation and file selection through individually tested increments. Storage, extraction, database access, and model clients remain unimplemented. Browser checks will enter the same commit gate when the first browser workflow exists.
 
 The license gate tracks the installed development-tool inventory, including transitive packages. The inventory includes attribution licenses, MPL-2.0, Artistic-2.0, and the WTFPL declaration from `@azu/style-format`. A passing scan identifies declarations; the scan does not grant legal approval or discharge distribution obligations. Court IT must approve distribution and notices before deployment. License names containing “Python” describe JavaScript dependencies' license declarations, not Python runtime dependencies.
 

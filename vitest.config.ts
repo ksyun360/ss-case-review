@@ -2,13 +2,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['packages/**/*.test.ts', 'scripts/**/*.test.ts'],
+    include: ['packages/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '.stryker-tmp/**', '.tools/**'],
     allowOnly: false,
     passWithNoTests: false,
     coverage: {
       provider: 'v8',
-      include: ['packages/*/src/**/*.ts', 'scripts/**/*.ts'],
+      include: ['packages/*/src/**/*.{ts,tsx}', 'scripts/**/*.ts'],
       exclude: ['**/*.test.ts', '**/*.d.ts'],
       reporter: ['text', 'html', 'json-summary', 'lcov'],
       thresholds: {

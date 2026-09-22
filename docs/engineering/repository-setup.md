@@ -2,7 +2,7 @@
 
 ## Local foundation
 
-The repository uses Node.js 24.21.0, npm workspaces, strict TypeScript, Vitest, StrykerJS, ESLint, Prettier, Stylelint, markdownlint, secret scanning, dependency auditing, and a development-tool license inventory. The current source implements repository safeguards only. The repository contains no application server, browser interface, database, authentication provider, or model endpoint.
+The repository uses Node.js 24.21.0, npm workspaces, strict TypeScript, Vitest, StrykerJS, ESLint, Prettier, Stylelint, markdownlint, secret scanning, dependency auditing, and a development-tool license inventory. Application implementation now builds on the local safeguards. The project owner deferred the remaining hosted setup until the end; no hosted protection claim applies during local development.
 
 Select the pinned runtime, run `npm ci`, then run `npm run hooks:install`. Dependency installation deliberately disables lifecycle scripts. The project-local runtime under `.tools/` supports the initial workstation without changing the system runtime; other developers should select the pinned version through the court-approved runtime installation process.
 
@@ -16,7 +16,7 @@ The hooks allow development commits and remote updates on named `feature/` branc
 
 The project owner must provide the exact GitHub repository URL. No remote currently exists in the local configuration. The repository's owner, visibility, plan, and available administrative controls determine the hosted setup.
 
-Complete these steps within phase 3:
+Complete these deferred steps before shared court testing or deployment:
 
 1. Confirm the destination repository, owner permissions, available ruleset controls, and the designated human reviewer or owner override actor.
 2. Agree on the default-branch bootstrap. Reuse already-verified feature-authored history when a default reference is necessary; do not author a bootstrap change on a protected branch. Record owner authorization before changing remote references.
@@ -31,4 +31,4 @@ The current PR template and CODEOWNERS file express review expectations but do n
 
 ## Next approval boundary
 
-Complete and verify hosted setup before requesting approval for application implementation. Continue to keep private working records outside commits. Future application work will require separate approval and synthetic fixtures throughout development.
+The project owner authorized application implementation before hosted setup finishes. Keep local gates active and use synthetic fixtures only. Complete the deferred hosted setup before qualification and IT handoff. Continue to keep private working records outside commits.

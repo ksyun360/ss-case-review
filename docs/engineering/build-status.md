@@ -8,6 +8,6 @@ The active local hooks check staged-snapshot consistency, require feature branch
 
 Hosted build status: Pending repository configuration. The GitHub repository destination remains unspecified. No hosted build badge or branch-protection claim applies yet.
 
-Phase 3 remains incomplete until the project owner supplies the repository destination and the project verifies hosted CI, protected-branch rules, and the review-only override. Review the [remaining repository setup](repository-setup.md) before enabling shared development. No PR, remote push, application implementation, or court-data processing has occurred.
+The project owner authorized application implementation and deferred the remaining hosted setup until the end. Review the [remaining repository setup](repository-setup.md) before enabling shared development. No PR, remote push, or court-data processing has occurred. Application checks will extend the baseline results above as each increment completes.
 
 Run `npm run verify:commit` to regenerate local results. Coverage reports appear in `coverage/`; mutation reports appear in `reports/mutation/`. Generated reports remain outside version control. A later GitHub workflow will expose results for the corresponding commit SHA.

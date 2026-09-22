@@ -2,9 +2,9 @@
 
 This project will help Western District of Texas magistrate judges and law clerks review Social Security disability appeal records and inspect cited evidence.
 
-Current phase: Engineering foundation. Architecture and visual design have approval; application implementation has not started.
+Current phase: Application implementation. The project owner authorized phase 4 and deferred hosted CI and repository protections until the end. Local quality gates remain mandatory.
 
-Build status: [Local foundation checks passed: 31 tests, 100% coverage, 100% mutation score](docs/engineering/build-status.md). Hosted CI and branch protections await the GitHub repository destination; phase 3 remains open.
+Build status: [Local verification results](docs/engineering/build-status.md). Hosted CI and branch protections remain deferred; no hosted passing status applies.
 
 Review the approved [brand and interaction specification](docs/design/brand-and-interaction.md) for the Record Review identity, palette, component dimensions, and desktop/mobile behavior. Start with the [brand board](docs/design/brand-board.svg) or the [case review workspace](docs/design/review-workspace-desktop.svg).
 

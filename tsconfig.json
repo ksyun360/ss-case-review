@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023",
+    "jsx": "react-jsx",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
@@ -15,6 +16,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["packages/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"],
+  "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "vitest.config.ts"],
   "exclude": ["**/node_modules/**", "**/dist/**", ".stryker-tmp", ".tools"]
 }
