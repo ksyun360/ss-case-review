@@ -21,7 +21,7 @@ export default [
     },
   },
   {
-    files: ['**/*.test.ts'],
+    files: ['**/*.test.{ts,tsx}'],
     plugins: { vitest },
     rules: {
       'vitest/no-disabled-tests': 'error',

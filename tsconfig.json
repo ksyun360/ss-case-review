@@ -16,6 +16,12 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["packages/**/*.ts", "packages/**/*.tsx", "scripts/**/*.ts", "vitest.config.ts"],
+  "include": [
+    "packages/**/*.ts",
+    "packages/**/*.tsx",
+    "scripts/**/*.ts",
+    "vitest.config.ts",
+    "vite.config.ts"
+  ],
   "exclude": ["**/node_modules/**", "**/dist/**", ".stryker-tmp", ".tools"]
 }
