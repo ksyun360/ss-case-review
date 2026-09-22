@@ -1,3 +1,3 @@
-export function isFeatureBranch(_branch: string): boolean {
-  return false;
+export function isFeatureBranch(branch: string): boolean {
+  return branch.startsWith('feature/');
 }
