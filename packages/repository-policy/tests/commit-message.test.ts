@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import { isCommitMessage } from '../src/index.ts';
 
+test('rejects two period-separated sentences', () => {
+  expect(isCommitMessage('Implemented the guard. Added another rule')).toBe(false);
+});
+
 test('requires a description after the leading verb', () => {
   expect(isCommitMessage('Implemented')).toBe(false);
 });
