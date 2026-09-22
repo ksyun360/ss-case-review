@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import { isFeatureBranch } from '../src/index.ts';
 
+test('rejects mainline', () => {
+  expect(isFeatureBranch('mainline')).toBe(false);
+});
+
 test('rejects master', () => {
   expect(isFeatureBranch('master')).toBe(false);
 });
