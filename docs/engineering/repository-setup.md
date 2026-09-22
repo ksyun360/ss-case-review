@@ -8,7 +8,7 @@ Select the pinned runtime, run `npm ci`, then run `npm run hooks:install`. Depen
 
 Run `npm run verify:commit` for the complete quality gate. Stage intended changes before committing. The installed pre-commit hook checks staged-snapshot consistency before and after the gate. Ignored local documents and generated reports do not count as unstaged project changes. Inspect the assertion or Git output when a guard fails; correct the branch, staged paths, message, or push destination before retrying. Never bypass a failed guard.
 
-The commit-message policy maintains these leading verbs: Accepted, Added, Blocked, Configured, Documented, Enforced, Fixed, Implemented, Initialized, Queried, Refactored, Rejected, Updated, and Verified. Use one descriptive sentence on one subject line. The validator rejects common sentence separators and extra message lines; reviewers remain responsible for wording and accurate authorship.
+The commit-message policy maintains these leading verbs: Accepted, Added, Blocked, Configured, Documented, Enforced, Fixed, Implemented, Initialized, Queried, Refactored, Rejected, Updated, Validated, and Verified. Use one descriptive sentence on one subject line. The validator rejects common sentence separators and extra message lines; reviewers remain responsible for wording and accurate authorship.
 
 The hooks allow development commits and remote updates on named `feature/` branches only. The local push policy also rejects tag pushes. The repository guards cannot reconstruct a commit's original branch: Git commit objects do not record branch origin. Local hooks can be bypassed, so the project must finish hosted enforcement before shared development.
 

@@ -12,7 +12,7 @@ export function isPublishablePath(path: string): boolean {
 export function isCommitMessage(message: string): boolean {
   const subject = message.trimEnd();
   const verbs =
-    'Accepted Added Blocked Configured Documented Enforced Fixed Implemented Initialized Queried Refactored Rejected Updated Verified';
+    'Accepted Added Blocked Configured Documented Enforced Fixed Implemented Initialized Queried Refactored Rejected Updated Validated Verified';
   return (
     !subject.includes('! ') &&
     !subject.includes('? ') &&

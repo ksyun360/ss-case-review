@@ -1,6 +1,10 @@
 import { expect, test } from 'vitest';
 import { isCommitMessage } from '../src/index.ts';
 
+test('accepts the past-tense verb Validated used in foundation history', () => {
+  expect(isCommitMessage('Validated commit messages from hook arguments')).toBe(true);
+});
+
 test('rejects an exclamation followed by another sentence', () => {
   expect(isCommitMessage('Implemented the guard! Added another rule')).toBe(false);
 });

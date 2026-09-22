@@ -4,7 +4,7 @@ This project will help Western District of Texas magistrate judges and law clerk
 
 Current phase: Engineering foundation. Architecture and visual design have approval; application implementation has not started.
 
-Build status: [Local foundation checks passed: 30 tests, 100% coverage, 100% mutation score](docs/engineering/build-status.md). Hosted CI and branch protections await the GitHub repository destination; phase 3 remains open.
+Build status: [Local foundation checks passed: 31 tests, 100% coverage, 100% mutation score](docs/engineering/build-status.md). Hosted CI and branch protections await the GitHub repository destination; phase 3 remains open.
 
 Review the approved [brand and interaction specification](docs/design/brand-and-interaction.md) for the Record Review identity, palette, component dimensions, and desktop/mobile behavior. Start with the [brand board](docs/design/brand-board.svg) or the [case review workspace](docs/design/review-workspace-desktop.svg).
 
