@@ -3,6 +3,15 @@ import { MemoryRouter } from 'react-router';
 import { expect, test } from 'vitest';
 import { App } from '../src/app.tsx';
 
+test('opens the /cases route directly', () => {
+  const html = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/cases']}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(html).toContain('<h1>Existing cases</h1>');
+});
+
 test('opens the /upload route directly', () => {
   const html = renderToStaticMarkup(
     <MemoryRouter initialEntries={['/upload']}>
