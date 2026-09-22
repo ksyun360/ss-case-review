@@ -5,5 +5,6 @@ export function isFeatureBranch(branch: string): boolean {
 }
 
 export function isPublishablePath(path: string): boolean {
-  return posix.basename(path) !== 'application-design.md';
+  const basename = posix.basename(path);
+  return basename !== 'application-design.md' && basename !== 'session-log.md';
 }
