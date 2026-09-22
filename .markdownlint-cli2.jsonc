@@ -8,6 +8,8 @@
     ".stryker-tmp/**",
     "coverage/**",
     "reports/**",
+    "playwright-report/**",
+    "test-results/**",
   ],
   "config": {
     "default": true,

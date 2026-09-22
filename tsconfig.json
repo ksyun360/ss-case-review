@@ -21,7 +21,9 @@
     "packages/**/*.tsx",
     "scripts/**/*.ts",
     "vitest.config.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "playwright.config.ts",
+    "tests/**/*.ts"
   ],
   "exclude": ["**/node_modules/**", "**/dist/**", ".stryker-tmp", ".tools"]
 }

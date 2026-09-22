@@ -3,4 +3,6 @@ node_modules/
 .stryker-tmp/
 coverage/
 reports/
+playwright-report/
+test-results/
 dist/

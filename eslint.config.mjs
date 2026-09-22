@@ -9,6 +9,8 @@ export default [
       '**/dist/**',
       'coverage/**',
       'reports/**',
+      'playwright-report/**',
+      'test-results/**',
       '.tools/**',
       '.stryker-tmp/**',
     ],
