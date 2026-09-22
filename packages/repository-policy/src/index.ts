@@ -9,6 +9,8 @@ export function isPublishablePath(path: string): boolean {
   return basename !== 'application-design.md' && basename !== 'session-log.md';
 }
 
-export function isCommitMessage(_message: string): boolean {
-  return false;
+export function isCommitMessage(message: string): boolean {
+  const verbs =
+    'Accepted Added Blocked Configured Documented Enforced Fixed Implemented Initialized Queried Refactored Rejected Updated Verified';
+  return verbs.split(' ').includes(String(message.split(' ')[0]));
 }
