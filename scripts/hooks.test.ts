@@ -3,6 +3,15 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 
+test('accepts a feature push after running repository checks', () => {
+  const result = spawnSync('sh', [fileURLToPath(new URL('../.husky/pre-push', import.meta.url))], {
+    encoding: 'utf8',
+    input: 'refs/heads/feature/test aaaa refs/heads/feature/test bbbb\n',
+  });
+  expect(result.status).toBe(0);
+  expect(result.stdout + result.stderr).toContain('check:repository');
+});
+
 test('runs the pre-push guard against the actual remote destination', () => {
   const result = spawnSync('sh', [fileURLToPath(new URL('../.husky/pre-push', import.meta.url))], {
     encoding: 'utf8',
