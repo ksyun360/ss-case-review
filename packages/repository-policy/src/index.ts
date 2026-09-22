@@ -8,3 +8,7 @@ export function isPublishablePath(path: string): boolean {
   const basename = posix.basename(path);
   return basename !== 'application-design.md' && basename !== 'session-log.md';
 }
+
+export function isCommitMessage(_message: string): boolean {
+  return false;
+}
