@@ -8,3 +8,7 @@ test('rejects commits authored on main', () => {
 test('accepts a named feature branch', () => {
   expect(isFeatureBranch('feature/foundation')).toBe(true);
 });
+
+test('rejects a feature prefix without a branch name', () => {
+  expect(isFeatureBranch('feature/')).toBe(false);
+});
