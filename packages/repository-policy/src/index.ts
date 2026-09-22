@@ -10,7 +10,10 @@ export function isPublishablePath(path: string): boolean {
 }
 
 export function isCommitMessage(message: string): boolean {
+  const subject = message.trimEnd();
   const verbs =
     'Accepted Added Blocked Configured Documented Enforced Fixed Implemented Initialized Queried Refactored Rejected Updated Verified';
-  return verbs.split(' ').includes(String(message.split(' ')[0]));
+  return (
+    verbs.split(' ').includes(String(subject.split(' ')[0])) && subject.split('\n').length === 1
+  );
 }

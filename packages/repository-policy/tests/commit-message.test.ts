@@ -1,6 +1,12 @@
 import { expect, test } from 'vitest';
 import { isCommitMessage } from '../src/index.ts';
 
+test('rejects additional message lines and attribution trailers', () => {
+  expect(
+    isCommitMessage('Implemented the guard\n\nCo-authored-by: Example <example@example.com>\n'),
+  ).toBe(false);
+});
+
 test('accepts a subject beginning with a configured past-tense verb', () => {
   expect(isCommitMessage('Implemented the repository guard\n')).toBe(true);
 });
