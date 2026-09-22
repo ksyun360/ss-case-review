@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from 'react-router';
+import { Navigate, NavLink, Route, Routes } from 'react-router';
 import { Brand } from './brand.tsx';
 import { HomePage } from './home-page.tsx';
 import { CasesPage } from './cases-page.tsx';
@@ -32,6 +32,7 @@ export function App() {
         </p>
       </div>
       <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/cases" element={<CasesPage />} />
         <Route path="/upload" element={<UploadPage />} />
