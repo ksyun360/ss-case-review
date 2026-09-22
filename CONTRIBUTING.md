@@ -2,7 +2,7 @@
 
 Use Node.js 24.21.0 and npm 11–12. The repository pins the runtime in `.node-version` and `.nvmrc`. Run `npm ci` after selecting that runtime. The initial toolchain uses npm 12.0.2.
 
-Dependency installation disables lifecycle scripts. This policy avoids implicit native builds and keeps installation steps reviewable. Run explicitly documented setup commands when the foundation supplies hooks; never enable every dependency's install script to work around an individual package issue.
+Dependency installation disables lifecycle scripts. This policy avoids implicit native builds and keeps installation steps reviewable. Run `npm run hooks:install` after `npm ci` to activate the repository hooks explicitly. Never enable every dependency's install script to work around an individual package issue. Select the pinned Node.js runtime before using Git from a terminal or editor; the hooks use the active runtime.
 
 ## Development sequence
 
@@ -13,6 +13,10 @@ Author changes on a `feature/` branch. Never author development commits on `main
 For each behavior, add one test, observe the expected failure, implement the smallest passing change, update relevant documentation, run `npm run verify:commit`, and commit before adding another test. If existing code already passes the new test, commit that test separately before continuing. Keep one independently specified test case per commit, including parameterized examples. Record red/green evidence in local development records and retain verification reports outside version control.
 
 Use one-sentence commit subjects beginning with a past-tense verb, such as “Added,” “Implemented,” “Updated,” “Fixed,” or “Refactored.” Use the developer's configured Git identity. Do not add generated attribution trailers.
+
+Stage all intended nonignored files before committing. The pre-commit hook rejects unstaged tracked changes and untracked files, runs the full quality gate, and checks the staged snapshot again. Run only one commit operation at a time and avoid editing files while the gate runs. The commit-message hook requires a single subject line, a configured past-tense verb, and a description; the hook rejects extra lines and common multiple-sentence separators. Reviewers must still check the subject's meaning.
+
+The pre-push hook permits destinations under `refs/heads/feature/` only and rechecks private-file exclusion from the index and reachable history. The hook rejects direct protected-branch pushes even when the current branch is a feature branch. Tags and other remote namespaces require a separately approved policy change. Do not bypass hooks. Local hooks remain bypassable through Git configuration; hosted rulesets must supply the enforcement boundary before collaboration.
 
 ## Quality commands
 

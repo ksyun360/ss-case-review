@@ -4,6 +4,11 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 vi.mock('node:child_process', () => ({ execFileSync: vi.fn() }));
 
+test('accepts a fully staged snapshot without extra files', async () => {
+  vi.mocked(execFileSync).mockReturnValue('');
+  await expect(import('./check-staging.ts')).resolves.toBeDefined();
+});
+
 test('rejects tracked changes that differ from the staged snapshot', async () => {
   vi.mocked(execFileSync).mockImplementation((...args) => {
     if (JSON.stringify(args[1]) === JSON.stringify(['diff', '--exit-code'])) {
