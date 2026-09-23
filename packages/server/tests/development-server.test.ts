@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import process from 'node:process';
 import Fastify from 'fastify';
 import { Pool } from 'pg';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
@@ -10,6 +11,18 @@ import { startDevelopmentServer } from '../src/development-server.ts';
 vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
+
+test('handles an idle database error with a fixed diagnostic instead of exposing details', async () => {
+  const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+  try {
+    await startDevelopmentServer(environment);
+    expect(database.emit('error', new Error('synthetic private driver details'))).toBe(true);
+    expect(stderr).toHaveBeenCalledExactlyOnceWith('development_database_connection_lost\n');
+    expect(database.end).not.toHaveBeenCalled();
+  } finally {
+    stderr.mockRestore();
+  }
+});
 
 test('closes the pool after the requested loopback listener cannot start', async () => {
   vi.mocked(api.listen).mockImplementation(async () => {
