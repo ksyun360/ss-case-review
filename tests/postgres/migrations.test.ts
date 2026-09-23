@@ -108,3 +108,21 @@ test('migrates a native PostgreSQL database and round-trips case and original me
     { server_version_num: '180006' },
   ]);
 });
+
+test('does not replay an applied migration or change existing case data', async () => {
+  await migrateCaseSchema(client);
+  const input = {
+    caseId: '00000000-0000-4000-8000-000000000001',
+    reviewerId: '00000000-0000-4000-8000-000000000011',
+    label: 'Synthetic retained case',
+  };
+  await createCase(client, input);
+  const history = (await client.query('SELECT * FROM record_review_migrations ORDER BY id')).rows;
+  expect(await migrateCaseSchema(client)).toEqual([]);
+  expect((await client.query('SELECT * FROM record_review_migrations ORDER BY id')).rows).toEqual(
+    history,
+  );
+  expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
+    { caseId: input.caseId, label: input.label, recordRevision: 1 },
+  ]);
+});
