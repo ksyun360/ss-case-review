@@ -12,6 +12,9 @@ export async function writeOriginalStream(
   chunks: AsyncIterable<Uint8Array>,
   maximumBytes: number,
 ): Promise<StoredOriginal> {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+    throw new Error('Original byte limit must be a positive safe integer');
+  }
   const { caseId, documentVersionId } = identity;
   const directory = join(root, createHash('sha256').update(caseId).digest('hex'));
   const filename = createHash('sha256').update(documentVersionId).digest('hex');

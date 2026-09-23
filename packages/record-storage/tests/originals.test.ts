@@ -83,6 +83,21 @@ test('rejects a stream that exceeds its byte budget without publishing partial b
   expect(await fs.readdir(caseDirectory())).toEqual([]);
 });
 
+test('rejects an invalid stream byte budget before creating storage', async () => {
+  async function* chunks() {
+    yield Buffer.from('a');
+  }
+  for (const maximumBytes of [Number.NaN, Number.POSITIVE_INFINITY, -1, 0, 1.5]) {
+    await expect(
+      writeOriginalStream(storageRoot, identity, chunks(), maximumBytes),
+    ).rejects.toThrow('Original byte limit must be a positive safe integer');
+  }
+  await expect(fs.readdir(storageRoot)).rejects.toMatchObject({ code: 'ENOENT' });
+  await expect(writeOriginalStream(storageRoot, identity, chunks(), 1)).resolves.toMatchObject({
+    byteLength: 1,
+  });
+});
+
 test('reports a missing stored version as an I/O failure without fabricating original bytes', async () => {
   await expect(
     readOriginal(storageRoot, identity.caseId, { ...identity, sha256, byteLength: 3 }),
