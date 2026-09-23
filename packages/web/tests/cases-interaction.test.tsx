@@ -15,6 +15,18 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+test('links each saved synthetic draft to its case-specific page', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticCases).mockResolvedValueOnce([
+    { caseId, label: 'Synthetic saved draft', recordRevision: 1 },
+  ]);
+  render(<CasesPage />);
+  expect(await screen.findByRole('link', { name: 'Synthetic saved draft' })).toHaveAttribute(
+    'href',
+    `/cases/${caseId}`,
+  );
+});
+
 test('shows a failed synthetic draft creation before an explicit successful retry', async () => {
   vi.mocked(listSyntheticCases).mockResolvedValueOnce([]);
   let rejectFirst!: (reason?: unknown) => void;

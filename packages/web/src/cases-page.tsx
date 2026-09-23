@@ -87,7 +87,9 @@ export function CasesPage() {
               {view.cases.map((item) => (
                 <li className="file-row" key={item.caseId}>
                   <div className="file-details">
-                    <strong>{item.label}</strong>
+                    <strong>
+                      <a href={`/cases/${item.caseId}`}>{item.label}</a>
+                    </strong>
                     <span>Record revision {item.recordRevision}</span>
                   </div>
                 </li>
