@@ -32,6 +32,18 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('keeps matching document-version identifiers in separate case storage', async () => {
+  const otherIdentity = { ...identity, caseId: 'synthetic-case-b' };
+  const otherBytes = Buffer.from('xyz');
+  const reference = await writeOriginal(storageRoot, identity, bytes);
+  const otherReference = await writeOriginal(storageRoot, otherIdentity, otherBytes);
+  expect(await readOriginal(storageRoot, identity.caseId, reference)).toEqual(bytes);
+  expect(await readOriginal(storageRoot, otherIdentity.caseId, otherReference)).toEqual(otherBytes);
+  expect(await fs.readdir(storageRoot)).toEqual(
+    [basename(caseDirectory()), basename(caseDirectory(otherIdentity.caseId))].sort(),
+  );
+});
+
 test('rejects a stored reference with an incorrect byte length despite a matching hash', async () => {
   const reference = await writeOriginal(storageRoot, identity, bytes);
   await expect(
