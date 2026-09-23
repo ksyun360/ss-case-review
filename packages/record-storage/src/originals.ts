@@ -69,6 +69,12 @@ export async function readOriginal(
   return bytes;
 }
 
+export async function discardOriginal(root: string, identity: OriginalIdentity): Promise<void> {
+  const directory = join(root, createHash('sha256').update(identity.caseId).digest('hex'));
+  const filename = createHash('sha256').update(identity.documentVersionId).digest('hex');
+  await fs.unlink(join(directory, filename));
+}
+
 export async function writeOriginal(
   root: string,
   identity: OriginalIdentity,

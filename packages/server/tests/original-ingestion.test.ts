@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFile, mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -83,6 +84,41 @@ test('rejects a non-member before consuming or publishing original bytes', async
     ).toBeUndefined();
     expect(consumed).toBe(false);
     expect(await readdir(root)).toEqual([]);
+    expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('removes an unpublished original when membership ends during its stream', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000003';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  try {
+    await database.exec(
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    );
+    await createCase(database, { caseId, label: 'Revoked case', reviewerId });
+    async function* chunks() {
+      await database.query('DELETE FROM case_memberships WHERE case_id = $1 AND reviewer_id = $2', [
+        caseId,
+        reviewerId,
+      ]);
+      yield Buffer.from('private');
+    }
+    expect(
+      await storeOriginalForReviewer(database, reviewerId, caseId, root, chunks(), 100),
+    ).toBeUndefined();
+    const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
+    expect(await readdir(caseDirectory)).toEqual([]);
     expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
   } finally {
     await database.close();

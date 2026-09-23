@@ -5,7 +5,7 @@ import {
   type OriginalReference,
   type SqlClient,
 } from '@record-review/case-repository/cases';
-import { writeOriginalStream } from '@record-review/record-storage/originals';
+import { discardOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 
 export async function storeOriginalForReviewer(
   database: SqlClient,
@@ -23,5 +23,7 @@ export async function storeOriginalForReviewer(
     chunks,
     maximumBytes,
   );
-  return registerOriginalReference(database, reviewerId, reference);
+  const registered = await registerOriginalReference(database, reviewerId, reference);
+  if (!registered) await discardOriginal(root, reference);
+  return registered;
 }

@@ -3,7 +3,12 @@ import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { readOriginal, writeOriginal, writeOriginalStream } from '../src/originals.ts';
+import {
+  discardOriginal,
+  readOriginal,
+  writeOriginal,
+  writeOriginalStream,
+} from '../src/originals.ts';
 
 vi.mock('node:fs/promises', { spy: true });
 
@@ -58,6 +63,8 @@ test('streams separate original chunks into one private version with a content h
   expect(await fs.readdir(caseDirectory())).toEqual([basename(originalPath())]);
   expect(fs.mkdtemp).toHaveBeenCalledWith(join(caseDirectory(), '.pending-'));
   expect(closed).toBe(true);
+  await discardOriginal(storageRoot, identity);
+  expect(await fs.readdir(caseDirectory())).toEqual([]);
 });
 
 test('leaves no published original after an input stream fails midway', async () => {
