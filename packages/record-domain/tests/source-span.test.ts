@@ -79,6 +79,14 @@ test('rejects a supplied quote that changes the stored text', () => {
   });
 });
 
+test('accepts a quote covering the entire source unit with an exclusive end offset', () => {
+  const wholeUnit = { ...candidate, start: 0, end: source.rawText.length, quote: source.rawText };
+  expect(locateSourceSpan('case-a', source, wholeUnit)).toEqual({
+    status: 'located',
+    span: { caseId: 'case-a', ...wholeUnit },
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
