@@ -29,6 +29,8 @@ Complete these deferred steps before shared court testing or deployment:
 
 The current PR template and CODEOWNERS file express review expectations but do not enforce hosted approvals by themselves. Report unsupported hosting controls before proposing an alternative.
 
-## Next approval boundary
+## Final setup gate: return to Phase 3
 
-The project owner authorized application implementation before hosted setup finishes. Keep local gates active and use synthetic fixtures only. Complete the deferred hosted setup before qualification and IT handoff. Continue to keep private working records outside commits.
+The project owner authorized Phase 5 qualification preparation and explicitly directed a return to Phase 3 at the very end. Run local synthetic qualification while hosted setup remains deferred. Complete the hosted checklist above as the final engineering setup gate before pilot handoff, shared court testing, or deployment. Keep local gates active and private working records outside commits. Do not treat the Phase 5 authorization as permission to skip missing application features or claim readiness.
+
+The [qualification readiness checklist](qualification-readiness.md) records this dependency. Leave the final Phase 3 gate open until the hosted checks, branch restrictions, human review or owner override, and build-status publication have verified evidence.

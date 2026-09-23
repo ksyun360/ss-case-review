@@ -2,7 +2,9 @@
 
 This project will help Western District of Texas magistrate judges and law clerks review Social Security disability appeal records and inspect cited evidence.
 
-Current phase: Application implementation. The project owner authorized phase 4 and deferred hosted CI and repository protections until the end. Local quality gates remain mandatory.
+Current phase: Phase 5 qualification preparation. The project owner authorized Phase 5 after the initial interface preview; the remaining Phase 4 application features have not reached completion. Review the [qualification readiness checklist](docs/engineering/qualification-readiness.md) for evidence, dependencies, and handoff gates.
+
+Final setup reminder: Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. Keep the existing local quality gates active throughout qualification.
 
 Build status: [Local verification results](docs/engineering/build-status.md). Hosted CI and branch protections remain deferred; no hosted passing status applies.
 

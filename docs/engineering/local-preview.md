@@ -43,4 +43,4 @@ Automated accessibility scans and browser geometry assertions supplement compone
 
 Later increments must implement case and document storage, source coordinates and versioning, durable upload, document inspection, OCR/extraction, provider configuration, source-linked review artifacts, correction history, and approved reference lookups. Court authentication, authorization, deployment qualification, performance evaluation, and corpus-based accuracy evaluation must precede real-record use.
 
-Hosted CI and repository protections remain deferred until the end, as directed by the project owner. Local TDD commits and quality gates remain active. The first application slice does not complete phase 4 or authorize court deployment.
+The project owner authorized Phase 5 qualification preparation after this initial slice. The first slice does not complete Phase 4 or authorize court deployment. Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. Local TDD commits and quality gates remain active. Track outstanding evidence in the [qualification readiness checklist](qualification-readiness.md).

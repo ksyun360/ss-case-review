@@ -1,0 +1,53 @@
+# Phase 5 qualification readiness
+
+Status: Qualification preparation in progress. The application is not ready for court testing, real records, or pilot handoff.
+
+The project owner authorized Phase 5 on September 22, 2026. The authorization advances qualification preparation; the authorization does not complete the missing application features or establish release readiness.
+
+## Final setup reminder
+
+**Return to Phase 3 at the very end, before pilot handoff.** Finish the [hosted repository setup](repository-setup.md) after the application and qualification work produce a release candidate. Verify CI, protected-branch restrictions, required human review with the permitted owner override, and published build status. Do not disable existing local hooks or quality gates while hosted setup remains deferred.
+
+## Evidence available now
+
+The repository contains a local browser preview with home, upload-selection, saved-case empty state, and unknown-address recovery. The preview displays filenames and sizes, supports additive selection and removal, and disables upload. The preview has no backend, case store, source viewer, extraction worker, model client, or court identity integration.
+
+The [build-status report](build-status.md) records measured local results. Chromium tests exercise desktop and narrow-screen layouts, keyboard navigation, and automated accessibility scans. Component tests and mutation checks cover current source behavior. These checks qualify only the implemented preview behaviors; passing source coverage does not establish record accuracy, case isolation, or processing speed.
+
+Use synthetic fixtures for all current checks. Keep browser traces and reports outside version control. No court or provider credentials are necessary for preview checks. Do not contact court systems or transmit records as part of this preparation.
+
+## Outstanding qualification evidence
+
+| Area                             | Current dependency                                                                     | Required evidence and responsible participant                                                                                                                                                                                      |
+| -------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| End-to-end review                | Case storage, ingestion, source navigation, and review artifacts remain unimplemented. | The development team completes the workflow; court reviewers verify the intended review tasks against source documents.                                                                                                            |
+| Record accuracy and completeness | No extraction pipeline or authorized labeled corpus exists in this workspace.          | Court reviewers approve and adjudicate evaluation labels; the development team reports held-out field, quote, citation, and event results against approved targets, including omissions and abstentions.                           |
+| Latency and capacity             | No processing worker, queue, or provider connection exists.                            | The development team measures the completed pipeline on approved hardware and workload sizes, including retries, queue time, failures, concurrency, and resource use. Do not report UI test duration as record-processing latency. |
+| Identity and case permissions    | No authentication or authorization backend exists.                                     | Court IT confirms the identity contract; the development team verifies access denial and cross-case isolation before any real-record pilot.                                                                                        |
+| CA and PACER                     | Court IT has not supplied the certificate role or intended PACER integration contract. | Court IT specifies trust direction, identity mapping when applicable, permitted PACER actions, credentials handling, and the test environment. Keep secrets and certificates outside Git.                                          |
+| Provider qualification           | No Gemini connection or operational local adapter exists.                              | Court IT approves the selected data path; the development team tests configured provider contracts, refusals, partial responses, malformed output, and outages. No operational local-model claim applies.                          |
+| Accessibility and compatibility  | Current automated evidence covers Chromium and the implemented preview.                | The test team records manual keyboard, screen-reader, zoom, target-browser, and target-operating-system results; court reviewers exercise the completed source-review workflow.                                                    |
+| Deployment and recovery          | No deployable backend, migrations, storage, or backup tooling exists.                  | Court IT and the development team agree on the target platform, then execute installation, upgrade, rollback, and coordinated restore rehearsals with integrity checks. A draft command list cannot establish recoverability.      |
+| Hosted enforcement               | Phase 3 hosted setup remains explicitly deferred.                                      | The project owner and repository administrator complete the final Phase 3 gate and retain commit-addressed CI and review evidence before handoff.                                                                                  |
+
+No row above has a passing full-application qualification result. Record an unavailable result as pending, not as a pass or a zero-error score.
+
+## Evidence collection rules
+
+For each qualification run, record the commit SHA, runtime versions, environment, synthetic or authorized corpus identifier, configuration, evaluator, expected result, measured result, and retained artifact location. Exclude claimant information and credentials from shared reports. Keep development fixtures separate from held-out evaluation records.
+
+Apply approved acceptance targets without silently lowering thresholds. Report numerator and denominator, input format, scan quality, unresolved items, and failure causes where applicable. Require reviewer adjudication for disputed reference labels. Qualify the specific release configuration; changes to extraction, provider configuration, source navigation, or deployment require affected checks to run again.
+
+Do not invent deployment or restore commands before the corresponding services exist. The eventual runbook must identify the release artifact, prerequisites, configuration and secret delivery, startup/readiness checks, logs and alerts, rollback steps, backup/restore procedure, integrity verification, and accountable operators. Court IT must approve the operational procedure after a successful rehearsal.
+
+## Handoff checklist
+
+- [ ] Complete the outstanding application features and identify the candidate commit.
+- [ ] Obtain court IT environment, identity, CA, PACER, provider, and data-use decisions.
+- [ ] Execute the applicable accuracy, completeness, capacity, security, accessibility, and recovery checks against the candidate.
+- [ ] Resolve failed gates and obtain reviewer sign-off; retain evidence and remaining limitations.
+- [ ] **Return to Phase 3 as the final setup step** and verify hosted checks, branch protections, review requirements, and build-status publication.
+- [ ] Confirm that the final repository state and deployment artifacts match the qualified candidate; rerun affected checks after changes.
+- [ ] Obtain court IT readiness confirmation and the project owner's explicit pilot-handoff approval.
+
+No remote setup, PR, merge, deployment, or court handoff occurs solely because this checklist exists.

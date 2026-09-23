@@ -6,7 +6,7 @@ Dependency installation disables lifecycle scripts. This policy avoids implicit 
 
 ## Development sequence
 
-Architecture and visual design have approval. The project owner authorized application implementation and deferred the remaining hosted foundation setup until the end. Keep the existing local TDD, coverage, mutation, and hook requirements active throughout implementation.
+Architecture and visual design have approval. The project owner authorized Phase 5 qualification preparation after the first application slice. The remaining application features still require implementation and qualification. Return to Phase 3 at the very end, before pilot handoff, to finish hosted foundation setup. Keep the existing local TDD, coverage, mutation, and hook requirements active throughout this work.
 
 Author changes on a `feature/` branch. Never author development commits on `main`, `master`, or `mainline`. The project owner performs final PR integration manually.
 
