@@ -138,6 +138,12 @@ test('rejects a fractional end instead of rounding the source position', () => {
   });
 });
 
+test('rejects a reversed source range rather than accepting an empty quote', () => {
+  expect(
+    locateSourceSpan('case-a', source, { ...candidate, start: 19, end: 7, quote: '' }),
+  ).toEqual({ status: 'not_located', reason: 'invalid_offsets' });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
