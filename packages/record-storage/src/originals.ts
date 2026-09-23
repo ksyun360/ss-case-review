@@ -13,7 +13,7 @@ export async function writeOriginal(
   const staging = await fs.mkdtemp(join(directory, '.pending-'));
   try {
     const stagedPath = join(staging, filename);
-    await fs.writeFile(stagedPath, bytes, { mode: 0o600 });
+    await fs.writeFile(stagedPath, bytes, { mode: 0o600, flush: true });
     await fs.link(stagedPath, join(directory, filename));
   } finally {
     await fs.rm(staging, { recursive: true });

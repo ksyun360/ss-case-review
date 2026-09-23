@@ -22,6 +22,7 @@ function originalPath(documentVersionId = identity.documentVersionId, caseId = i
 }
 
 beforeEach(async () => {
+  vi.clearAllMocks();
   temporaryRoot = await fs.mkdtemp(join(tmpdir(), 'record-review-storage-test-'));
   storageRoot = join(temporaryRoot, 'private', 'originals');
 });
@@ -29,6 +30,15 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await fs.rm(temporaryRoot, { recursive: true, force: true });
+});
+
+test('requests a file-data flush before publishing an original', async () => {
+  await writeOriginal(storageRoot, identity, bytes);
+  expect(fs.writeFile).toHaveBeenCalledExactlyOnceWith(expect.any(String), bytes, {
+    mode: 0o600,
+    flush: true,
+  });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
 });
 
 test('keeps an interrupted write unpublished and removes only its private staging directory', async () => {
