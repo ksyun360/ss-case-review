@@ -1,6 +1,6 @@
 # Synthetic development API startup
 
-Phase 4 includes a runnable, loopback-only case metadata API. Use synthetic case labels and a dedicated development database. The browser's saved-case page requests metadata through the Vite development proxy when the API runs.
+Phase 4 includes a runnable, loopback-only case metadata API. Use synthetic case labels and a dedicated development database. The browser lists, creates, and opens synthetic drafts through the Vite development proxy when the API runs.
 
 ## Configuration and startup
 
@@ -48,7 +48,7 @@ curl --fail-with-body http://127.0.0.1:5176/api/v1/cases \
   --data '{"label":"Synthetic development case"}'
 ```
 
-Each successful POST creates a new draft; the API has no retry token or case deletion endpoint. The [case API contract](case-api.md) specifies validation and access boundaries. Run `npm run dev` separately to start the browser on port 5175. Open `/cases` to list drafts through Vite's same-origin development proxy. The browser cannot create a case or open a case detail page yet. The production-bundle preview has no API proxy.
+Each successful POST creates a new draft; the API has no retry token or case deletion endpoint. The [case API contract](case-api.md) specifies validation and access boundaries. Run `npm run dev` separately to start the browser on port 5175. Open `/cases` to list or create drafts through Vite's same-origin development proxy. Select a saved label to open `/cases/:caseId`. The case page shows metadata only; no documents or review artifacts are available. The production-bundle preview has no API proxy.
 
 ## Evidence and limits
 

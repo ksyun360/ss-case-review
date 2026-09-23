@@ -1,6 +1,6 @@
 # PostgreSQL case metadata
 
-Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. A [versioned migration runner and native PostgreSQL tests](postgres-migrations.md) supplement the fast SQL tests. The [synthetic case API](case-api.md) calls case creation and listing with a fixed development reviewer. The browser lists case metadata through that API, not through a direct database connection. Court-authenticated API access and coordinated file/database storage remain pending. Use synthetic fixtures only.
+Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. A [versioned migration runner and native PostgreSQL tests](postgres-migrations.md) supplement the fast SQL tests. The [synthetic case API](case-api.md) calls case creation, listing, and member-only detail lookup with a fixed development reviewer. The browser accesses case metadata through that API, not through a direct database connection. Court-authenticated API access and coordinated file/database storage remain pending. Use synthetic fixtures only.
 
 ## Server contract
 
@@ -39,7 +39,7 @@ Keep PostgreSQL as the deployment database. PGlite supplies only the npm-package
 
 ## Verification
 
-Run `npm test -- packages/case-repository/tests/cases.test.ts` for the focused suite. The 21 tests cover atomic creation, uniqueness and foreign keys, reviewer-filtered lists, literal parameter values, original-reference writes and reads, cross-case isolation, revoked membership, missing references, and required hash/length constraints.
+Run `npm test -- packages/case-repository/tests/cases.test.ts` for the focused suite. The 22 tests cover atomic creation, uniqueness and foreign keys, reviewer-filtered lists and case details, literal parameter values, original-reference writes and reads, cross-case isolation, revoked membership, missing references, and required hash/length constraints.
 
 The fast SQL tests create one isolated in-memory PGlite instance and rebuild the test-owned schema from the initial migration SQL before each case. These tests never read a database URL, contact an existing database, load `.env`, or use real records. PGlite runs PostgreSQL through WebAssembly and supports parameterized SQL; the suite uses real SQL execution rather than mocked query results. [PGlite documentation](https://pglite.dev/docs/); [PGlite API](https://pglite.dev/docs/api). The separate native suite runs the actual migration library against test-owned containers.
 
