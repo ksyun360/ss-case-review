@@ -1,4 +1,8 @@
+import { useState } from 'react';
+
 export function UploadPage() {
+  const [files, setFiles] = useState<File[]>([]);
+
   return (
     <main id="main-content" className="page upload-page" tabIndex={-1}>
       <div className="page-intro">
@@ -24,6 +28,7 @@ export function UploadPage() {
               multiple
               accept=".pdf,.doc,.docx,.xlsx,.tif,.tiff"
               aria-describedby="file-help local-only-note"
+              onChange={(event) => setFiles(Array.from(event.currentTarget.files as FileList))}
             />
           </div>
           <p id="local-only-note" className="local-note">
@@ -32,7 +37,16 @@ export function UploadPage() {
           </p>
           <section className="manifest" aria-labelledby="manifest-heading">
             <h3 id="manifest-heading">Selected documents</h3>
-            <ul className="file-list" aria-label="Selected documents" />
+            <ul className="file-list" aria-label="Selected documents">
+              {files.map((file, index) => (
+                <li className="file-row" key={index}>
+                  <div className="file-details">
+                    <strong>{file.name}</strong>
+                    <span>{file.size} bytes</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </section>
           <div className="upload-actions">
             <button
