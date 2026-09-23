@@ -42,6 +42,8 @@ The repository-policy package contains local safeguards. The web workspace provi
 
 The record-domain package provides deterministic source-span validation. Read the [source-span contract](docs/engineering/source-spans.md) before integrating storage, API, or extraction code. Keep external-input validation and user/case authorization at the server boundary; never substitute client-supplied text for a trusted source unit.
 
+The server-config package provides a pure [Gemini development configuration validator](docs/engineering/gemini-development.md). Tests use synthetic credentials; do not read a developer's `.env` or make paid provider requests during ordinary verification. Keep the package out of browser imports. Server startup and provider-client integration remain pending.
+
 The license gate tracks the installed development-tool inventory, including transitive packages. The inventory includes attribution licenses, MPL-2.0, Artistic-2.0, and the WTFPL declaration from `@azu/style-format`. A passing scan identifies declarations; the scan does not grant legal approval or discharge distribution obligations. Court IT must approve distribution and notices before deployment. License names containing “Python” describe JavaScript dependencies' license declarations, not Python runtime dependencies.
 
 ## Local records and sensitive data

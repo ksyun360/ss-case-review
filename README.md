@@ -12,6 +12,8 @@ Review the approved [brand and interaction specification](docs/design/brand-and-
 
 The initial application preview provides responsive home, upload-selection, and saved-case screens. The upload screen lists document names and sizes, accepts additional selections, and removes selected files. The preview does not read document contents, upload records, save cases, or call a model.
 
+The [Gemini development configuration helper](docs/engineering/gemini-development.md) now validates explicit server-side settings for synthetic testing. Keep credentials in the ignored root `.env`; `.env.example` contains placeholders only. The helper does not load environment files or connect the preview to Gemini. Model-client and worker integration remain pending.
+
 Use synthetic documents only. Court sign-in, storage, extraction, and case-review artifacts remain unimplemented. The preview does not support real court records or shared deployment.
 
 With Node.js 24.21.0 and installed dependencies, run `npm run dev` and open <http://127.0.0.1:5175/>. Read the [local preview guide](docs/engineering/local-preview.md) for setup, available routes, and limitations. Read [Contributing](CONTRIBUTING.md) for quality commands and the development workflow.

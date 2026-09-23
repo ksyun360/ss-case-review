@@ -17,6 +17,8 @@ Open <http://127.0.0.1:5175/>. The development server binds only to the loopback
 
 For a production-bundle check, run `npm run build` followed by `npm run preview`, then open <http://127.0.0.1:5185/>. The preview server also binds only to loopback. These commands do not deploy the application.
 
+The [Gemini development configuration helper](gemini-development.md) remains separate from the preview. Adding a key to the root `.env` does not enable model calls or uploads. Keep credentials server-side and use synthetic fixtures only.
+
 ## Available behavior
 
 | Route           | Current behavior                                                                     |

@@ -2,9 +2,11 @@
 
 The local application-preview gate passed on September 22, 2026: formatting, code/style/document lint, type checking, tests, coverage, mutation testing, production bundling, Chromium workflows, automated accessibility scans, secret scanning, dependency auditing, and license inventory checks.
 
-The current suite passes 64 unit/integration tests and 7 Chromium workflow tests. Coverage reaches 100% for lines, statements, functions, and branches across the current first-party TypeScript/TSX source. Mutation testing kills all 231 generated mutants. The dependency audit reports zero known vulnerabilities.
+The current suite passes 75 unit/integration tests and 7 Chromium workflow tests. Coverage reaches 100% for lines, statements, functions, and branches across the current first-party TypeScript/TSX source. Mutation testing kills all 269 generated mutants. The dependency audit reports zero known vulnerabilities.
 
 The record-domain package adds 18 source-span cases covering source identity, missing and wrong-case sources, exact quotations, bounds, invalid numeric positions, and Unicode offsets. These checks validate a typed internal contract; storage integrity, user authorization, extraction quality, and displayed source highlights still require implementation and integration evidence. Read the [source-span contract](source-spans.md) for trust assumptions.
+
+The server-config package adds 11 synthetic cases for the [Gemini development settings](gemini-development.md): explicit selection, development and synthetic-data restrictions, transport, missing and blank model/key values, latest-alias rejection, and credential omission from ordinary serialization and inspection. No test reads a developer's credential or contacts Gemini. Server startup, model clients, and live provider qualification remain unimplemented.
 
 The browser checks cover the desktop workspace, keyboard skip link, a 320-pixel home-to-upload workflow, a populated mobile document list with a long filename, and automated accessibility scans for the home, upload, and saved-case screens. Phase 5 preview checks observe no network requests during synthetic document selection/removal and an empty manifest after reload. The storage check finds no entries in localStorage, sessionStorage, IndexedDB, or Cache Storage during the exercised selection. Manual image inspection also checked the 1440-pixel home and 390-pixel upload layouts. These checks do not establish complete accessibility compliance, certify all data paths, or qualify unimplemented case processing.
 

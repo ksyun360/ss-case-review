@@ -1,3 +1,4 @@
+import { inspect } from 'node:util';
 import { expect, test } from 'vitest';
 import { readGeminiDevelopmentConfig } from '../src/gemini-development.ts';
 
@@ -80,6 +81,19 @@ test('rejects a moving latest-model alias in development configuration', () => {
   expect(
     readGeminiDevelopmentConfig({ ...environment, GEMINI_MODEL_ID: 'synthetic-model-latest' }),
   ).toEqual({ status: 'configuration_error', code: 'unpinned_model' });
+});
+
+test('omits the credential from configuration JSON and default diagnostic inspection', () => {
+  const result = readGeminiDevelopmentConfig(environment);
+  expect(JSON.parse(JSON.stringify(result))).toEqual({
+    status: 'configured',
+    config: {
+      provider: 'gemini',
+      transport: 'developer-api',
+      modelId: 'synthetic-model-v1',
+    },
+  });
+  expect(inspect(result)).not.toContain(environment.GEMINI_API_KEY);
 });
 
 test('rejects an environment without an explicitly selected provider', () => {
