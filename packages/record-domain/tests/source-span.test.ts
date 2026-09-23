@@ -115,6 +115,15 @@ test('rejects an end beyond the stored text instead of silently truncating the r
   });
 });
 
+test('rejects an empty source span even when the candidate quote is empty', () => {
+  expect(locateSourceSpan('case-a', source, { ...candidate, start: 7, end: 7, quote: '' })).toEqual(
+    {
+      status: 'not_located',
+      reason: 'invalid_offsets',
+    },
+  );
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
