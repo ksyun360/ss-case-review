@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./development-identity": "./src/development-identity.ts",
     "./gemini-development": "./src/gemini-development.ts"
   }
 }
