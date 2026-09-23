@@ -53,3 +53,20 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   expect(await screen.findByRole('heading', { name: 'Second synthetic draft' })).toBeVisible();
   expect(getSyntheticCase).toHaveBeenNthCalledWith(2, nextCaseId);
 });
+
+test('explains when a saved synthetic case is not available to this reviewer', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000099';
+  vi.mocked(getSyntheticCase).mockResolvedValueOnce(undefined);
+  render(
+    <MemoryRouter initialEntries={[`/cases/${caseId}`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('heading', { name: 'Case unavailable' })).toBeVisible();
+  expect(screen.getByText('This case is not available in your synthetic workspace.')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Back to saved cases' })).toHaveAttribute(
+    'href',
+    '/cases',
+  );
+  expect(getSyntheticCase).toHaveBeenCalledExactlyOnceWith(caseId);
+});

@@ -4,14 +4,22 @@ import { getSyntheticCase, type CaseSummary } from './case-client.ts';
 
 export function CaseDetailPage() {
   const { caseId } = useParams();
-  const [record, setRecord] = useState<CaseSummary>();
+  const [record, setRecord] = useState<CaseSummary | null>();
   useEffect(() => {
-    void getSyntheticCase(caseId as string).then(setRecord);
+    void getSyntheticCase(caseId as string).then((found) => setRecord(found ?? null));
   }, [caseId]);
 
   return (
     <main id="main-content" className="page" tabIndex={-1}>
-      {record ? (
+      {record === null ? (
+        <section className="panel empty-state">
+          <h1>Case unavailable</h1>
+          <p>This case is not available in your synthetic workspace.</p>
+          <a className="button secondary-button" href="/cases">
+            Back to saved cases
+          </a>
+        </section>
+      ) : record ? (
         <>
           <div className="page-intro">
             <p className="eyebrow">CASE REVIEW / SYNTHETIC DRAFT</p>
