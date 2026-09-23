@@ -276,3 +276,16 @@ test('stops returning original metadata after the creator membership is revoked'
     { sha256: original.sha256 },
   ]);
 });
+
+test('returns no reference for an unknown version within a member case', async () => {
+  await createCase(database, input);
+  await registerOriginalReference(database, reviewerId, original);
+  expect(
+    await findOriginalReference(
+      database,
+      reviewerId,
+      caseId,
+      '00000000-0000-4000-8000-000000000022',
+    ),
+  ).toBeUndefined();
+});
