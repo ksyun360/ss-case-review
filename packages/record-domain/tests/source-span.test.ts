@@ -45,6 +45,15 @@ test('rejects a candidate tied to another document version', () => {
   });
 });
 
+test('rejects a candidate with another document content hash', () => {
+  expect(
+    locateSourceSpan('case-a', source, { ...candidate, documentSha256: 'b'.repeat(64) }),
+  ).toEqual({
+    status: 'not_located',
+    reason: 'source_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
