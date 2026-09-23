@@ -28,7 +28,10 @@ export function UploadPage() {
               multiple
               accept=".pdf,.doc,.docx,.xlsx,.tif,.tiff"
               aria-describedby="file-help local-only-note"
-              onChange={(event) => setFiles(Array.from(event.currentTarget.files as FileList))}
+              onChange={(event) => {
+                const selected = Array.from(event.currentTarget.files as FileList);
+                setFiles((previous) => [...previous, ...selected]);
+              }}
             />
           </div>
           <p id="local-only-note" className="local-note">

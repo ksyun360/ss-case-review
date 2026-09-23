@@ -7,6 +7,19 @@ import { UploadPage } from '../src/upload-page.tsx';
 
 afterEach(cleanup);
 
+test('keeps earlier selections when another batch of documents is chosen', async () => {
+  const user = userEvent.setup();
+  render(<UploadPage />);
+  const chooser = screen.getByLabelText('Choose case documents');
+  await user.upload(chooser, new File(['one'], 'first.pdf', { type: 'application/pdf' }));
+  await user.upload(chooser, new File(['two'], 'second.pdf', { type: 'application/pdf' }));
+
+  const documents = within(screen.getByRole('list', { name: 'Selected documents' }));
+  expect(documents.getAllByRole('listitem')).toHaveLength(2);
+  expect(documents.getByText('first.pdf')).toBeVisible();
+  expect(documents.getByText('second.pdf')).toBeVisible();
+});
+
 test('lists selected file names and sizes without enabling processing', async () => {
   const user = userEvent.setup();
   render(<UploadPage />);
