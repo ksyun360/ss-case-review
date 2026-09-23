@@ -32,6 +32,13 @@ test('rejects a failed case-detail response without displaying its error body', 
   expect(json).not.toHaveBeenCalled();
 });
 
+test('rejects a case-detail response without case metadata', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => null }));
+  await expect(getSyntheticCase('00000000-0000-4000-8000-000000000002')).rejects.toThrow(
+    'case_detail_unavailable',
+  );
+});
+
 test('creates a synthetic draft through the guarded same-origin API', async () => {
   const created = {
     caseId: '00000000-0000-4000-8000-000000000002',

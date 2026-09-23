@@ -13,6 +13,7 @@ export async function getSyntheticCase(caseId: string): Promise<CaseSummary | un
   if (response.status === 404) return undefined;
   if (!response.ok) throw new Error('case_detail_unavailable');
   const payload = (await response.json()) as { case: CaseSummary };
+  if (!payload?.case) throw new Error('case_detail_unavailable');
   return payload.case;
 }
 
