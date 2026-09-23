@@ -28,7 +28,7 @@ export function HomePage() {
           <a className="button secondary-button" href="/cases">
             Open existing case <span aria-hidden="true">→</span>
           </a>
-          <p className="card-note">Case storage is not connected in this preview.</p>
+          <p className="card-note">Saved synthetic case metadata appears on the next page.</p>
         </article>
       </section>
       <section className="recent-section" aria-labelledby="recent-heading">
@@ -40,10 +40,10 @@ export function HomePage() {
           <span className="empty-symbol" aria-hidden="true">
             —
           </span>
-          <h3>No cases in this preview</h3>
+          <h3>Prepare synthetic documents</h3>
           <p>
-            Start by selecting synthetic documents. Saved cases will appear here after case storage
-            is connected.
+            Select synthetic documents locally; this preview does not upload or process selected
+            files. Browse saved synthetic case drafts from the Saved cases page.
           </p>
           <a className="text-link" href="/upload">
             Prepare a case record <span aria-hidden="true">→</span>

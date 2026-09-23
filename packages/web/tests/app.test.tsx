@@ -3,6 +3,24 @@ import { MemoryRouter } from 'react-router';
 import { expect, test } from 'vitest';
 import { App } from '../src/app.tsx';
 
+test('describes the metadata-only preview accurately across routes', () => {
+  const home = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/home']}>
+      <App />
+    </MemoryRouter>,
+  );
+  const cases = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/cases']}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(home).toContain('Synthetic case metadata can be listed');
+  expect(home).toContain('Select synthetic documents locally');
+  expect(cases).toContain('Browse synthetic case drafts');
+  expect(home).not.toContain('Case storage is not connected');
+  expect(home).not.toContain('Saved cases will appear here after case storage');
+});
+
 test('provides a recovery page for an unknown address', () => {
   const html = renderToStaticMarkup(
     <MemoryRouter initialEntries={['/missing']}>

@@ -39,7 +39,8 @@ export function App() {
             {' '}
             ·{' '}
           </span>
-          Use synthetic documents only. Storage, processing, and court sign-in are not connected.
+          Use synthetic documents only. Synthetic case metadata can be listed; uploads, processing,
+          and court sign-in are unavailable.
         </p>
       </div>
       <Routes>

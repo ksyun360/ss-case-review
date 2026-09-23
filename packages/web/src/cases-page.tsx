@@ -25,7 +25,7 @@ export function CasesPage() {
       <div className="page-intro">
         <p className="eyebrow">CASE REVIEW / SAVED CASES</p>
         <h1>Existing cases</h1>
-        <p className="lede">Return to a case workspace and continue reviewing the record.</p>
+        <p className="lede">Browse synthetic case drafts. Record review is not available yet.</p>
       </div>
       {view.kind === 'initial' || view.kind === 'loading' ? (
         <section className="empty-state panel" aria-live="polite">
