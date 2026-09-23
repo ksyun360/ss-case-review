@@ -144,6 +144,16 @@ test('rejects a reversed source range rather than accepting an empty quote', () 
   ).toEqual({ status: 'not_located', reason: 'invalid_offsets' });
 });
 
+test('rejects a NaN start offset instead of coercing the position to zero', () => {
+  expect(
+    locateSourceSpan('case-a', source, {
+      ...candidate,
+      start: Number.NaN,
+      quote: source.rawText.slice(0, candidate.end),
+    }),
+  ).toEqual({ status: 'not_located', reason: 'invalid_offsets' });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
