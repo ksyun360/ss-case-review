@@ -1,0 +1,11 @@
+{
+  "name": "@record-review/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@record-review/case-repository": "0.0.0",
+    "@record-review/server-config": "0.0.0",
+    "fastify": "5.12.5"
+  }
+}

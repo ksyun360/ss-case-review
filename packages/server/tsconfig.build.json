@@ -7,5 +7,9 @@
     "composite": true,
     "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../server-config/tsconfig.build.json" },
+    { "path": "../case-repository/tsconfig.build.json" }
+  ]
 }
