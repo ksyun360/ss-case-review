@@ -59,3 +59,20 @@ test('reserves a recoverable original attempt for a case member before file rece
     },
   ]);
 });
+
+test('does not reserve an upload attempt for a reviewer outside the case', async () => {
+  await createCase(database, {
+    caseId,
+    reviewerId: '00000000-0000-4000-8000-000000000012',
+    label: 'Other reviewer case',
+  });
+  expect(
+    await reserveOriginalUpload(database, {
+      caseId,
+      reviewerId,
+      documentVersionId,
+      maximumBytes: 16,
+    }),
+  ).toBeUndefined();
+  expect((await database.query('SELECT * FROM original_upload_attempts')).rows).toEqual([]);
+});
