@@ -132,3 +132,15 @@ test('registers original metadata for a case member without truncating the byte 
     },
   ]);
 });
+
+test('does not register original metadata when the reviewer belongs only to another case', async () => {
+  await createCase(database, input);
+  const otherReviewer = '00000000-0000-4000-8000-000000000012';
+  await createCase(database, {
+    ...input,
+    caseId: '00000000-0000-4000-8000-000000000002',
+    reviewerId: otherReviewer,
+  });
+  expect(await registerOriginalReference(database, otherReviewer, original)).toBeUndefined();
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});

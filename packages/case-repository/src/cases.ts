@@ -19,15 +19,22 @@ export type OriginalReference = Readonly<{
 
 export async function registerOriginalReference(
   client: SqlClient,
-  _reviewerId: string,
+  reviewerId: string,
   reference: OriginalReference,
 ): Promise<OriginalReference | undefined> {
   const result = await client.query<OriginalReference>(
     `INSERT INTO original_references (case_id, document_version_id, sha256, byte_length)
-    VALUES ($1, $2, $3, $4)
+    SELECT case_id, $2, $3, $4 FROM case_memberships
+    WHERE case_id = $1 AND reviewer_id = $5
     RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
       sha256, byte_length::float8 AS "byteLength"`,
-    [reference.caseId, reference.documentVersionId, reference.sha256, reference.byteLength],
+    [
+      reference.caseId,
+      reference.documentVersionId,
+      reference.sha256,
+      reference.byteLength,
+      reviewerId,
+    ],
   );
   return result.rows[0];
 }
