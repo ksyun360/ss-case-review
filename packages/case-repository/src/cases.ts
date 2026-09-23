@@ -18,7 +18,8 @@ export async function installCaseSchema(client: SqlClient): Promise<void> {
   )`);
   await client.query(`CREATE TABLE case_memberships (
     case_id uuid REFERENCES cases(case_id),
-    reviewer_id uuid
+    reviewer_id uuid,
+    PRIMARY KEY (case_id, reviewer_id)
   )`);
 }
 

@@ -56,3 +56,16 @@ test('rejects membership in a nonexistent case', async () => {
   ).rejects.toMatchObject({ code: '23503' });
   expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
 });
+
+test('rejects duplicate membership for the same case and reviewer', async () => {
+  await createCase(database, input);
+  await expect(
+    database.query('INSERT INTO case_memberships (case_id, reviewer_id) VALUES ($1, $2)', [
+      caseId,
+      reviewerId,
+    ]),
+  ).rejects.toMatchObject({ code: '23505' });
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([
+    { case_id: caseId, reviewer_id: reviewerId },
+  ]);
+});
