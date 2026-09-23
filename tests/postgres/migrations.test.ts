@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { Client } from 'pg';
+import { PG_MIGRATE_LOCK_ID } from 'node-pg-migrate';
+import { Client, type ClientConfig } from 'pg';
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import {
   createCase,
@@ -21,6 +22,7 @@ const docker = (...args: string[]) =>
   }).trim();
 let containerId: string | undefined;
 let client: Client;
+let connectionConfig: ClientConfig;
 
 beforeAll(async () => {
   const password = randomBytes(32).toString('hex');
@@ -56,7 +58,7 @@ beforeAll(async () => {
   const binding = docker('port', createdId, '5432/tcp');
   const portMatch = /^127\.0\.0\.1:(\d+)$/.exec(binding);
   assert.ok(portMatch);
-  client = new Client({
+  connectionConfig = {
     host: '127.0.0.1',
     port: Number(portMatch[1]),
     user: 'postgres',
@@ -66,7 +68,8 @@ beforeAll(async () => {
     connectionTimeoutMillis: 5_000,
     statement_timeout: 5_000,
     application_name: 'record-review-native-tests',
-  });
+  };
+  client = new Client(connectionConfig);
   await client.connect();
 });
 
@@ -142,5 +145,20 @@ test('rolls back partial schema changes and leaves a failed migration unapplied'
   ]);
   expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([]);
   await client.query('DROP TABLE original_references');
+  expect(await migrateCaseSchema(client)).toHaveLength(1);
+});
+
+test('refuses a competing migration until the other connection releases the lock', async () => {
+  const blocker = new Client(connectionConfig);
+  try {
+    await blocker.connect();
+    await blocker.query('SELECT pg_advisory_lock($1)', [PG_MIGRATE_LOCK_ID]);
+    await expect(migrateCaseSchema(client)).rejects.toThrow('Another migration is already running');
+    expect(
+      (await client.query(`SELECT to_regclass('public.record_review_migrations') AS history`)).rows,
+    ).toEqual([{ history: null }]);
+  } finally {
+    await blocker.end();
+  }
   expect(await migrateCaseSchema(client)).toHaveLength(1);
 });
