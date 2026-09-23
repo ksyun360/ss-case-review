@@ -63,6 +63,15 @@ test('rejects a candidate from another extraction version', () => {
   });
 });
 
+test('rejects a candidate for another source unit', () => {
+  expect(
+    locateSourceSpan('case-a', source, { ...candidate, sourceUnitId: 'source-unit-b' }),
+  ).toEqual({
+    status: 'not_located',
+    reason: 'source_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',

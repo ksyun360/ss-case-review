@@ -51,6 +51,10 @@ export function locateSourceSpan(
     return { status: 'not_located', reason: 'source_mismatch' };
   }
 
+  if (source.sourceUnitId !== candidate.sourceUnitId) {
+    return { status: 'not_located', reason: 'source_mismatch' };
+  }
+
   return {
     status: 'located',
     span: {
