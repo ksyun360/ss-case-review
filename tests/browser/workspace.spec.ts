@@ -1,4 +1,26 @@
 import { expect, test } from '@playwright/test';
+import { AxeBuilder } from '@axe-core/playwright';
+
+test('keeps a populated mobile document manifest accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/upload');
+  const filename = 'synthetic-medical-record-with-a-long-unbroken-reference-1234567890.pdf';
+  await page.getByLabel('Choose case documents').setInputFiles({
+    name: filename,
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('Synthetic example only'),
+  });
+  await expect(page.getByRole('list', { name: 'Selected documents' })).toContainText(filename);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(result.violations).toEqual([]);
+  await page.getByRole('button', { name: `Remove ${filename}` }).click();
+  await expect(
+    page.getByRole('list', { name: 'Selected documents' }).getByRole('listitem'),
+  ).toHaveCount(0);
+});
 
 test('keeps the home-to-upload workflow usable at 320 pixels', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
