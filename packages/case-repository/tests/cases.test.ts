@@ -207,3 +207,14 @@ test('does not disclose original metadata through membership in a different case
     await findOriginalReference(database, otherReviewer, caseId, original.documentVersionId),
   ).toBeUndefined();
 });
+
+test('rejects original byte lengths outside the JavaScript safe integer range', async () => {
+  await createCase(database, input);
+  await expect(
+    registerOriginalReference(database, reviewerId, {
+      ...original,
+      byteLength: Number.MAX_SAFE_INTEGER + 1,
+    }),
+  ).rejects.toMatchObject({ code: '23514' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
