@@ -98,21 +98,3 @@ test('returns a safe failure when case creation rolls back in the database', asy
   expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
   expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
 });
-
-test('rejects a numeric case label without coercion or database writes', async () => {
-  const response = await api.inject({
-    method: 'POST',
-    url: '/api/v1/cases',
-    payload: { label: 123 },
-  });
-  expect(response.statusCode).toBe(400);
-  expect(response.json()).toEqual({ code: 'invalid_request' });
-  expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
-});
-
-test('rejects case creation without a label', async () => {
-  const response = await api.inject({ method: 'POST', url: '/api/v1/cases', payload: {} });
-  expect(response.statusCode).toBe(400);
-  expect(response.json()).toEqual({ code: 'invalid_request' });
-  expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
-});

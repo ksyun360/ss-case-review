@@ -22,7 +22,11 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
     '/api/v1/cases',
     {
       schema: {
-        body: { type: 'object', required: ['label'], properties: { label: { type: 'string' } } },
+        body: {
+          type: 'object',
+          required: ['label'],
+          properties: { label: { type: 'string', pattern: '\\S' } },
+        },
       },
     },
     async (request, reply) => {
