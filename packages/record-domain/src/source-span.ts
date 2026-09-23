@@ -24,8 +24,25 @@ export type SourceSpanResult =
 
 export function locateSourceSpan(
   _caseId: string,
-  _source: SourceUnit | undefined,
-  _candidate: SourceSpanCandidate,
+  source: SourceUnit | undefined,
+  candidate: SourceSpanCandidate,
 ): SourceSpanResult {
-  return { status: 'not_located', reason: 'source_unavailable' };
+  if (source === undefined) {
+    return { status: 'not_located', reason: 'source_unavailable' };
+  }
+
+  return {
+    status: 'located',
+    span: {
+      caseId: source.caseId,
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: source.sourceUnitId,
+      start: candidate.start,
+      end: candidate.end,
+      quote: source.rawText.slice(candidate.start, candidate.end),
+    },
+  };
 }
