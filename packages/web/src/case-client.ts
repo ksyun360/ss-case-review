@@ -10,6 +10,7 @@ export async function listSyntheticCases(): Promise<CaseSummary[]> {
     cache: 'no-store',
     redirect: 'error',
   });
+  if (!response.ok) throw new Error('case_list_unavailable');
   const payload = (await response.json()) as { cases: CaseSummary[] };
   return payload.cases;
 }
