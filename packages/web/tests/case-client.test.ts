@@ -33,6 +33,13 @@ test('rejects a failed draft creation without trusting an error body', async () 
   expect(json).not.toHaveBeenCalled();
 });
 
+test('rejects a successful draft response without case metadata', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => null }));
+  await expect(createSyntheticCase('Synthetic missing draft')).rejects.toThrow(
+    'case_creation_unavailable',
+  );
+});
+
 test('rejects a case row with a zero record revision', async () => {
   vi.stubGlobal(
     'fetch',
