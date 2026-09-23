@@ -1,0 +1,9 @@
+{
+  "name": "@record-review/record-domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./source-span": "./src/source-span.ts"
+  }
+}

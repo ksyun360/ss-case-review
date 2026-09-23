@@ -1,8 +1,10 @@
 # Phase 5 qualification readiness
 
-Status: Qualification preparation in progress. The application is not ready for court testing, real records, or pilot handoff.
+Status: Readiness checklist retained while Phase 4 implementation resumes. The application is not ready for court testing, real records, or pilot handoff.
 
 The project owner authorized Phase 5 on September 22, 2026. The authorization advances qualification preparation; the authorization does not complete the missing application features or establish release readiness.
+
+The project owner subsequently directed completion of Phase 4. Keep the preview qualification regressions active while implementing the missing capabilities; run full qualification against the resulting release candidate.
 
 ## Final setup reminder
 
