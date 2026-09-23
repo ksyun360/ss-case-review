@@ -109,3 +109,10 @@ test('rejects a numeric case label without coercion or database writes', async (
   expect(response.json()).toEqual({ code: 'invalid_request' });
   expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
 });
+
+test('rejects case creation without a label', async () => {
+  const response = await api.inject({ method: 'POST', url: '/api/v1/cases', payload: {} });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ code: 'invalid_request' });
+  expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
+});

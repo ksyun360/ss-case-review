@@ -21,7 +21,9 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
   api.post<{ Body: { label: string } }>(
     '/api/v1/cases',
     {
-      schema: { body: { type: 'object', properties: { label: { type: 'string' } } } },
+      schema: {
+        body: { type: 'object', required: ['label'], properties: { label: { type: 'string' } } },
+      },
     },
     async (request, reply) => {
       const created = await createCase(database, {
