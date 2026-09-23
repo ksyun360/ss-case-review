@@ -23,7 +23,13 @@ export async function storeOriginalForReviewer(
     chunks,
     maximumBytes,
   );
-  const registered = await registerOriginalReference(database, reviewerId, reference);
+  let registered: OriginalReference | undefined;
+  try {
+    registered = await registerOriginalReference(database, reviewerId, reference);
+  } catch (error) {
+    await discardOriginal(root, reference);
+    throw error;
+  }
   if (!registered) await discardOriginal(root, reference);
   return registered;
 }
