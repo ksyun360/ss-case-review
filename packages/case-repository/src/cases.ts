@@ -10,6 +10,21 @@ export type SqlClient = {
 export type CaseRecord = Readonly<{ caseId: string; label: string; recordRevision: number }>;
 export type NewCase = Readonly<{ caseId: string; label: string; reviewerId: string }>;
 
+export async function listCasesForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+): Promise<CaseRecord[]> {
+  const result = await client.query<CaseRecord>(
+    `SELECT cases.case_id AS "caseId", cases.label,
+      cases.record_revision AS "recordRevision"
+    FROM cases JOIN case_memberships USING (case_id)
+    WHERE case_memberships.reviewer_id = $1
+    ORDER BY cases.case_id`,
+    [reviewerId],
+  );
+  return result.rows;
+}
+
 export async function installCaseSchema(client: SqlClient): Promise<void> {
   await client.query(`CREATE TABLE cases (
     case_id uuid PRIMARY KEY,

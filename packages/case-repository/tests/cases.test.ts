@@ -1,6 +1,6 @@
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
-import { createCase, installCaseSchema } from '../src/cases.ts';
+import { createCase, installCaseSchema, listCasesForReviewer } from '../src/cases.ts';
 
 let database: PGlite;
 const caseId = '00000000-0000-4000-8000-000000000001';
@@ -77,4 +77,24 @@ test('rolls back case creation when the creator membership cannot be inserted', 
   await expect(createCase(database, input)).rejects.toMatchObject({ code: '23514' });
   expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
   expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
+});
+
+test('lists only the reviewer cases in stable case identity order', async () => {
+  const secondCase = '00000000-0000-4000-8000-000000000002';
+  const otherReviewer = '00000000-0000-4000-8000-000000000012';
+  await createCase(database, { ...input, caseId: secondCase, label: 'Synthetic case B' });
+  await createCase(database, input);
+  await createCase(database, {
+    caseId: '00000000-0000-4000-8000-000000000003',
+    reviewerId: otherReviewer,
+    label: 'Other reviewer case',
+  });
+  await database.query('INSERT INTO case_memberships (case_id, reviewer_id) VALUES ($1, $2)', [
+    caseId,
+    otherReviewer,
+  ]);
+  expect(await listCasesForReviewer(database, reviewerId)).toEqual([
+    { caseId, label: input.label, recordRevision: 1 },
+    { caseId: secondCase, label: 'Synthetic case B', recordRevision: 1 },
+  ]);
 });
