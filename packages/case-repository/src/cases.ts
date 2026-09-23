@@ -86,7 +86,7 @@ export async function installCaseSchema(client: SqlClient): Promise<void> {
   await client.query(`CREATE TABLE original_references (
     case_id uuid REFERENCES cases(case_id),
     document_version_id uuid,
-    sha256 text,
+    sha256 text CHECK (sha256 ~ '^[a-f0-9]{64}$'),
     byte_length bigint CHECK (byte_length BETWEEN 0 AND 9007199254740991),
     PRIMARY KEY (case_id, document_version_id)
   )`);

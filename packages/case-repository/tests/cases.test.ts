@@ -226,3 +226,11 @@ test('rejects negative original byte lengths', async () => {
   ).rejects.toMatchObject({ code: '23514' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('rejects malformed original SHA-256 metadata', async () => {
+  await createCase(database, input);
+  await expect(
+    registerOriginalReference(database, reviewerId, { ...original, sha256: 'not-a-sha256' }),
+  ).rejects.toMatchObject({ code: '23514' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
