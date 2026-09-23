@@ -13,7 +13,10 @@ export async function listSyntheticCases(): Promise<CaseSummary[]> {
   if (!response.ok) throw new Error('case_list_unavailable');
   const payload = (await response.json()) as { cases: CaseSummary[] } | null;
   const cases = payload?.cases;
-  if (!Array.isArray(cases) || !cases.every((item) => typeof item?.label === 'string'))
+  if (
+    !Array.isArray(cases) ||
+    !cases.every((item) => typeof item?.label === 'string' && typeof item.caseId === 'string')
+  )
     throw new Error('case_list_unavailable');
   return cases;
 }

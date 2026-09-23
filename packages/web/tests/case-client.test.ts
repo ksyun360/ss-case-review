@@ -3,6 +3,19 @@ import { listSyntheticCases } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
+test('rejects a case row without a usable case identity', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cases: [{ caseId: null, label: 'Synthetic draft', recordRevision: 1 }],
+      }),
+    }),
+  );
+  await expect(listSyntheticCases()).rejects.toThrow('case_list_unavailable');
+});
+
 test('rejects malformed case rows before the browser displays a list', async () => {
   vi.stubGlobal(
     'fetch',
