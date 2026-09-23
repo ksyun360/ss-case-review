@@ -11,6 +11,17 @@ vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
 
+test('closes the pool without migrating or listening after a connection failure', async () => {
+  database.connect.mockRejectedValue(new Error('synthetic private connection details'));
+  await expect(startDevelopmentServer(environment)).rejects.toThrow(
+    'development_server_start_failed',
+  );
+  expect(database.end).toHaveBeenCalledExactlyOnceWith();
+  expect(migrateCaseSchema).not.toHaveBeenCalled();
+  expect(client.release).not.toHaveBeenCalled();
+  expect(api.listen).not.toHaveBeenCalled();
+});
+
 test('releases migration resources and refuses to listen after a schema failure', async () => {
   vi.mocked(migrateCaseSchema).mockRejectedValue(new Error('synthetic private schema details'));
   await expect(startDevelopmentServer(environment)).rejects.toThrow(
