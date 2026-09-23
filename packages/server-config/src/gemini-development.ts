@@ -23,6 +23,10 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
   }
 
   const apiKey = environment.GEMINI_API_KEY;
+  if (!apiKey) {
+    return { status: 'configuration_error', code: 'missing_api_key' } as const;
+  }
+
   return {
     status: 'configured',
     config: {

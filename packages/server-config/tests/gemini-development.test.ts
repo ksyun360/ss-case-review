@@ -59,6 +59,16 @@ test('rejects a whitespace-only Gemini model setting', () => {
   });
 });
 
+test('rejects a missing Gemini key without using a competing Google credential', () => {
+  expect(
+    readGeminiDevelopmentConfig({
+      ...environment,
+      GEMINI_API_KEY: undefined,
+      GOOGLE_API_KEY: 'another-synthetic-credential',
+    }),
+  ).toEqual({ status: 'configuration_error', code: 'missing_api_key' });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
