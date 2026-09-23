@@ -17,13 +17,18 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
     return { status: 'configuration_error', code: 'unsupported_transport' } as const;
   }
 
+  const modelId = environment.GEMINI_MODEL_ID;
+  if (!modelId) {
+    return { status: 'configuration_error', code: 'missing_model' } as const;
+  }
+
   const apiKey = environment.GEMINI_API_KEY;
   return {
     status: 'configured',
     config: {
       provider: 'gemini',
       transport: 'developer-api',
-      modelId: environment.GEMINI_MODEL_ID,
+      modelId,
       getApiKey: () => apiKey,
     },
   } as const;

@@ -45,6 +45,13 @@ test('rejects a transport that requires a different credential contract', () => 
   });
 });
 
+test('rejects a missing Gemini model instead of choosing an implicit model', () => {
+  expect(readGeminiDevelopmentConfig({ ...environment, GEMINI_MODEL_ID: undefined })).toEqual({
+    status: 'configuration_error',
+    code: 'missing_model',
+  });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
