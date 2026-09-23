@@ -2,7 +2,7 @@
 
 This project will help Western District of Texas magistrate judges and law clerks review Social Security disability appeal records and inspect cited evidence.
 
-Current phase: Phase 4 application implementation resumed. The project owner directed completion of the missing application capabilities before full Phase 5 qualification. Source-provenance contracts form the next implementation slice. The [qualification readiness checklist](docs/engineering/qualification-readiness.md) retains the required evidence and handoff gates.
+Current phase: Phase 4 application implementation resumed. The project owner directed completion of the missing application capabilities before full Phase 5 qualification. The first [source-span validation contract](docs/engineering/source-spans.md) now checks source identity, exact quotations, and text bounds. Persistent source storage and application integration remain pending. The [qualification readiness checklist](docs/engineering/qualification-readiness.md) retains the required evidence and handoff gates.
 
 Final setup reminder: Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. Keep the existing local quality gates active throughout qualification.
 

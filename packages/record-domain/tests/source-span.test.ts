@@ -154,6 +154,15 @@ test('rejects a NaN start offset instead of coercing the position to zero', () =
   ).toEqual({ status: 'not_located', reason: 'invalid_offsets' });
 });
 
+test('preserves Unicode text while interpreting offsets as UTF-16 code units', () => {
+  const unicodeSource = { ...source, rawText: 'Before 🧪 quoted text. After' };
+  const unicodeCandidate = { ...candidate, start: 7, end: 22, quote: '🧪 quoted text.' };
+  expect(locateSourceSpan('case-a', unicodeSource, unicodeCandidate)).toEqual({
+    status: 'located',
+    span: { caseId: 'case-a', ...unicodeCandidate },
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',

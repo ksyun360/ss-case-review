@@ -22,6 +22,11 @@ export type SourceSpanResult =
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
     }>;
 
+/**
+ * Match a typed candidate against a trusted source unit.
+ * Use zero-based UTF-16 offsets with an inclusive start and exclusive end.
+ * The caller must validate external input and authorize the case before loading source data.
+ */
 export function locateSourceSpan(
   caseId: string,
   source: SourceUnit | undefined,

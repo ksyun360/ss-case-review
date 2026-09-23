@@ -40,6 +40,8 @@ Coverage must reach 93% for each metric and each first-party source file. The cu
 
 The repository-policy package contains local safeguards. The web workspace provides responsive navigation, empty states, and local file selection. Storage, extraction, database access, and model clients remain unimplemented. Browser checks run against the production bundle within every commit gate. Run `npm exec -- playwright install chromium` after dependency installation to prepare the pinned browser. The browser checks require a free loopback port 5185 and permission to launch Chromium.
 
+The record-domain package provides deterministic source-span validation. Read the [source-span contract](docs/engineering/source-spans.md) before integrating storage, API, or extraction code. Keep external-input validation and user/case authorization at the server boundary; never substitute client-supplied text for a trusted source unit.
+
 The license gate tracks the installed development-tool inventory, including transitive packages. The inventory includes attribution licenses, MPL-2.0, Artistic-2.0, and the WTFPL declaration from `@azu/style-format`. A passing scan identifies declarations; the scan does not grant legal approval or discharge distribution obligations. Court IT must approve distribution and notices before deployment. License names containing “Python” describe JavaScript dependencies' license declarations, not Python runtime dependencies.
 
 ## Local records and sensitive data

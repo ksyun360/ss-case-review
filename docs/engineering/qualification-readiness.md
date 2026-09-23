@@ -14,6 +14,8 @@ The project owner subsequently directed completion of Phase 4. Keep the preview 
 
 The repository contains a local browser preview with home, upload-selection, saved-case empty state, and unknown-address recovery. The preview displays filenames and sizes, supports additive selection and removal, and disables upload. The preview has no backend, case store, source viewer, extraction worker, model client, or court identity integration.
 
+Phase 4 now includes an internal [source-span validator](source-spans.md). Unit tests check source identity, exact raw-text correspondence, and selection bounds. The module has no storage/API/UI connection and does not establish end-to-end case isolation or record accuracy.
+
 The [build-status report](build-status.md) records measured local results. Chromium tests exercise desktop and narrow-screen layouts, keyboard navigation, and automated accessibility scans. Component tests and mutation checks cover current source behavior. These checks qualify only the implemented preview behaviors; passing source coverage does not establish record accuracy, case isolation, or processing speed.
 
 Phase 5 adds two preview privacy regressions: selecting/removing a synthetic file produces no observed network request after page loading, and reloading clears the selection. The exercised selection leaves localStorage, sessionStorage, IndexedDB, and Cache Storage empty. These bounded checks do not constitute a security assessment of a future backend or provider integration.
