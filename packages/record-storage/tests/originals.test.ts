@@ -32,6 +32,15 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('preserves case and version identity when the caller changes metadata during storage', async () => {
+  const mutableIdentity = { ...identity };
+  const pending = writeOriginal(storageRoot, mutableIdentity, bytes);
+  mutableIdentity.caseId = 'changed-case';
+  mutableIdentity.documentVersionId = 'changed-version';
+  expect(await pending).toEqual({ ...identity, sha256, byteLength: 3 });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
+});
+
 test('preserves the supplied byte snapshot when the caller changes a buffer during storage', async () => {
   const mutableBytes = Buffer.from(bytes);
   const pending = writeOriginal(storageRoot, identity, mutableBytes);

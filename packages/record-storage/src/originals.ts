@@ -8,8 +8,9 @@ export async function writeOriginal(
   bytes: Uint8Array,
 ): Promise<StoredOriginal> {
   const content = Buffer.from(bytes);
-  const directory = join(root, createHash('sha256').update(identity.caseId).digest('hex'));
-  const filename = createHash('sha256').update(identity.documentVersionId).digest('hex');
+  const { caseId, documentVersionId } = identity;
+  const directory = join(root, createHash('sha256').update(caseId).digest('hex'));
+  const filename = createHash('sha256').update(documentVersionId).digest('hex');
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
   const staging = await fs.mkdtemp(join(directory, '.pending-'));
   try {
@@ -20,7 +21,8 @@ export async function writeOriginal(
     await fs.rm(staging, { recursive: true });
   }
   return {
-    ...identity,
+    caseId,
+    documentVersionId,
     sha256: createHash('sha256').update(content).digest('hex'),
     byteLength: content.byteLength,
   };
