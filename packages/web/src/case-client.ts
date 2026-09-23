@@ -11,6 +11,7 @@ export async function getSyntheticCase(caseId: string): Promise<CaseSummary | un
     redirect: 'error',
   });
   if (response.status === 404) return undefined;
+  if (!response.ok) throw new Error('case_detail_unavailable');
   const payload = (await response.json()) as { case: CaseSummary };
   return payload.case;
 }
