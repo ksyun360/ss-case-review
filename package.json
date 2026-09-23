@@ -21,7 +21,7 @@
     "lint:docs": "markdownlint-cli2",
     "lint": "npm run lint:code && npm run lint:styles && npm run lint:docs",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --project packages/repository-policy/tsconfig.build.json && tsc --project packages/record-domain/tsconfig.build.json && tsc --project packages/server-config/tsconfig.build.json && tsc --project packages/web/tsconfig.build.json && vite build",
+    "build": "tsc --project packages/repository-policy/tsconfig.build.json && tsc --project packages/record-domain/tsconfig.build.json && tsc --project packages/server-config/tsconfig.build.json && tsc --project packages/record-storage/tsconfig.build.json && tsc --project packages/web/tsconfig.build.json && vite build",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:mutation": "stryker run",
