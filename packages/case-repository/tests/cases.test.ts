@@ -2,6 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import {
   createCase,
+  findOriginalReference,
   installCaseSchema,
   listCasesForReviewer,
   registerOriginalReference,
@@ -170,4 +171,23 @@ test('rejects an original reference without a parent case', async () => {
     ),
   ).rejects.toMatchObject({ code: '23503' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
+
+test('finds the exact original reference within the requested member case and version', async () => {
+  await createCase(database, input);
+  await registerOriginalReference(database, reviewerId, original);
+  const secondCaseId = '00000000-0000-4000-8000-000000000002';
+  await createCase(database, { ...input, caseId: secondCaseId });
+  await registerOriginalReference(database, reviewerId, {
+    ...original,
+    caseId: secondCaseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000022',
+    sha256: 'c'.repeat(64),
+    byteLength: 12,
+  });
+  const target = { ...original, caseId: secondCaseId, sha256: 'b'.repeat(64), byteLength: 22 };
+  await registerOriginalReference(database, reviewerId, target);
+  expect(
+    await findOriginalReference(database, reviewerId, secondCaseId, original.documentVersionId),
+  ).toEqual(target);
 });
