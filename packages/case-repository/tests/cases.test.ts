@@ -160,3 +160,14 @@ test('rejects replacement metadata for an existing case document version', async
       .rows,
   ).toEqual([{ sha256: original.sha256, size: '2147483648' }]);
 });
+
+test('rejects an original reference without a parent case', async () => {
+  await expect(
+    database.query(
+      `INSERT INTO original_references (case_id, document_version_id, sha256, byte_length)
+      VALUES ($1, $2, $3, $4)`,
+      [caseId, original.documentVersionId, original.sha256, original.byteLength],
+    ),
+  ).rejects.toMatchObject({ code: '23503' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
