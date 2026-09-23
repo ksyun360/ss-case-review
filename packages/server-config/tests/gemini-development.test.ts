@@ -25,6 +25,13 @@ test('accepts explicit Gemini development settings with server-only credential a
   expect(result.config.getApiKey()).toBe('synthetic-credential');
 });
 
+test('rejects production use of the synthetic development configuration', () => {
+  expect(readGeminiDevelopmentConfig({ ...environment, APP_ENV: 'production' })).toEqual({
+    status: 'configuration_error',
+    code: 'development_only',
+  });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',

@@ -5,6 +5,10 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
     return { status: 'configuration_error', code: 'unsupported_provider' } as const;
   }
 
+  if (environment.APP_ENV !== 'development') {
+    return { status: 'configuration_error', code: 'development_only' } as const;
+  }
+
   const apiKey = environment.GEMINI_API_KEY;
   return {
     status: 'configured',
