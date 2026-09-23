@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { writeOriginal } from '../src/originals.ts';
+
+vi.mock('node:fs/promises', { spy: true });
 
 let temporaryRoot: string;
 let storageRoot: string;
@@ -27,6 +29,23 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await fs.rm(temporaryRoot, { recursive: true, force: true });
+});
+
+test('keeps an interrupted write unpublished and removes only its private staging directory', async () => {
+  const writeFile = fs.writeFile;
+  const failure = new Error('Synthetic interrupted write');
+  let partialPath = '';
+  vi.spyOn(fs, 'writeFile').mockImplementationOnce(async (path, _data, options) => {
+    partialPath = String(path);
+    await writeFile(path, Buffer.from('a'), options);
+    throw failure;
+  });
+
+  await expect(writeOriginal(storageRoot, identity, bytes)).rejects.toBe(failure);
+  expect(dirname(dirname(partialPath))).toBe(caseDirectory());
+  expect(basename(dirname(partialPath))).toMatch(/^\.pending-/);
+  await expect(fs.readFile(originalPath())).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await fs.readdir(caseDirectory())).toEqual([]);
 });
 
 test('rejects replacement bytes for an existing document version without changing the original', async () => {
