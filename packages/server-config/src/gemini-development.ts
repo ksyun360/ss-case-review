@@ -13,6 +13,10 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
     return { status: 'configuration_error', code: 'synthetic_data_only' } as const;
   }
 
+  if (environment.GEMINI_TRANSPORT !== 'developer-api') {
+    return { status: 'configuration_error', code: 'unsupported_transport' } as const;
+  }
+
   const apiKey = environment.GEMINI_API_KEY;
   return {
     status: 'configured',

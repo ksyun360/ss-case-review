@@ -38,6 +38,13 @@ test('rejects court-record data in the Gemini development configuration', () => 
   ).toEqual({ status: 'configuration_error', code: 'synthetic_data_only' });
 });
 
+test('rejects a transport that requires a different credential contract', () => {
+  expect(readGeminiDevelopmentConfig({ ...environment, GEMINI_TRANSPORT: 'vertex' })).toEqual({
+    status: 'configuration_error',
+    code: 'unsupported_transport',
+  });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
