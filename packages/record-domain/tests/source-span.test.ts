@@ -36,6 +36,15 @@ test('rejects a candidate tied to another record revision', () => {
   });
 });
 
+test('rejects a candidate tied to another document version', () => {
+  expect(
+    locateSourceSpan('case-a', source, { ...candidate, documentVersionId: 'document-version-b' }),
+  ).toEqual({
+    status: 'not_located',
+    reason: 'source_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
