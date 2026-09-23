@@ -22,6 +22,10 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
     return { status: 'configuration_error', code: 'missing_model' } as const;
   }
 
+  if (modelId.endsWith('-latest')) {
+    return { status: 'configuration_error', code: 'unpinned_model' } as const;
+  }
+
   const apiKey = environment.GEMINI_API_KEY;
   if (!apiKey?.trim()) {
     return { status: 'configuration_error', code: 'missing_api_key' } as const;

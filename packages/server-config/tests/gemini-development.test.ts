@@ -76,6 +76,12 @@ test('rejects a whitespace-only Gemini credential without echoing configuration 
   });
 });
 
+test('rejects a moving latest-model alias in development configuration', () => {
+  expect(
+    readGeminiDevelopmentConfig({ ...environment, GEMINI_MODEL_ID: 'synthetic-model-latest' }),
+  ).toEqual({ status: 'configuration_error', code: 'unpinned_model' });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
