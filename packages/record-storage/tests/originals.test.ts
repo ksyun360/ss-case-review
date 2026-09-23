@@ -32,6 +32,12 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('reports a missing stored version as an I/O failure without fabricating original bytes', async () => {
+  await expect(
+    readOriginal(storageRoot, identity.caseId, { ...identity, sha256, byteLength: 3 }),
+  ).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
 test('keeps path-like identifiers inside hashed storage locations', async () => {
   const pathLikeIdentity = { caseId: '../case-escape', documentVersionId: '../document-escape' };
   const reference = await writeOriginal(storageRoot, pathLikeIdentity, bytes);

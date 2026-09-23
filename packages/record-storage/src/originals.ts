@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import * as fs from 'node:fs/promises';
+import { join } from 'node:path';
+
 export type OriginalIdentity = Readonly<{ caseId: string; documentVersionId: string }>;
 
 export type StoredOriginal = OriginalIdentity & Readonly<{ sha256: string; byteLength: number }>;
@@ -49,6 +53,3 @@ export async function writeOriginal(
     byteLength: content.byteLength,
   };
 }
-import { createHash } from 'node:crypto';
-import * as fs from 'node:fs/promises';
-import { join } from 'node:path';

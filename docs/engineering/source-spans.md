@@ -1,6 +1,6 @@
 # Source-span validation
 
-Status: Internal text-span contract implemented. Persistent source storage, API integration, geometry mapping, and browser source navigation remain pending.
+Status: Internal text-span contract implemented. The [local original-storage adapter](local-original-storage.md) now preserves document bytes separately. Extracted source-unit persistence, API integration, geometry mapping, and browser source navigation remain pending.
 
 The record-domain package exposes `locateSourceSpan` through `@record-review/record-domain/source-span`. The [implementation](../../packages/record-domain/src/source-span.ts) checks a typed candidate against a trusted stored-text unit. The validator performs no network request, file read, database query, model call, or text normalization.
 
@@ -34,4 +34,4 @@ These result codes describe a lookup/validation outcome. A failure does not esta
 
 The [source-span tests](../../packages/record-domain/tests/source-span.test.ts) cover missing sources, cross-case references, each version field, changed quotations, full-unit boundaries, negative/oversized/empty/reversed/fractional/invalid-number positions, and Unicode offsets. Each case entered a separate checked feature-branch commit. The package participates in strict type checking, compilation, coverage, and the full mutation gate.
 
-Next implementation work must provide immutable document storage, case-scoped source lookup, runtime API schemas, source-unit extraction, page/native-unit locators, and geometry transforms. The artifact pipeline must use validated spans before publication. The browser must open the correct source revision and map offsets to the actual displayed passage. No current UI or API publishes case findings through this module.
+Next implementation work must connect original storage to trusted database metadata, case-scoped source lookup, runtime API schemas, source-unit extraction, page/native-unit locators, and geometry transforms. The artifact pipeline must use validated spans before publication. The browser must open the correct source revision and map offsets to the actual displayed passage. No current UI or API publishes case findings through this module.
