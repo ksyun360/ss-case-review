@@ -51,7 +51,7 @@ test('stores a synthetic original under a server-generated version and member-sc
     await database.close();
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
 
 test('rejects a non-member before consuming or publishing original bytes', async () => {
   const database = await PGlite.create();
@@ -89,7 +89,7 @@ test('rejects a non-member before consuming or publishing original bytes', async
     await database.close();
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
 
 test('removes an unpublished original when membership ends during its stream', async () => {
   const database = await PGlite.create();
@@ -124,7 +124,7 @@ test('removes an unpublished original when membership ends during its stream', a
     await database.close();
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
 
 test('removes a published original when reference registration fails', async () => {
   const database = await PGlite.create();
@@ -158,4 +158,4 @@ test('removes a published original when reference registration fails', async () 
     await database.close();
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 15_000);

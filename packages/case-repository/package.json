@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./cases": "./src/cases.ts",
-    "./migrations": "./src/migrations.ts"
+    "./migrations": "./src/migrations.ts",
+    "./upload-attempts": "./src/upload-attempts.ts"
   },
   "dependencies": {
     "node-pg-migrate": "9.0.0",
