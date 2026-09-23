@@ -234,3 +234,15 @@ test('rejects malformed original SHA-256 metadata', async () => {
   ).rejects.toMatchObject({ code: '23514' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('requires a content hash for every original reference', async () => {
+  await createCase(database, input);
+  await expect(
+    database.query(
+      `INSERT INTO original_references (case_id, document_version_id, byte_length)
+      VALUES ($1, $2, $3)`,
+      [caseId, original.documentVersionId, original.byteLength],
+    ),
+  ).rejects.toMatchObject({ code: '23502' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
