@@ -10,7 +10,7 @@ import { readDevelopmentIdentity } from '@record-review/server-config/developmen
 
 export function createDevelopmentApi(environment: ServerEnvironment, database: SqlClient) {
   const identity = readDevelopmentIdentity(environment);
-  const api = Fastify({ ajv: { customOptions: { coerceTypes: false } } });
+  const api = Fastify({ ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
   api.setErrorHandler<FastifyError>((error, _request, reply) => {
     if (error.validation) return reply.code(400).send({ code: 'invalid_request' });
     return reply.code(503).send({ code: 'case_service_unavailable' });
@@ -24,6 +24,7 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
       schema: {
         body: {
           type: 'object',
+          additionalProperties: false,
           required: ['label'],
           properties: { label: { type: 'string', pattern: '\\S', maxLength: 120 } },
         },

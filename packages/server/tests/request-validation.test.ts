@@ -56,3 +56,19 @@ test('rejects case labels longer than 120 characters', async () => {
   expect(response.json()).toEqual({ code: 'invalid_request' });
   expect(database.query).not.toHaveBeenCalled();
 });
+
+test('rejects caller-supplied case identity and ownership fields', async () => {
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    payload: {
+      label: 'Synthetic draft',
+      caseId: '00000000-0000-4000-8000-000000000099',
+      reviewerId: '00000000-0000-4000-8000-000000000012',
+      recordRevision: 99,
+    },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ code: 'invalid_request' });
+  expect(database.query).not.toHaveBeenCalled();
+});
