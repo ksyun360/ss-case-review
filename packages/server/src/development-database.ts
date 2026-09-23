@@ -2,7 +2,7 @@ import type { ServerEnvironment } from '@record-review/server-config/gemini-deve
 
 export function readDevelopmentDatabaseConfig(environment: ServerEnvironment) {
   const password = environment.DEVELOPMENT_DATABASE_PASSWORD;
-  if (password === undefined) throw new Error('development_database_password_required');
+  if (!password?.trim()) throw new Error('development_database_password_required');
   return {
     host: '127.0.0.1',
     port: 55432,
