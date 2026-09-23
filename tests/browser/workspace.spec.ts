@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 
+test('passes the automated home workspace accessibility scan', async ({ page }) => {
+  await page.goto('/home');
+  await expect(page.getByRole('heading', { name: 'Your case workspace' })).toBeVisible();
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(result.violations).toEqual([]);
+});
+
 test('keeps a populated mobile document manifest accessible', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto('/upload');

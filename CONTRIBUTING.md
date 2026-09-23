@@ -28,15 +28,17 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 | `npm test`                   | Run the current automated tests.                                     |
 | `npm run test:coverage`      | Check line, statement, function, and branch coverage.                |
 | `npm run test:mutation`      | Run the complete configured mutation scope.                          |
-| `npm run build`              | Compile the current workspace package.                               |
+| `npm run build`              | Compile workspace packages and bundle the browser application.       |
+| `npm run test:browser`       | Run Chromium workflows and automated accessibility scans.            |
+| `npm run dev`                | Start the loopback-only development preview on port 5175.            |
 | `npm run check:secrets`      | Scan eligible source files for credentials.                          |
 | `npm run check:dependencies` | Reject high or critical dependency advisories.                       |
 | `npm run check:licenses`     | Check dependency license declarations against the tooling inventory. |
 | `npm run verify:commit`      | Run the complete current commit gate.                                |
 
-Coverage must reach 93% for each metric and each first-party source file. Mutation testing currently requires 100% because the initial executable package enforces repository policy. The approved general application threshold remains 95%, with 100% for critical source-acceptance and authorization rules. Do not reduce thresholds or exclude production logic to make a commit pass.
+Coverage must reach 93% for each metric and each first-party source file. The current mutation gate requires 100% across repository safeguards and application TypeScript/TSX. The approved general application threshold remains 95%, with 100% for critical source-acceptance and authorization rules; the current implementation retains the stricter gate. Do not reduce thresholds or exclude production logic to make a commit pass.
 
-The repository-policy package contains local safeguards. The web workspace introduces the approved application identity and will add responsive navigation and file selection through individually tested increments. Storage, extraction, database access, and model clients remain unimplemented. Browser checks will enter the same commit gate when the first browser workflow exists.
+The repository-policy package contains local safeguards. The web workspace provides responsive navigation, empty states, and local file selection. Storage, extraction, database access, and model clients remain unimplemented. Browser checks run against the production bundle within every commit gate. Run `npm exec -- playwright install chromium` after dependency installation to prepare the pinned browser. The browser checks require a free loopback port 5185 and permission to launch Chromium.
 
 The license gate tracks the installed development-tool inventory, including transitive packages. The inventory includes attribution licenses, MPL-2.0, Artistic-2.0, and the WTFPL declaration from `@azu/style-format`. A passing scan identifies declarations; the scan does not grant legal approval or discharge distribution obligations. Court IT must approve distribution and notices before deployment. License names containing “Python” describe JavaScript dependencies' license declarations, not Python runtime dependencies.
 
