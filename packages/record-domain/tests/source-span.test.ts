@@ -131,6 +131,13 @@ test('rejects a fractional start instead of rounding the source position', () =>
   });
 });
 
+test('rejects a fractional end instead of rounding the source position', () => {
+  expect(locateSourceSpan('case-a', source, { ...candidate, end: 19.5 })).toEqual({
+    status: 'not_located',
+    reason: 'invalid_offsets',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
