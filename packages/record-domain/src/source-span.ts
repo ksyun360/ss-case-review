@@ -55,6 +55,10 @@ export function locateSourceSpan(
     return { status: 'not_located', reason: 'source_mismatch' };
   }
 
+  if (source.rawText.slice(candidate.start, candidate.end) !== candidate.quote) {
+    return { status: 'not_located', reason: 'quote_mismatch' };
+  }
+
   return {
     status: 'located',
     span: {

@@ -72,6 +72,13 @@ test('rejects a candidate for another source unit', () => {
   });
 });
 
+test('rejects a supplied quote that changes the stored text', () => {
+  expect(locateSourceSpan('case-a', source, { ...candidate, quote: 'Different text.' })).toEqual({
+    status: 'not_located',
+    reason: 'quote_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
