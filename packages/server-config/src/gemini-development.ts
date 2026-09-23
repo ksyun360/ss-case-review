@@ -17,7 +17,7 @@ export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
     return { status: 'configuration_error', code: 'unsupported_transport' } as const;
   }
 
-  const modelId = environment.GEMINI_MODEL_ID;
+  const modelId = environment.GEMINI_MODEL_ID?.trim();
   if (!modelId) {
     return { status: 'configuration_error', code: 'missing_model' } as const;
   }

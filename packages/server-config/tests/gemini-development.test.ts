@@ -52,6 +52,13 @@ test('rejects a missing Gemini model instead of choosing an implicit model', () 
   });
 });
 
+test('rejects a whitespace-only Gemini model setting', () => {
+  expect(readGeminiDevelopmentConfig({ ...environment, GEMINI_MODEL_ID: ' \t ' })).toEqual({
+    status: 'configuration_error',
+    code: 'missing_model',
+  });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
