@@ -2,6 +2,17 @@ import process from 'node:process';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { startDevelopmentServer } from '../src/development-server.ts';
 
+test('contains a shutdown failure and returns a nonzero exit status without private details', async () => {
+  close.mockRejectedValue(new Error('synthetic private shutdown details'));
+  await import('../src/development-entry.ts');
+  const shutdown = vi.mocked(process.once).mock.calls[0]?.[1];
+  expect(shutdown).toBeTypeOf('function');
+  await expect(shutdown?.()).resolves.toBeUndefined();
+  expect(close).toHaveBeenCalledExactlyOnceWith();
+  expect(process.stderr.write).toHaveBeenCalledExactlyOnceWith('development_server_stop_failed\n');
+  expect(process.exitCode).toBe(1);
+});
+
 test('reports a startup failure without printing exception details or registering signals', async () => {
   vi.mocked(startDevelopmentServer).mockRejectedValue(
     new Error('synthetic private startup details'),
