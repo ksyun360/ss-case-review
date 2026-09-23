@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { PG_MIGRATE_LOCK_ID } from 'node-pg-migrate';
 import { Client, type ClientConfig } from 'pg';
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
@@ -178,6 +179,29 @@ test('rejects migration history that does not match the repository plan', async 
   expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([
     { name: '209901010001_unknown' },
   ]);
+  expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
+    { caseId: input.caseId, label: input.label, recordRevision: 1 },
+  ]);
+});
+
+test('refuses automatic adoption of an existing unversioned case schema', async () => {
+  await client.query(
+    await readFile(
+      new URL(
+        '../../packages/case-repository/migrations/202609230001_initial_case_metadata.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  const input = {
+    caseId: '00000000-0000-4000-8000-000000000001',
+    reviewerId: '00000000-0000-4000-8000-000000000011',
+    label: 'Synthetic unversioned case',
+  };
+  await createCase(client, input);
+  await expect(migrateCaseSchema(client)).rejects.toMatchObject({ code: '42P07' });
+  expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([]);
   expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
   ]);
