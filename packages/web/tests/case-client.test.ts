@@ -1,7 +1,20 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createSyntheticCase, listSyntheticCases } from '../src/case-client.ts';
+import { createSyntheticCase, getSyntheticCase, listSyntheticCases } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
+
+test('requests one reviewer-scoped draft through the same-origin API', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const saved = { caseId, label: 'Synthetic saved draft', recordRevision: 1 };
+  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ case: saved }) });
+  vi.stubGlobal('fetch', fetch);
+  expect(await getSyntheticCase(caseId)).toEqual(saved);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/v1/cases/${caseId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
 
 test('creates a synthetic draft through the guarded same-origin API', async () => {
   const created = {

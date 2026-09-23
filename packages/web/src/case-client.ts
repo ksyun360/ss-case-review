@@ -4,6 +4,16 @@ export type CaseSummary = Readonly<{
   recordRevision: number;
 }>;
 
+export async function getSyntheticCase(caseId: string): Promise<CaseSummary> {
+  const response = await fetch(`/api/v1/cases/${caseId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  const payload = (await response.json()) as { case: CaseSummary };
+  return payload.case;
+}
+
 export async function createSyntheticCase(label: string): Promise<CaseSummary> {
   const response = await fetch('/api/v1/cases', {
     method: 'POST',
