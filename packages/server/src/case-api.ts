@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import Fastify, { type FastifyError } from 'fastify';
 import {
   createCase,
+  findCaseForReviewer,
   listCasesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
@@ -35,6 +36,22 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
   api.get('/api/v1/cases', async () => ({
     cases: await listCasesForReviewer(database, identity.reviewerId),
   }));
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      return { case: found };
+    },
+  );
   api.post<{ Body: { label: string } }>(
     '/api/v1/cases',
     {

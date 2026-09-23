@@ -62,6 +62,28 @@ test('lists only server-selected reviewer cases despite request identity claims'
   });
 });
 
+test('opens only a case assigned to the configured development reviewer', async () => {
+  const visibleId = '00000000-0000-4000-8000-000000000001';
+  const hiddenId = '00000000-0000-4000-8000-000000000002';
+  await createCase(database, { caseId: visibleId, label: 'Synthetic visible case', reviewerId });
+  await createCase(database, {
+    caseId: hiddenId,
+    label: 'Synthetic hidden case',
+    reviewerId: otherReviewerId,
+  });
+  const visible = await api.inject({ url: `/api/v1/cases/${visibleId}`, headers: requestHeaders });
+  expect(visible.statusCode).toBe(200);
+  expect(visible.json()).toEqual({
+    case: { caseId: visibleId, label: 'Synthetic visible case', recordRevision: 1 },
+  });
+  const hidden = await api.inject({ url: `/api/v1/cases/${hiddenId}`, headers: requestHeaders });
+  expect(hidden.statusCode).toBe(404);
+  expect(hidden.json()).toEqual({ code: 'case_not_found' });
+  const malformed = await api.inject({ url: '/api/v1/cases/not-a-uuid', headers: requestHeaders });
+  expect(malformed.statusCode).toBe(400);
+  expect(malformed.json()).toEqual({ code: 'invalid_request' });
+});
+
 test('creates a synthetic draft with a server-generated identity and creator membership', async () => {
   const response = await api.inject({
     method: 'POST',
