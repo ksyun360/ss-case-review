@@ -12,6 +12,18 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
+test('shows a clear empty state when the case API returns no drafts', async () => {
+  vi.mocked(listSyntheticCases).mockResolvedValueOnce([]);
+  render(<CasesPage />);
+  expect(await screen.findByRole('heading', { name: 'No saved cases yet' })).toBeVisible();
+  expect(screen.getByText('The local workspace has no synthetic case drafts.')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Prepare a case record' })).toHaveAttribute(
+    'href',
+    '/upload',
+  );
+  expect(screen.queryByRole('list', { name: 'Saved cases' })).not.toBeInTheDocument();
+});
+
 test('retries an unavailable case list and displays only returned case metadata', async () => {
   let rejectFirst!: (reason?: unknown) => void;
   vi.mocked(listSyntheticCases)

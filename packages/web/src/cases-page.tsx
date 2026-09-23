@@ -35,16 +35,26 @@ export function CasesPage() {
         <section className="panel" aria-labelledby="saved-cases-heading">
           <h2 id="saved-cases-heading">Saved cases</h2>
           <p>These drafts do not include uploaded documents yet.</p>
-          <ul className="file-list" aria-label="Saved cases">
-            {view.cases.map((item) => (
-              <li className="file-row" key={item.caseId}>
-                <div className="file-details">
-                  <strong>{item.label}</strong>
-                  <span>Record revision {item.recordRevision}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {view.cases.length === 0 ? (
+            <div className="empty-state">
+              <h3>No saved cases yet</h3>
+              <p>The local workspace has no synthetic case drafts.</p>
+              <a className="button primary-button" href="/upload">
+                Prepare a case record
+              </a>
+            </div>
+          ) : (
+            <ul className="file-list" aria-label="Saved cases">
+              {view.cases.map((item) => (
+                <li className="file-row" key={item.caseId}>
+                  <div className="file-details">
+                    <strong>{item.label}</strong>
+                    <span>Record revision {item.recordRevision}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       ) : (
         <section className="empty-state panel" aria-labelledby="empty-cases-heading">
