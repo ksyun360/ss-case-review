@@ -47,6 +47,16 @@ export function UploadPage() {
                     <strong>{file.name}</strong>
                     <span>{file.size} bytes</span>
                   </div>
+                  <button
+                    className="button secondary-button remove-file"
+                    type="button"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() =>
+                      setFiles((previous) => previous.filter((_, row) => row !== index))
+                    }
+                  >
+                    Remove
+                  </button>
                 </li>
               ))}
             </ul>

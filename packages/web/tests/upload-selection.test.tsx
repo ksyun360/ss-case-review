@@ -7,6 +7,23 @@ import { UploadPage } from '../src/upload-page.tsx';
 
 afterEach(cleanup);
 
+test('removes only the chosen document when filenames match', async () => {
+  const user = userEvent.setup();
+  render(<UploadPage />);
+  await user.upload(screen.getByLabelText('Choose case documents'), [
+    new File(['abc'], 'record.pdf', { type: 'application/pdf' }),
+    new File(['abcdef'], 'record.pdf', { type: 'application/pdf' }),
+  ]);
+
+  const documents = within(screen.getByRole('list', { name: 'Selected documents' }));
+  const [firstRemove] = documents.getAllByRole('button', { name: 'Remove record.pdf' });
+  await user.click(firstRemove as HTMLElement);
+
+  expect(documents.getAllByRole('listitem')).toHaveLength(1);
+  expect(documents.getByRole('listitem')).toHaveTextContent('6 bytes');
+  expect(documents.queryByText('3 bytes')).not.toBeInTheDocument();
+});
+
 test('keeps earlier selections when another batch of documents is chosen', async () => {
   const user = userEvent.setup();
   render(<UploadPage />);

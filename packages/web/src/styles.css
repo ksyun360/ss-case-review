@@ -514,6 +514,11 @@ a.primary-button:hover {
   overflow-wrap: anywhere;
 }
 
+.remove-file {
+  flex-shrink: 0;
+  width: auto;
+}
+
 .file-details span {
   color: var(--secondary);
   font-size: 14px;
@@ -636,5 +641,9 @@ a.primary-button:hover {
 
   .button {
     width: 100%;
+  }
+
+  .file-row {
+    flex-wrap: wrap;
   }
 }
