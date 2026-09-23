@@ -12,6 +12,10 @@ import {
   registerOriginalReference,
 } from '../../packages/case-repository/src/cases.ts';
 import { migrateCaseSchema } from '../../packages/case-repository/src/migrations.ts';
+import {
+  completeOriginalUpload,
+  reserveOriginalUpload,
+} from '../../packages/case-repository/src/upload-attempts.ts';
 import { createDevelopmentApi } from '../../packages/server/src/case-api.ts';
 
 test('persists API-created cases in native PostgreSQL and rechecks membership on each request', async () => {
@@ -163,6 +167,30 @@ test('migrates a native PostgreSQL database and round-trips case and original me
   expect((await client.query('SHOW server_version_num')).rows).toEqual([
     { server_version_num: '180006' },
   ]);
+});
+
+test('registers a journaled original atomically in native PostgreSQL', async () => {
+  await migrateCaseSchema(client);
+  const caseId = '00000000-0000-4000-8000-000000000001';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  await createCase(client, { caseId, reviewerId, label: 'Synthetic journaled case' });
+  expect(
+    await reserveOriginalUpload(client, { caseId, reviewerId, documentVersionId, maximumBytes: 3 }),
+  ).toEqual({ caseId, reviewerId, documentVersionId, maximumBytes: 3, state: 'receiving' });
+  const reference = { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 3 };
+  expect(await completeOriginalUpload(client, reviewerId, reference)).toEqual(reference);
+  expect(
+    (
+      await client.query(
+        'SELECT state FROM original_upload_attempts WHERE case_id = $1 AND document_version_id = $2',
+        [caseId, documentVersionId],
+      )
+    ).rows,
+  ).toEqual([{ state: 'registered' }]);
+  expect(await findOriginalReference(client, reviewerId, caseId, documentVersionId)).toEqual(
+    reference,
+  );
 });
 
 test('does not replay an applied migration or change existing case data', async () => {
