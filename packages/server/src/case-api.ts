@@ -11,6 +11,9 @@ import { readDevelopmentIdentity } from '@record-review/server-config/developmen
 export function createDevelopmentApi(environment: ServerEnvironment, database: SqlClient) {
   const identity = readDevelopmentIdentity(environment);
   const api = Fastify();
+  api.setErrorHandler((_error, _request, reply) => {
+    return reply.code(503).send({ code: 'case_service_unavailable' });
+  });
   api.get('/api/v1/cases', async () => ({
     cases: await listCasesForReviewer(database, identity.reviewerId),
   }));

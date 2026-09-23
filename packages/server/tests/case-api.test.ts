@@ -83,3 +83,18 @@ test('creates a synthetic draft with a server-generated identity and creator mem
   ]);
   expect((await api.inject('/api/v1/cases')).json()).toEqual({ cases: [body.case] });
 });
+
+test('returns a safe failure when case creation rolls back in the database', async () => {
+  await database.exec(
+    'ALTER TABLE case_memberships ADD CONSTRAINT synthetic_private_failure CHECK (false)',
+  );
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    payload: { label: 'Synthetic rejected draft' },
+  });
+  expect(response.statusCode).toBe(503);
+  expect(response.json()).toEqual({ code: 'case_service_unavailable' });
+  expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
+});
