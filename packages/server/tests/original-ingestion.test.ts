@@ -179,3 +179,40 @@ test('reserves an upload attempt before consuming original bytes', async () => {
     await rm(root, { recursive: true, force: true });
   }
 }, 15_000);
+
+test('registers a received original and closes its journal attempt', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000006';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, reviewerId, label: 'Completed upload case' });
+    async function* chunks() {
+      yield Buffer.from('abc');
+    }
+    const reference = await storeOriginalForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      root,
+      chunks(),
+      3,
+    );
+    expect(reference).toBeDefined();
+    expect(
+      (
+        await database.query(
+          'SELECT state FROM original_upload_attempts WHERE case_id = $1 AND document_version_id = $2',
+          [caseId, reference?.documentVersionId],
+        )
+      ).rows,
+    ).toEqual([{ state: 'registered' }]);
+    expect(
+      (await database.query('SELECT count(*)::int AS count FROM original_references')).rows,
+    ).toEqual([{ count: 1 }]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);

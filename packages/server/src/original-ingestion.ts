@@ -1,10 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { type OriginalReference, type SqlClient } from '@record-review/case-repository/cases';
 import {
-  registerOriginalReference,
-  type OriginalReference,
-  type SqlClient,
-} from '@record-review/case-repository/cases';
-import { reserveOriginalUpload } from '@record-review/case-repository/upload-attempts';
+  completeOriginalUpload,
+  reserveOriginalUpload,
+} from '@record-review/case-repository/upload-attempts';
 import { discardOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 
 export async function storeOriginalForReviewer(
@@ -31,7 +30,7 @@ export async function storeOriginalForReviewer(
   );
   let registered: OriginalReference | undefined;
   try {
-    registered = await registerOriginalReference(database, reviewerId, reference);
+    registered = await completeOriginalUpload(database, reviewerId, reference);
   } catch (error) {
     await discardOriginal(root, reference);
     throw error;

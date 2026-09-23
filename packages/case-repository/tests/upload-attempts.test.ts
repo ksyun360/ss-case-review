@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createCase } from '../src/cases.ts';
-import { reserveOriginalUpload } from '../src/upload-attempts.ts';
+import { completeOriginalUpload, reserveOriginalUpload } from '../src/upload-attempts.ts';
 
 let database: PGlite;
 const caseId = '00000000-0000-4000-8000-000000000001';
@@ -57,6 +57,16 @@ test('reserves a recoverable original attempt for a case member before file rece
       maximum_bytes: 16,
       state: 'receiving',
     },
+  ]);
+  const reference = {
+    caseId,
+    documentVersionId,
+    sha256: 'a'.repeat(64),
+    byteLength: 3,
+  };
+  expect(await completeOriginalUpload(database, reviewerId, reference)).toEqual(reference);
+  expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+    { state: 'registered' },
   ]);
 });
 
