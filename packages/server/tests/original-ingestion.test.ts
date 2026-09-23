@@ -8,21 +8,27 @@ import { readOriginal } from '@record-review/record-storage/originals';
 import { expect, test } from 'vitest';
 import { storeOriginalForReviewer } from '../src/original-ingestion.ts';
 
+async function migrateForTest(database: PGlite) {
+  for (const migration of [
+    '202609230001_initial_case_metadata.sql',
+    '202609230002_original_upload_attempts.sql',
+  ]) {
+    await database.exec(
+      await readFile(
+        new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
+        'utf8',
+      ),
+    );
+  }
+}
+
 test('stores a synthetic original under a server-generated version and member-scoped reference', async () => {
   const database = await PGlite.create();
   const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
   const caseId = '00000000-0000-4000-8000-000000000001';
   const reviewerId = '00000000-0000-4000-8000-000000000011';
   try {
-    await database.exec(
-      await readFile(
-        new URL(
-          '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    );
+    await migrateForTest(database);
     await createCase(database, { caseId, label: 'Synthetic case', reviewerId });
     async function* chunks() {
       yield Buffer.from('ab');
@@ -61,15 +67,7 @@ test('rejects a non-member before consuming or publishing original bytes', async
   const otherReviewerId = '00000000-0000-4000-8000-000000000012';
   let consumed = false;
   try {
-    await database.exec(
-      await readFile(
-        new URL(
-          '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    );
+    await migrateForTest(database);
     await createCase(database, {
       caseId,
       label: 'Other reviewer case',
@@ -97,15 +95,7 @@ test('removes an unpublished original when membership ends during its stream', a
   const caseId = '00000000-0000-4000-8000-000000000003';
   const reviewerId = '00000000-0000-4000-8000-000000000011';
   try {
-    await database.exec(
-      await readFile(
-        new URL(
-          '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    );
+    await migrateForTest(database);
     await createCase(database, { caseId, label: 'Revoked case', reviewerId });
     async function* chunks() {
       await database.query('DELETE FROM case_memberships WHERE case_id = $1 AND reviewer_id = $2', [
@@ -132,15 +122,7 @@ test('removes a published original when reference registration fails', async () 
   const caseId = '00000000-0000-4000-8000-000000000004';
   const reviewerId = '00000000-0000-4000-8000-000000000011';
   try {
-    await database.exec(
-      await readFile(
-        new URL(
-          '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    );
+    await migrateForTest(database);
     await createCase(database, { caseId, label: 'Failed registration case', reviewerId });
     async function* chunks() {
       await database.exec(
@@ -154,6 +136,44 @@ test('removes a published original when reference registration fails', async () 
     const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
     expect(await readdir(caseDirectory)).toEqual([]);
     expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);
+
+test('reserves an upload attempt before consuming original bytes', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000005';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  let observedVersionId: string | undefined;
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, reviewerId, label: 'Journaled upload case' });
+    async function* chunks() {
+      const result = await database.query<{
+        document_version_id: string;
+        maximum_bytes: number;
+        state: string;
+      }>(
+        'SELECT document_version_id, maximum_bytes::float8 AS maximum_bytes, state FROM original_upload_attempts',
+      );
+      expect(result.rows).toEqual([
+        { document_version_id: expect.any(String), maximum_bytes: 3, state: 'receiving' },
+      ]);
+      observedVersionId = result.rows[0]?.document_version_id;
+      yield Buffer.from('abc');
+    }
+    const reference = await storeOriginalForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      root,
+      chunks(),
+      3,
+    );
+    expect(reference?.documentVersionId).toBe(observedVersionId);
   } finally {
     await database.close();
     await rm(root, { recursive: true, force: true });

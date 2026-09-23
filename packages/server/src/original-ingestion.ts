@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import {
-  findCaseForReviewer,
   registerOriginalReference,
   type OriginalReference,
   type SqlClient,
 } from '@record-review/case-repository/cases';
+import { reserveOriginalUpload } from '@record-review/case-repository/upload-attempts';
 import { discardOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 
 export async function storeOriginalForReviewer(
@@ -15,11 +15,17 @@ export async function storeOriginalForReviewer(
   chunks: AsyncIterable<Uint8Array>,
   maximumBytes: number,
 ): Promise<OriginalReference | undefined> {
-  const found = await findCaseForReviewer(database, reviewerId, caseId);
-  if (!found) return undefined;
+  const documentVersionId = randomUUID();
+  const reserved = await reserveOriginalUpload(database, {
+    caseId,
+    documentVersionId,
+    reviewerId,
+    maximumBytes,
+  });
+  if (!reserved) return undefined;
   const reference = await writeOriginalStream(
     root,
-    { caseId, documentVersionId: randomUUID() },
+    { caseId, documentVersionId },
     chunks,
     maximumBytes,
   );
