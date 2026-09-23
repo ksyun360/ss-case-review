@@ -1,6 +1,12 @@
 import { expect, test } from 'vitest';
 import { readDevelopmentIdentity } from '../src/development-identity.ts';
 
+test('rejects production use of the synthetic development identity', () => {
+  expect(() => readDevelopmentIdentity({ ...environment, APP_ENV: 'production' })).toThrow(
+    'development_identity_disabled',
+  );
+});
+
 const environment = {
   APP_ENV: 'development',
   DATA_CLASSIFICATION: 'synthetic',
