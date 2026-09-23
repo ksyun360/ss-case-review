@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { writeOriginal } from '../src/originals.ts';
+import { readOriginal, writeOriginal } from '../src/originals.ts';
 
 vi.mock('node:fs/promises', { spy: true });
 
@@ -30,6 +30,11 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await fs.rm(temporaryRoot, { recursive: true, force: true });
+});
+
+test('reads the exact original from its persisted document reference', async () => {
+  const reference = await writeOriginal(storageRoot, identity, bytes);
+  expect(await readOriginal(storageRoot, identity.caseId, reference)).toEqual(bytes);
 });
 
 test('preserves case and version identity when the caller changes metadata during storage', async () => {
