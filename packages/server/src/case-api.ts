@@ -12,7 +12,10 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
   const identity = readDevelopmentIdentity(environment);
   const api = Fastify({ ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
   api.addHook('onRequest', async (request, reply) => {
-    if (request.headers['x-record-review-client'] !== 'synthetic-workspace') {
+    if (
+      request.headers['x-record-review-client'] !== 'synthetic-workspace' ||
+      request.headers.host !== '127.0.0.1:5176'
+    ) {
       return reply.code(403).send({ code: 'development_request_forbidden' });
     }
   });

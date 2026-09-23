@@ -2,6 +2,20 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
+test('rejects a foreign Host header even when a forwarded header claims loopback', async () => {
+  const response = await api.inject({
+    url: '/api/v1/cases',
+    headers: {
+      ...requestHeaders,
+      host: 'foreign.invalid',
+      'x-forwarded-host': '127.0.0.1:5176',
+    },
+  });
+  expect(response.statusCode).toBe(403);
+  expect(response.json()).toEqual({ code: 'development_request_forbidden' });
+  expect(database.query).not.toHaveBeenCalled();
+});
+
 const environment = {
   APP_ENV: 'development',
   DATA_CLASSIFICATION: 'synthetic',
