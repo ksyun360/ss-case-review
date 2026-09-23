@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  findCaseForReviewer,
   registerOriginalReference,
   type OriginalReference,
   type SqlClient,
@@ -14,6 +15,8 @@ export async function storeOriginalForReviewer(
   chunks: AsyncIterable<Uint8Array>,
   maximumBytes: number,
 ): Promise<OriginalReference | undefined> {
+  const found = await findCaseForReviewer(database, reviewerId, caseId);
+  if (!found) return undefined;
   const reference = await writeOriginalStream(
     root,
     { caseId, documentVersionId: randomUUID() },
