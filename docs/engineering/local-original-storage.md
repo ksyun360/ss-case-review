@@ -1,6 +1,6 @@
 # Private local original storage
 
-Status: The record-storage package provides internal filesystem operations for synthetic development. The browser does not upload documents or invoke this adapter. A separate [PostgreSQL metadata repository](case-repository.md) now stores original references and filters queries by case membership. File/database coordination, authenticated user access, source extraction, upload finalization, and court deployment remain pending.
+Status: The record-storage package provides internal filesystem operations for synthetic development. The browser does not upload documents or invoke this adapter. A separate [PostgreSQL metadata repository](case-repository.md) stores original references and filters queries by case membership. An [internal ingestion service](original-ingestion.md) connects the two for tested synthetic paths, but crash-safe file/database coordination, authenticated user access, source extraction, upload finalization, and court deployment remain pending.
 
 ## Server contract
 
@@ -10,7 +10,7 @@ Import `writeOriginal`, `writeOriginalStream`, and `readOriginal` from `@record-
 
 `writeOriginalStream(root, identity, chunks, maximumBytes)` writes an asynchronous sequence of byte chunks to the same private staging layout. The caller must supply a positive safe-integer byte limit. The helper rejects a stream that exceeds the limit, removes the partial staged file, and leaves the final version unpublished. The helper hashes and counts accepted chunks while writing, flushes and closes the staged file, and rejects replacement of an existing version. The caller still needs an HTTP request limit, backpressure-aware transport, format inspection, database coordination, and recovery before offering uploads.
 
-The separate metadata repository can register and retrieve these reference fields. The application does not yet connect the two packages. Allocate canonical lowercase UUID identifiers before file publication and preserve the exact identifiers across both stores; PostgreSQL normalizes UUID spellings while this adapter hashes raw identifier strings. Obtain authoritative references through trusted, membership-scoped server context before reading bytes.
+The separate metadata repository can register and retrieve these reference fields. The internal ingestion service connects the packages for synthetic use and generates a canonical lowercase UUID before publication. Other callers must also preserve exact identifiers across both stores; PostgreSQL normalizes UUID spellings while this adapter hashes raw identifier strings. Obtain authoritative references through trusted, membership-scoped server context before reading bytes.
 
 `readOriginal(root, caseId, reference)` compares the server-supplied case ID with the stored reference before reading a file. A mismatch returns `undefined` without file access. A matching case permits a read, followed by byte-length and SHA-256 checks. An integrity mismatch throws a fixed error without returning the file bytes. The caller must obtain case identity from authorized server context; identifier equality does not authenticate a user or establish case membership.
 
