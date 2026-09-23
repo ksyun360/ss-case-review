@@ -72,6 +72,21 @@ export async function listCasesForReviewer(
   return result.rows;
 }
 
+export async function findCaseForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+): Promise<CaseRecord | undefined> {
+  const result = await client.query<CaseRecord>(
+    `SELECT cases.case_id AS "caseId", cases.label,
+      cases.record_revision AS "recordRevision"
+    FROM cases JOIN case_memberships USING (case_id)
+    WHERE case_memberships.reviewer_id = $1 AND cases.case_id = $2`,
+    [reviewerId, caseId],
+  );
+  return result.rows[0];
+}
+
 export async function createCase(
   client: SqlClient,
   input: NewCase,

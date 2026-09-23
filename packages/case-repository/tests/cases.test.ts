@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import {
   createCase,
+  findCaseForReviewer,
   findOriginalReference,
   listCasesForReviewer,
   registerOriginalReference,
@@ -119,6 +120,23 @@ test('lists only the reviewer cases in stable case identity order', async () => 
 test('returns no cases for a reviewer without case membership', async () => {
   await createCase(database, input);
   expect(await listCasesForReviewer(database, '00000000-0000-4000-8000-000000000012')).toEqual([]);
+});
+
+test('finds a saved case only for a member of that case', async () => {
+  await createCase(database, input);
+  await createCase(database, {
+    caseId: '00000000-0000-4000-8000-000000000002',
+    reviewerId: '00000000-0000-4000-8000-000000000012',
+    label: 'Other reviewer case',
+  });
+  expect(await findCaseForReviewer(database, reviewerId, caseId)).toEqual({
+    caseId,
+    label: input.label,
+    recordRevision: 1,
+  });
+  expect(
+    await findCaseForReviewer(database, reviewerId, '00000000-0000-4000-8000-000000000002'),
+  ).toBeUndefined();
 });
 
 test('registers original metadata for a case member without truncating the byte length', async () => {
