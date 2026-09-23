@@ -32,6 +32,13 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('rejects a stored reference with an incorrect byte length despite a matching hash', async () => {
+  const reference = await writeOriginal(storageRoot, identity, bytes);
+  await expect(
+    readOriginal(storageRoot, identity.caseId, { ...reference, byteLength: 4 }),
+  ).rejects.toThrow('Stored original failed its integrity check');
+});
+
 test('rejects changed original contents even when the stored file has the expected length', async () => {
   const reference = await writeOriginal(storageRoot, identity, bytes);
   await fs.writeFile(originalPath(), Buffer.from('xyz'));
