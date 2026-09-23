@@ -14,6 +14,8 @@ The repository contains a local browser preview with home, upload-selection, sav
 
 The [build-status report](build-status.md) records measured local results. Chromium tests exercise desktop and narrow-screen layouts, keyboard navigation, and automated accessibility scans. Component tests and mutation checks cover current source behavior. These checks qualify only the implemented preview behaviors; passing source coverage does not establish record accuracy, case isolation, or processing speed.
 
+Phase 5 adds two preview privacy regressions: selecting/removing a synthetic file produces no observed network request after page loading, and reloading clears the selection. The exercised selection leaves localStorage, sessionStorage, IndexedDB, and Cache Storage empty. These bounded checks do not constitute a security assessment of a future backend or provider integration.
+
 Use synthetic fixtures for all current checks. Keep browser traces and reports outside version control. No court or provider credentials are necessary for preview checks. Do not contact court systems or transmit records as part of this preparation.
 
 ## Outstanding qualification evidence
