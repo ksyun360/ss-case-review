@@ -1,6 +1,6 @@
 # Synthetic development API startup
 
-Phase 4 now includes a runnable, loopback-only case metadata API. Use synthetic case labels and a dedicated development database. The browser preview does not call this API yet.
+Phase 4 includes a runnable, loopback-only case metadata API. Use synthetic case labels and a dedicated development database. The browser's saved-case page requests metadata through the Vite development proxy when the API runs.
 
 ## Configuration and startup
 
@@ -48,10 +48,10 @@ curl --fail-with-body http://127.0.0.1:5176/api/v1/cases \
   --data '{"label":"Synthetic development case"}'
 ```
 
-Each successful POST creates a new draft; the API has no retry token or case deletion endpoint. The [case API contract](case-api.md) specifies validation and access boundaries. `npm run dev` remains the separate browser preview on port 5175, and the browser does not yet send requests to the API.
+Each successful POST creates a new draft; the API has no retry token or case deletion endpoint. The [case API contract](case-api.md) specifies validation and access boundaries. Run `npm run dev` separately to start the browser on port 5175. Open `/cases` to list drafts through Vite's same-origin development proxy. The browser cannot create a case or open a case detail page yet. The production-bundle preview has no API proxy.
 
 ## Evidence and limits
 
 Unit tests cover explicit configuration, migration-before-listen order, connection release, database and listener failures, idle connection diagnostics, and command-line signals. The full commit gate also runs the existing native PostgreSQL and Chromium suites. A separate temporary PostgreSQL 18.6 smoke check started the real Node process, migrated an empty database, created and listed a synthetic case over loopback HTTP, restarted the process, and confirmed that the case remained available. The smoke check stopped and removed only its memory-backed test container.
 
-These checks do not establish court identity, browser integration, document upload, record extraction, model use, record accuracy, processing latency, or backup and recovery. The synthetic identity flag records developer intent and cannot inspect whether submitted text contains real information. Keep real records out of this development service. Return to Phase 3 at the final setup gate before pilot handoff.
+These checks do not establish a browser-to-database round trip, court identity, document upload, record extraction, model use, record accuracy, processing latency, or backup and recovery. A separate browser test intercepts a synthetic case-list response; the test does not connect to PostgreSQL. The synthetic identity flag records developer intent and cannot inspect whether submitted text contains real information. Keep real records out of this development service. Return to Phase 3 at the final setup gate before pilot handoff.

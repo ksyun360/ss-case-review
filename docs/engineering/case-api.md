@@ -1,6 +1,6 @@
 # Synthetic development case API
 
-Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser does not call the API. Use synthetic fixtures only.
+Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser lists saved synthetic case metadata through the development proxy; browser case creation and case-detail navigation remain pending. Use synthetic fixtures only.
 
 ## Construction and identity
 
