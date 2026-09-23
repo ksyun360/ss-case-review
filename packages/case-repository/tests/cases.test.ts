@@ -144,3 +144,19 @@ test('does not register original metadata when the reviewer belongs only to anot
   expect(await registerOriginalReference(database, otherReviewer, original)).toBeUndefined();
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('rejects replacement metadata for an existing case document version', async () => {
+  await createCase(database, input);
+  await registerOriginalReference(database, reviewerId, original);
+  await expect(
+    registerOriginalReference(database, reviewerId, {
+      ...original,
+      sha256: 'b'.repeat(64),
+      byteLength: 12,
+    }),
+  ).rejects.toMatchObject({ code: '23505' });
+  expect(
+    (await database.query('SELECT sha256, byte_length::text AS size FROM original_references'))
+      .rows,
+  ).toEqual([{ sha256: original.sha256, size: '2147483648' }]);
+});

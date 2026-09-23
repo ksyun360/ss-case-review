@@ -69,7 +69,8 @@ export async function installCaseSchema(client: SqlClient): Promise<void> {
     case_id uuid,
     document_version_id uuid,
     sha256 text,
-    byte_length bigint
+    byte_length bigint,
+    PRIMARY KEY (case_id, document_version_id)
   )`);
 }
 
