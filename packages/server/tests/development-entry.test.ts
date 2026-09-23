@@ -2,6 +2,18 @@ import process from 'node:process';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { startDevelopmentServer } from '../src/development-server.ts';
 
+test('reports a startup failure without printing exception details or registering signals', async () => {
+  vi.mocked(startDevelopmentServer).mockRejectedValue(
+    new Error('synthetic private startup details'),
+  );
+  await expect(import('../src/development-entry.ts')).resolves.toBeDefined();
+  expect(process.stderr.write).toHaveBeenCalledExactlyOnceWith('development_server_start_failed\n');
+  expect(process.exitCode).toBe(1);
+  expect(process.stdout.write).not.toHaveBeenCalled();
+  expect(process.once).not.toHaveBeenCalled();
+  expect(close).not.toHaveBeenCalled();
+});
+
 vi.mock('../src/development-server.ts', () => ({ startDevelopmentServer: vi.fn() }));
 vi.mock('node:process', () => ({
   default: {
