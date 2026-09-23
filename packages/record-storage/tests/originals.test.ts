@@ -32,6 +32,16 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('keeps path-like identifiers inside hashed storage locations', async () => {
+  const pathLikeIdentity = { caseId: '../case-escape', documentVersionId: '../document-escape' };
+  const reference = await writeOriginal(storageRoot, pathLikeIdentity, bytes);
+  expect(await readOriginal(storageRoot, pathLikeIdentity.caseId, reference)).toEqual(bytes);
+  expect(
+    await fs.readFile(originalPath(pathLikeIdentity.documentVersionId, pathLikeIdentity.caseId)),
+  ).toEqual(bytes);
+  expect(await fs.readdir(join(temporaryRoot, 'private'))).toEqual(['originals']);
+});
+
 test('keeps matching document-version identifiers in separate case storage', async () => {
   const otherIdentity = { ...identity, caseId: 'synthetic-case-b' };
   const otherBytes = Buffer.from('xyz');
@@ -39,7 +49,7 @@ test('keeps matching document-version identifiers in separate case storage', asy
   const otherReference = await writeOriginal(storageRoot, otherIdentity, otherBytes);
   expect(await readOriginal(storageRoot, identity.caseId, reference)).toEqual(bytes);
   expect(await readOriginal(storageRoot, otherIdentity.caseId, otherReference)).toEqual(otherBytes);
-  expect(await fs.readdir(storageRoot)).toEqual(
+  expect((await fs.readdir(storageRoot)).sort()).toEqual(
     [basename(caseDirectory()), basename(caseDirectory(otherIdentity.caseId))].sort(),
   );
 });
