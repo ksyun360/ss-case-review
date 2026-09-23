@@ -15,6 +15,7 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
     ajv: { customOptions: { coerceTypes: false, removeAdditional: false } },
   });
   api.addHook('onRequest', async (request, reply) => {
+    reply.header('cache-control', 'no-store');
     const origin = request.headers.origin;
     if (
       request.headers['x-record-review-client'] !== 'synthetic-workspace' ||

@@ -2,6 +2,13 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
+test('disables HTTP caching for case metadata responses', async () => {
+  const response = await api.inject({ url: '/api/v1/cases', headers: requestHeaders });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({ cases: [] });
+  expect(response.headers['cache-control']).toBe('no-store');
+});
+
 test('rejects malformed JSON without returning submitted text or parser details', async () => {
   const response = await api.inject({
     method: 'POST',
