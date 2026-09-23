@@ -10,7 +10,10 @@ import { readDevelopmentIdentity } from '@record-review/server-config/developmen
 
 export function createDevelopmentApi(environment: ServerEnvironment, database: SqlClient) {
   const identity = readDevelopmentIdentity(environment);
-  const api = Fastify({ ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
+  const api = Fastify({
+    bodyLimit: 4096,
+    ajv: { customOptions: { coerceTypes: false, removeAdditional: false } },
+  });
   api.addHook('onRequest', async (request, reply) => {
     const origin = request.headers.origin;
     if (
@@ -22,6 +25,8 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
     }
   });
   api.setErrorHandler<FastifyError>((error, _request, reply) => {
+    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE')
+      return reply.code(413).send({ code: 'request_too_large' });
     if (error.validation) return reply.code(400).send({ code: 'invalid_request' });
     return reply.code(503).send({ code: 'case_service_unavailable' });
   });

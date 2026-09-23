@@ -2,6 +2,18 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
+test('rejects oversized case metadata before validation or database access', async () => {
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    headers: requestHeaders,
+    payload: { label: 'S'.repeat(4097) },
+  });
+  expect(response.statusCode).toBe(413);
+  expect(response.json()).toEqual({ code: 'request_too_large' });
+  expect(database.query).not.toHaveBeenCalled();
+});
+
 test('rejects a foreign browser origin without granting cross-origin access', async () => {
   const response = await api.inject({
     url: '/api/v1/cases',
