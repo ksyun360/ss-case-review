@@ -3,6 +3,11 @@ import { listSyntheticCases } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
+test('rejects a missing case list instead of treating it as an empty list', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => null }));
+  await expect(listSyntheticCases()).rejects.toThrow('case_list_unavailable');
+});
+
 test('rejects an unsuccessful case response without reading its body', async () => {
   const json = vi.fn();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json }));
