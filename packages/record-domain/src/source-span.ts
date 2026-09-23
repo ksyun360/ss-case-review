@@ -67,6 +67,10 @@ export function locateSourceSpan(
     return { status: 'not_located', reason: 'invalid_offsets' };
   }
 
+  if (!Number.isInteger(candidate.start)) {
+    return { status: 'not_located', reason: 'invalid_offsets' };
+  }
+
   if (source.rawText.slice(candidate.start, candidate.end) !== candidate.quote) {
     return { status: 'not_located', reason: 'quote_mismatch' };
   }
