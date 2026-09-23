@@ -1,10 +1,21 @@
-import { Navigate, NavLink, Route, Routes } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router';
 import { Brand } from './brand.tsx';
 import { HomePage } from './home-page.tsx';
 import { CasesPage } from './cases-page.tsx';
 import { UploadPage } from './upload-page.tsx';
 
 export function App() {
+  const { pathname } = useLocation();
+  const previousPath = useRef(pathname);
+
+  useEffect(() => {
+    if (previousPath.current !== pathname) {
+      (document.getElementById('main-content') as HTMLElement).focus();
+      previousPath.current = pathname;
+    }
+  }, [pathname]);
+
   return (
     <>
       <a className="skip-link" href="#main-content">
