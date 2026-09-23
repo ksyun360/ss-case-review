@@ -32,6 +32,20 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('publishes exactly one complete original when two writes race for a document version', async () => {
+  const outcomes = await Promise.allSettled([
+    writeOriginal(storageRoot, identity, bytes),
+    writeOriginal(storageRoot, identity, Buffer.from('xyz')),
+  ]);
+  expect(outcomes.map((outcome) => outcome.status).sort()).toEqual(['fulfilled', 'rejected']);
+  const winner = outcomes.find((outcome) => outcome.status === 'fulfilled');
+  if (winner?.status !== 'fulfilled') throw new Error('Expected one winning write');
+  const persisted = await fs.readFile(originalPath());
+  expect(winner.value.sha256).toBe(createHash('sha256').update(persisted).digest('hex'));
+  expect(winner.value.byteLength).toBe(persisted.byteLength);
+  expect(await fs.readdir(caseDirectory())).toEqual([basename(originalPath())]);
+});
+
 test('requests a file-data flush before publishing an original', async () => {
   await writeOriginal(storageRoot, identity, bytes);
   expect(fs.writeFile).toHaveBeenCalledExactlyOnceWith(expect.any(String), bytes, {
