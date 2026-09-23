@@ -2,6 +2,17 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
+test('rejects a foreign browser origin without granting cross-origin access', async () => {
+  const response = await api.inject({
+    url: '/api/v1/cases',
+    headers: { ...requestHeaders, origin: 'https://foreign.invalid' },
+  });
+  expect(response.statusCode).toBe(403);
+  expect(response.json()).toEqual({ code: 'development_request_forbidden' });
+  expect(response.headers['access-control-allow-origin']).toBeUndefined();
+  expect(database.query).not.toHaveBeenCalled();
+});
+
 test('rejects a foreign Host header even when a forwarded header claims loopback', async () => {
   const response = await api.inject({
     url: '/api/v1/cases',

@@ -67,7 +67,7 @@ test('creates a synthetic draft with a server-generated identity and creator mem
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: '  Synthetic draft  ' },
-    headers: requestHeaders,
+    headers: { ...requestHeaders, origin: 'http://127.0.0.1:5175' },
   });
   expect(response.statusCode).toBe(201);
   const body = response.json<{ case: { caseId: string; label: string; recordRevision: number } }>();
