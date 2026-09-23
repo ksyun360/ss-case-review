@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { listSyntheticCases, type CaseSummary } from './case-client.ts';
+import { useEffect, useState, type FormEvent } from 'react';
+import { createSyntheticCase, listSyntheticCases, type CaseSummary } from './case-client.ts';
 
 type CaseView =
   | { kind: 'initial' }
@@ -9,6 +9,9 @@ type CaseView =
 
 export function CasesPage() {
   const [view, setView] = useState<CaseView>({ kind: 'initial' });
+  const [label, setLabel] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [creationError, setCreationError] = useState(false);
   const refresh = () => {
     setView({ kind: 'loading' });
     void listSyntheticCases().then(
@@ -19,6 +22,22 @@ export function CasesPage() {
   useEffect(() => {
     if (view.kind === 'initial') refresh();
   });
+  const submitDraft = (event: FormEvent<HTMLFormElement>, currentCases: CaseSummary[]) => {
+    event.preventDefault();
+    setCreating(true);
+    setCreationError(false);
+    void createSyntheticCase(label.trim()).then(
+      (created) => {
+        setView({ kind: 'ready', cases: [...currentCases, created] });
+        setLabel('');
+        setCreating(false);
+      },
+      () => {
+        setCreationError(true);
+        setCreating(false);
+      },
+    );
+  };
 
   return (
     <main id="main-content" className="page" tabIndex={-1}>
@@ -35,6 +54,26 @@ export function CasesPage() {
         <section className="panel" aria-labelledby="saved-cases-heading">
           <h2 id="saved-cases-heading">Saved cases</h2>
           <p>These drafts do not include uploaded documents yet.</p>
+          <form className="case-create" onSubmit={(event) => submitDraft(event, view.cases)}>
+            <label htmlFor="synthetic-case-label">Synthetic case label</label>
+            <div className="case-create-controls">
+              <input
+                id="synthetic-case-label"
+                value={label}
+                onChange={(event) => setLabel(event.currentTarget.value)}
+                required
+                maxLength={120}
+              />
+              <button className="button primary-button" type="submit" disabled={creating}>
+                Create synthetic draft
+              </button>
+            </div>
+            {creationError && (
+              <p role="alert">
+                Check the saved case list before trying again; the request may have succeeded.
+              </p>
+            )}
+          </form>
           {view.cases.length === 0 ? (
             <div className="empty-state">
               <h3>No saved cases yet</h3>

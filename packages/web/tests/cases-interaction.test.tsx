@@ -1,15 +1,57 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, expect, test, vi } from 'vitest';
-import { listSyntheticCases, type CaseSummary } from '../src/case-client.ts';
+import { createSyntheticCase, listSyntheticCases, type CaseSummary } from '../src/case-client.ts';
 import { CasesPage } from '../src/cases-page.tsx';
 
-vi.mock('../src/case-client.ts', () => ({ listSyntheticCases: vi.fn() }));
+vi.mock('../src/case-client.ts', () => ({
+  listSyntheticCases: vi.fn(),
+  createSyntheticCase: vi.fn(),
+}));
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+});
+
+test('shows a failed synthetic draft creation before an explicit successful retry', async () => {
+  vi.mocked(listSyntheticCases).mockResolvedValueOnce([]);
+  let rejectFirst!: (reason?: unknown) => void;
+  vi.mocked(createSyntheticCase)
+    .mockImplementationOnce(
+      () =>
+        new Promise<CaseSummary>((_, reject) => {
+          rejectFirst = reject;
+        }),
+    )
+    .mockResolvedValueOnce({
+      caseId: '00000000-0000-4000-8000-000000000002',
+      label: 'Synthetic new draft',
+      recordRevision: 1,
+    });
+  const user = userEvent.setup();
+  render(<CasesPage />);
+  const label = await screen.findByRole('textbox', { name: 'Synthetic case label' });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  await user.type(label, '  Synthetic new draft  ');
+  const create = screen.getByRole('button', { name: 'Create synthetic draft' });
+  expect(create).toBeEnabled();
+  expect(fireEvent.submit(label.closest('form') as HTMLFormElement)).toBe(false);
+  expect(createSyntheticCase).toHaveBeenCalledExactlyOnceWith('Synthetic new draft');
+  expect(create).toBeDisabled();
+  rejectFirst(new Error('synthetic offline fixture'));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Check the saved case list before trying again; the request may have succeeded.',
+  );
+  expect(create).toBeEnabled();
+  await user.click(create);
+  expect(await screen.findByText('Synthetic new draft')).toBeVisible();
+  expect(screen.getByRole('list', { name: 'Saved cases' })).toHaveTextContent('Record revision 1');
+  expect(createSyntheticCase).toHaveBeenCalledTimes(2);
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(label).toHaveValue('');
+  expect(create).toBeEnabled();
 });
 
 test('shows a clear empty state when the case API returns no drafts', async () => {
