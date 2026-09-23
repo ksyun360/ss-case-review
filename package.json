@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "dev": "vite",
+    "dev:api": "node --env-file=.env packages/server/src/development-entry.ts",
     "preview": "vite preview",
     "format": "prettier --write .",
     "hooks:install": "husky",

@@ -1,6 +1,6 @@
 # Synthetic development case API
 
-Status: Phase 4 now includes a tested Fastify API factory for case metadata. The browser does not call the factory. No application startup command creates a database connection, runs migrations, or opens an API listener. Use synthetic fixtures only.
+Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser does not call the API. Use synthetic fixtures only.
 
 ## Construction and identity
 
@@ -23,7 +23,7 @@ The synthetic reviewer represents one trusted local developer, not an authentica
 
 The API requires `Host: 127.0.0.1:5176` and `x-record-review-client: synthetic-workspace`. When a request contains `Origin`, the API accepts only `http://127.0.0.1:5175`. The API ignores forwarded-host claims and grants no cross-origin access. The client marker is public and provides a browser request safeguard, not a password or authentication token. Local software can construct these headers.
 
-These checks do not bind a network socket. The future bootstrap must actually bind the listener to `127.0.0.1:5176`, enforce startup configuration, and connect the preview through a same-origin proxy. Do not expose this factory through a shared server or reverse proxy. The current preview contains no API proxy or client integration.
+The development entry point now validates startup configuration and binds the listener to `127.0.0.1:5176`. The current preview contains no API proxy or client integration. Do not expose the development API through a shared server or reverse proxy.
 
 | Endpoint             | Behavior                                                                                                                                                               |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -47,6 +47,6 @@ The error handler returns fixed codes rather than exception messages, query deta
 
 Run `npm test -- packages/server packages/server-config/tests/development-identity.test.ts` for focused checks. Three API integration cases use a real in-memory PostgreSQL test engine to check reviewer scoping, creation, and atomic rollback with safe failure responses. Eleven request cases check validation, request restrictions, payload limits, malformed JSON, and response caching. Seven configuration cases check the development identity contract.
 
-The [native PostgreSQL suite](postgres-migrations.md) additionally checks API creation, filtering, and membership revocation against PostgreSQL 18.6. Request injection exercises Fastify's lifecycle without opening an HTTP listener. These tests do not establish browser-to-server behavior, network isolation, production authentication, database pooling, general concurrency, or recovery.
+The [native PostgreSQL suite](postgres-migrations.md) additionally checks API creation, filtering, and membership revocation against PostgreSQL 18.6. Request injection exercises Fastify's lifecycle without opening an HTTP listener. The [development server checks](development-server.md) cover startup ordering, pool cleanup, loopback binding, and a separate real-process HTTP smoke run. These tests do not establish browser-to-server behavior, production authentication, general concurrency, or recovery.
 
-Connect guarded startup, connection management, migration execution, the browser, and private-file finalization next. Add pagination, case administration, request idempotency, complete error classification, and audit records before a shared deployment. Keep real records blocked until court IT approves identity and data handling. Return to Phase 3 at the very end before pilot handoff.
+Connect the browser and private-file finalization next. Add pagination, case administration, request idempotency, complete error classification, and audit records before a shared deployment. Keep real records blocked until court IT approves identity and data handling. Return to Phase 3 at the very end before pilot handoff.

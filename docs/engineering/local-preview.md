@@ -19,6 +19,8 @@ For a production-bundle check, run `npm run build` followed by `npm run preview`
 
 The [Gemini development configuration helper](gemini-development.md) remains separate from the preview. Adding a key to the root `.env` does not enable model calls or uploads. Keep credentials server-side and use synthetic fixtures only.
 
+The [synthetic development API](development-server.md) now has a separate `npm run dev:api` command. That command requires a dedicated development PostgreSQL instance and the ignored server-side `.env`. The browser preview does not call the API yet.
+
 ## Available behavior
 
 | Route           | Current behavior                                                                     |
@@ -43,6 +45,6 @@ Automated accessibility scans and browser geometry assertions supplement compone
 
 ## Remaining application work
 
-The [local original-storage adapter](local-original-storage.md), [PostgreSQL metadata repository](case-repository.md), and [synthetic case API](case-api.md) remain separate from the browser. Versioned migrations and native tests now exist. The API factory does not start a listener or change `npm run dev`. Later increments must connect guarded startup, database lifecycle, migration execution, browser case actions, complete document metadata, storage/API finalization, source coordinates and versioning, durable upload, document inspection, OCR/extraction, provider integration, source-linked review artifacts, correction history, and approved reference lookups. Court authentication, authorization, deployment qualification, performance evaluation, and corpus-based accuracy evaluation must precede real-record use. The [collaborator update](collaborator-update.md) provides a shareable status and completion checklist.
+The [local original-storage adapter](local-original-storage.md), [PostgreSQL metadata repository](case-repository.md), and [synthetic case API](case-api.md) remain separate from the browser. Versioned migrations, native tests, and guarded API startup now exist. `npm run dev` still starts only the browser preview. Later increments must connect browser case actions, complete document metadata, storage/API finalization, source coordinates and versioning, durable upload, document inspection, OCR/extraction, provider integration, source-linked review artifacts, correction history, and approved reference lookups. Court authentication, authorization, deployment qualification, performance evaluation, and corpus-based accuracy evaluation must precede real-record use. The [collaborator update](collaborator-update.md) provides a shareable status and completion checklist.
 
 The project owner directed completion of Phase 4 after initial Phase 5 qualification preparation. The [source-span validation module](source-spans.md) adds internal checks but does not change the current browser workflow. The preview does not complete Phase 4 or authorize court deployment. Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. Local TDD commits and quality gates remain active. Track outstanding evidence in the [qualification readiness checklist](qualification-readiness.md).

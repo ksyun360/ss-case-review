@@ -31,6 +31,7 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 | `npm run build`              | Compile workspace packages and bundle the browser application.                         |
 | `npm run test:browser`       | Run Chromium workflows and automated accessibility scans.                              |
 | `npm run test:postgres`      | Run native PostgreSQL migration checks in a temporary Docker container after building. |
+| `npm run dev:api`            | Start the synthetic loopback case API with an ignored environment file.                |
 | `npm run dev`                | Start the loopback-only development preview on port 5175.                              |
 | `npm run check:secrets`      | Scan eligible source files for credentials.                                            |
 | `npm run check:dependencies` | Reject high or critical dependency advisories.                                         |
@@ -39,7 +40,7 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 
 Coverage must reach 93% for each metric and each first-party source file. The current mutation gate requires 100% across repository safeguards and application TypeScript/TSX. The approved general application threshold remains 95%, with 100% for critical source-acceptance and authorization rules; the current implementation retains the stricter gate. Do not reduce thresholds or exclude production logic to make a commit pass.
 
-The repository-policy package contains local safeguards. The web workspace provides responsive navigation, empty states, and local file selection. Browser-connected case storage, extraction, native database startup, and model clients remain unimplemented. Browser checks run against the production bundle within every commit gate. Run `npm exec -- playwright install chromium` after dependency installation to prepare the pinned browser. The browser checks require a free loopback port 5185 and permission to launch Chromium.
+The repository-policy package contains local safeguards. The web workspace provides responsive navigation, empty states, and local file selection. The [development server](docs/engineering/development-server.md) now connects to a dedicated synthetic PostgreSQL instance and runs migrations before listening. Browser-connected case storage, extraction, and model clients remain unimplemented. Browser checks run against the production bundle within every commit gate. Run `npm exec -- playwright install chromium` after dependency installation to prepare the pinned browser. The browser checks require a free loopback port 5185 and permission to launch Chromium.
 
 The record-domain package provides deterministic source-span validation. Read the [source-span contract](docs/engineering/source-spans.md) before integrating storage, API, or extraction code. Keep external-input validation and user/case authorization at the server boundary; never substitute client-supplied text for a trusted source unit.
 
@@ -49,7 +50,7 @@ The case-repository package adds [PostgreSQL metadata operations](docs/engineeri
 
 The complete commit gate now requires a running local Docker engine, socket access, and the Docker CLI on PATH. Pull the digest-pinned image through the [native test setup](docs/engineering/postgres-migrations.md#run-isolated-native-tests). The gate builds packages before running the native suite and fails when Docker or the image is unavailable. The native tests stop only test-owned containers; keep existing databases and persistent volumes outside the harness. Add future schema changes as new migrations rather than editing applied SQL.
 
-The server-config package provides a pure [Gemini development configuration validator](docs/engineering/gemini-development.md). Tests use synthetic credentials; do not read a developer's `.env` or make paid provider requests during ordinary verification. Keep the package out of browser imports. Server startup and provider-client integration remain pending.
+The server-config package provides a pure [Gemini development configuration validator](docs/engineering/gemini-development.md). Tests use synthetic credentials; do not read a developer's `.env` or make paid provider requests during ordinary verification. Keep the package out of browser imports. Provider-client integration remains pending.
 
 The license gate tracks the installed development-tool inventory, including transitive packages. The inventory includes attribution licenses, MPL-2.0, Artistic-2.0, and the WTFPL declaration from `@azu/style-format`. A passing scan identifies declarations; the scan does not grant legal approval or discharge distribution obligations. Court IT must approve distribution and notices before deployment. License names containing “Python” describe JavaScript dependencies' license declarations, not Python runtime dependencies.
 

@@ -1,6 +1,6 @@
 # PostgreSQL migrations and native checks
 
-Status: The case-repository package now provides a versioned initial schema and a transactional migration runner. Native tests exercise PostgreSQL 18.6 through node-postgres. The application does not yet start a database connection, run migrations at startup, or connect browser requests to storage. Use synthetic fixtures only.
+Status: The case-repository package provides a versioned initial schema and a transactional migration runner. Native tests exercise PostgreSQL 18.6 through node-postgres. The [development API](development-server.md) now opens a dedicated connection pool, runs migrations before listening, and serves synthetic case requests. Browser requests remain disconnected. Use synthetic fixtures only.
 
 ## Migration contract
 
@@ -46,4 +46,4 @@ The native suite runs separately from TypeScript mutation testing. The existing 
 
 Release packaging must retain `packages/case-repository/migrations/` alongside `dist/`; compiling TypeScript alone does not copy SQL assets. The compiled-layout test checks the repository build layout, not a court deployment archive.
 
-Remaining work includes application startup/configuration, least-privilege runtime and migration roles, TLS, connection pooling, further schema constraints, authenticated endpoints, file/database finalization, backup/restore, and workload evaluation. The native checks do not qualify court infrastructure or processing accuracy. Phase 4 remains active; return to Phase 3 at the very end before pilot handoff.
+Remaining work includes least-privilege runtime and migration roles, TLS, further schema constraints, authenticated endpoints, file/database finalization, backup/restore, and workload evaluation. The development API now uses a bounded loopback connection pool. The native checks do not qualify court infrastructure or processing accuracy. Phase 4 remains active; return to Phase 3 at the very end before pilot handoff.
