@@ -126,3 +126,21 @@ test('does not replay an applied migration or change existing case data', async 
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
   ]);
 });
+
+test('rolls back partial schema changes and leaves a failed migration unapplied', async () => {
+  await client.query(`CREATE TABLE original_references (marker text);
+    INSERT INTO original_references VALUES ('synthetic existing data')`);
+  await expect(migrateCaseSchema(client)).rejects.toMatchObject({ code: '42P07' });
+  expect(
+    (
+      await client.query(`SELECT to_regclass('public.cases') AS cases,
+      to_regclass('public.case_memberships') AS memberships`)
+    ).rows,
+  ).toEqual([{ cases: null, memberships: null }]);
+  expect((await client.query('SELECT marker FROM original_references')).rows).toEqual([
+    { marker: 'synthetic existing data' },
+  ]);
+  expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([]);
+  await client.query('DROP TABLE original_references');
+  expect(await migrateCaseSchema(client)).toHaveLength(1);
+});
