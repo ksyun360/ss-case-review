@@ -20,21 +20,22 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 
 ## Quality commands
 
-| Command                      | Purpose                                                              |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `npm run format:check`       | Check formatting.                                                    |
-| `npm run lint`               | Check TypeScript/JavaScript, CSS, and Markdown.                      |
-| `npm run typecheck`          | Check strict TypeScript contracts.                                   |
-| `npm test`                   | Run the current automated tests.                                     |
-| `npm run test:coverage`      | Check line, statement, function, and branch coverage.                |
-| `npm run test:mutation`      | Run the complete configured mutation scope.                          |
-| `npm run build`              | Compile workspace packages and bundle the browser application.       |
-| `npm run test:browser`       | Run Chromium workflows and automated accessibility scans.            |
-| `npm run dev`                | Start the loopback-only development preview on port 5175.            |
-| `npm run check:secrets`      | Scan eligible source files for credentials.                          |
-| `npm run check:dependencies` | Reject high or critical dependency advisories.                       |
-| `npm run check:licenses`     | Check dependency license declarations against the tooling inventory. |
-| `npm run verify:commit`      | Run the complete current commit gate.                                |
+| Command                      | Purpose                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `npm run format:check`       | Check formatting.                                                                      |
+| `npm run lint`               | Check TypeScript/JavaScript, CSS, and Markdown.                                        |
+| `npm run typecheck`          | Check strict TypeScript contracts.                                                     |
+| `npm test`                   | Run the current automated tests.                                                       |
+| `npm run test:coverage`      | Check line, statement, function, and branch coverage.                                  |
+| `npm run test:mutation`      | Run the complete configured mutation scope.                                            |
+| `npm run build`              | Compile workspace packages and bundle the browser application.                         |
+| `npm run test:browser`       | Run Chromium workflows and automated accessibility scans.                              |
+| `npm run test:postgres`      | Run native PostgreSQL migration checks in a temporary Docker container after building. |
+| `npm run dev`                | Start the loopback-only development preview on port 5175.                              |
+| `npm run check:secrets`      | Scan eligible source files for credentials.                                            |
+| `npm run check:dependencies` | Reject high or critical dependency advisories.                                         |
+| `npm run check:licenses`     | Check dependency license declarations against the tooling inventory.                   |
+| `npm run verify:commit`      | Run the complete current commit gate.                                                  |
 
 Coverage must reach 93% for each metric and each first-party source file. The current mutation gate requires 100% across repository safeguards and application TypeScript/TSX. The approved general application threshold remains 95%, with 100% for critical source-acceptance and authorization rules; the current implementation retains the stricter gate. Do not reduce thresholds or exclude production logic to make a commit pass.
 
@@ -44,7 +45,9 @@ The record-domain package provides deterministic source-span validation. Read th
 
 The record-storage package adds [private local original storage](docs/engineering/local-original-storage.md). Filesystem tests use synthetic bytes and test-owned temporary directories. The adapter does not authorize users, persist case metadata, or acknowledge crash-durable uploads. Keep the package out of browser imports and do not point tests at existing records or shared storage.
 
-The case-repository package adds [PostgreSQL metadata operations](docs/engineering/case-repository.md). Tests execute SQL against a test-owned in-memory PGlite instance without reading database credentials or connecting to an existing service. Keep the package server-side and supply authenticated reviewer context. The draft schema initializer is not a migration runner. Native PostgreSQL connectivity, deployment roles, concurrency, and storage/API integration require separate qualification. Stryker covers TypeScript mutations, not individual predicates inside SQL strings; retain explicit negative SQL tests.
+The case-repository package adds [PostgreSQL metadata operations](docs/engineering/case-repository.md) and [versioned migrations](docs/engineering/postgres-migrations.md). Fast tests execute the migration SQL in a test-owned PGlite instance. Native checks create an isolated PostgreSQL 18.6 container and exercise the real driver and migration library. Neither suite loads developer credentials or connects to an existing database. Keep the package server-side and supply authenticated reviewer context. Deployment roles/TLS, general concurrency, and storage/API integration still require qualification. Stryker covers TypeScript mutations, not SQL files or third-party migration internals; retain explicit negative SQL tests.
+
+The complete commit gate now requires a running local Docker engine, socket access, and the Docker CLI on PATH. Pull the digest-pinned image through the [native test setup](docs/engineering/postgres-migrations.md#run-isolated-native-tests). The gate builds packages before running the native suite and fails when Docker or the image is unavailable. The native tests stop only test-owned containers; keep existing databases and persistent volumes outside the harness. Add future schema changes as new migrations rather than editing applied SQL.
 
 The server-config package provides a pure [Gemini development configuration validator](docs/engineering/gemini-development.md). Tests use synthetic credentials; do not read a developer's `.env` or make paid provider requests during ordinary verification. Keep the package out of browser imports. Server startup and provider-client integration remain pending.
 

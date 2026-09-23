@@ -1,6 +1,6 @@
 # PostgreSQL case metadata
 
-Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. The browser does not call this package. Native PostgreSQL connectivity, migrations, authenticated API access, and coordinated file/database storage remain pending. Use synthetic fixtures only.
+Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. A [versioned migration runner and native PostgreSQL tests](postgres-migrations.md) now supplement the fast SQL tests. The browser does not call this package. Application database startup, authenticated API access, and coordinated file/database storage remain pending. Use synthetic fixtures only.
 
 ## Server contract
 
@@ -12,7 +12,6 @@ Import the helpers from `@record-review/case-repository/cases` in server code on
 | `listCasesForReviewer(client, reviewerId)`                             | Returns member cases in case-ID order, without duplicates. A reviewer with no membership receives an empty list.                                                                                                                      |
 | `registerOriginalReference(client, reviewerId, reference)`             | Inserts a reference only when the supplied reviewer has membership in the reference's case. A nonmember receives `undefined` without a write. An existing case/document-version pair raises a conflict instead of replacing metadata. |
 | `findOriginalReference(client, reviewerId, caseId, documentVersionId)` | Returns the exact matching reference only for a current case member. A missing version or unauthorized lookup returns `undefined`.                                                                                                    |
-| `installCaseSchema(client)`                                            | Creates the three draft tables in an empty schema. The test harness uses this initializer; no application startup invokes the initializer.                                                                                            |
 
 The caller must authenticate the reviewer and authorize case creation before calling the repository. Never accept a reviewer identity from an unverified browser field or model response. Membership filtering does not establish identity, court/chambers scope, or separate read/write roles. The repository does not implement PostgreSQL row-level security or protect against a caller with unrestricted SQL access.
 
@@ -34,16 +33,16 @@ A lookup checks membership within the query's database snapshot. A later query o
 
 ## Schema and deployment boundaries
 
-`installCaseSchema` is a development initializer, not a migration system. The initializer executes three creation statements without a migration transaction, version ledger, upgrade path, or rollback procedure. Do not run the initializer against an existing or shared database. Later work must add reviewed migrations, database-role restrictions, schema hardening, connection/TLS configuration, and native PostgreSQL integration tests before deployment.
+The package no longer exports `installCaseSchema`. Import `migrateCaseSchema` from the separate `@record-review/case-repository/migrations` entry point and follow the [migration contract](postgres-migrations.md). The runner applies the initial SQL schema transactionally, records applied migrations, and refuses unknown history or automatic adoption of unversioned tables. No application startup invokes the runner yet. Database roles, schema hardening, connection/TLS configuration, and deployment/restore procedures remain pending.
 
-Keep PostgreSQL as the deployment database. PGlite supplies only the npm-packaged, in-memory PostgreSQL test engine; PGlite does not replace the server database or add browser storage. Native wire protocol, pooling, multi-connection concurrency, locking/revocation races, backup/restore, query plans, and service performance remain unqualified.
+Keep PostgreSQL as the deployment database. PGlite supplies only the npm-packaged, in-memory PostgreSQL test engine; PGlite does not replace the server database or add browser storage. Native tests now check local PostgreSQL 18.6 connectivity, repository round-trips, and migration locking across two connections. Pooling, general application concurrency, revocation races, backup/restore, query plans, and service performance remain unqualified.
 
 ## Verification
 
 Run `npm test -- packages/case-repository/tests/cases.test.ts` for the focused suite. The 21 tests cover atomic creation, uniqueness and foreign keys, reviewer-filtered lists, literal parameter values, original-reference writes and reads, cross-case isolation, revoked membership, missing references, and required hash/length constraints.
 
-The tests create one isolated in-memory PGlite instance and rebuild the test-owned schema before each case. The tests never read a database URL, contact an existing database, load `.env`, or use real records. PGlite runs PostgreSQL through WebAssembly and supports parameterized SQL; the suite uses real SQL execution rather than mocked query results. [PGlite documentation](https://pglite.dev/docs/); [PGlite API](https://pglite.dev/docs/api).
+The fast SQL tests create one isolated in-memory PGlite instance and rebuild the test-owned schema from the initial migration SQL before each case. These tests never read a database URL, contact an existing database, load `.env`, or use real records. PGlite runs PostgreSQL through WebAssembly and supports parameterized SQL; the suite uses real SQL execution rather than mocked query results. [PGlite documentation](https://pglite.dev/docs/); [PGlite API](https://pglite.dev/docs/api). The separate native suite runs the actual migration library against test-owned containers.
 
 Run `npm run verify:commit` for all repository gates. Coverage and mutation results cover the current first-party TypeScript scope. Stryker does not parse SQL strings into SQL predicate mutations; targeted positive and negative SQL tests provide separate evidence. Passing metrics do not establish complete authorization, record accuracy, or deployment readiness.
 
-Phase 4 remains active. The next integration work must connect authenticated server context, native database startup/migrations, and private-file storage before enabling uploads. Return to Phase 3 at the very end, before pilot handoff, for hosted CI and repository protections.
+Phase 4 remains active. The next integration work must connect authenticated server context, application database startup and migration execution, and private-file storage before enabling uploads. Return to Phase 3 at the very end, before pilot handoff, for hosted CI and repository protections.

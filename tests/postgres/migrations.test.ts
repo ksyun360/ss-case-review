@@ -206,3 +206,22 @@ test('refuses automatic adoption of an existing unversioned case schema', async 
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
   ]);
 });
+
+test('loads the migration SQL from the compiled package layout', async () => {
+  const compiled = (await import(
+    new URL('../../packages/case-repository/dist/migrations.js', import.meta.url).href
+  )) as typeof import('../../packages/case-repository/src/migrations.ts');
+  expect(await compiled.migrateCaseSchema(client)).toHaveLength(1);
+  expect(
+    (
+      await client.query(`SELECT to_regclass('public.cases') AS cases,
+      to_regclass('public.case_memberships') AS memberships,
+      to_regclass('public.original_references') AS originals`)
+    ).rows,
+  ).toEqual([
+    { cases: 'cases', memberships: 'case_memberships', originals: 'original_references' },
+  ]);
+  expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([
+    { name: '202609230001_initial_case_metadata' },
+  ]);
+});
