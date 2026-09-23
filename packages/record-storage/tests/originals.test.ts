@@ -32,6 +32,14 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('rejects changed original contents even when the stored file has the expected length', async () => {
+  const reference = await writeOriginal(storageRoot, identity, bytes);
+  await fs.writeFile(originalPath(), Buffer.from('xyz'));
+  await expect(readOriginal(storageRoot, identity.caseId, reference)).rejects.toThrow(
+    'Stored original failed its integrity check',
+  );
+});
+
 test('refuses a reference from another case before reading any original bytes', async () => {
   const reference = await writeOriginal(storageRoot, identity, bytes);
   expect(await readOriginal(storageRoot, 'synthetic-case-b', reference)).toBeUndefined();

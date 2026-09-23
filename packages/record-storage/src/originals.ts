@@ -13,7 +13,12 @@ export async function readOriginal(
 
   const directory = join(root, createHash('sha256').update(reference.caseId).digest('hex'));
   const filename = createHash('sha256').update(reference.documentVersionId).digest('hex');
-  return fs.readFile(join(directory, filename));
+  const { sha256 } = reference;
+  const bytes = await fs.readFile(join(directory, filename));
+  if (createHash('sha256').update(bytes).digest('hex') !== sha256) {
+    throw new Error('Stored original failed its integrity check');
+  }
+  return bytes;
 }
 
 export async function writeOriginal(
