@@ -11,6 +11,15 @@ vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
 
+test('rejects nondevelopment identity before constructing database resources', async () => {
+  await expect(startDevelopmentServer({ ...environment, APP_ENV: 'production' })).rejects.toThrow(
+    'development_identity_disabled',
+  );
+  expect(Pool).not.toHaveBeenCalled();
+  expect(createDevelopmentApi).not.toHaveBeenCalled();
+  expect(api.listen).not.toHaveBeenCalled();
+});
+
 const environment = {
   APP_ENV: 'development',
   DATA_CLASSIFICATION: 'synthetic',

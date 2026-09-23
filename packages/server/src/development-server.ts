@@ -1,10 +1,12 @@
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
+import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { Pool } from 'pg';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
 
 export async function startDevelopmentServer(environment: ServerEnvironment) {
+  readDevelopmentIdentity(environment);
   const database = new Pool(readDevelopmentDatabaseConfig(environment));
   const api = createDevelopmentApi(environment, database);
   api.addHook('onClose', async () => {
