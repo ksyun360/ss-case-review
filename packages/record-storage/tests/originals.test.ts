@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { readOriginal, writeOriginal } from '../src/originals.ts';
+import { readOriginal, writeOriginal, writeOriginalStream } from '../src/originals.ts';
 
 vi.mock('node:fs/promises', { spy: true });
 
@@ -30,6 +30,34 @@ beforeEach(async () => {
 afterEach(async () => {
   vi.restoreAllMocks();
   await fs.rm(temporaryRoot, { recursive: true, force: true });
+});
+
+test('streams separate original chunks into one private version with a content hash', async () => {
+  const open = fs.open;
+  let closed = false;
+  vi.spyOn(fs, 'open').mockImplementationOnce(async (path, flags, mode) => {
+    const handle = await open(path, flags, mode);
+    const close = handle.close.bind(handle);
+    vi.spyOn(handle, 'close').mockImplementation(async () => {
+      closed = true;
+      return close();
+    });
+    return handle;
+  });
+  async function* chunks() {
+    yield Buffer.from('a');
+    yield Buffer.from('bc');
+  }
+  expect(await writeOriginalStream(storageRoot, identity, chunks())).toEqual({
+    ...identity,
+    sha256,
+    byteLength: 3,
+  });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
+  expect((await fs.stat(originalPath())).mode & 0o777).toBe(0o600);
+  expect(await fs.readdir(caseDirectory())).toEqual([basename(originalPath())]);
+  expect(fs.mkdtemp).toHaveBeenCalledWith(join(caseDirectory(), '.pending-'));
+  expect(closed).toBe(true);
 });
 
 test('reports a missing stored version as an I/O failure without fabricating original bytes', async () => {
