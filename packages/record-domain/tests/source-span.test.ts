@@ -54,6 +54,15 @@ test('rejects a candidate with another document content hash', () => {
   });
 });
 
+test('rejects a candidate from another extraction version', () => {
+  expect(
+    locateSourceSpan('case-a', source, { ...candidate, extractionVersion: 'extraction-v2' }),
+  ).toEqual({
+    status: 'not_located',
+    reason: 'source_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',

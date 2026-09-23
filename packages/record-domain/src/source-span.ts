@@ -47,6 +47,10 @@ export function locateSourceSpan(
     return { status: 'not_located', reason: 'source_mismatch' };
   }
 
+  if (source.extractionVersion !== candidate.extractionVersion) {
+    return { status: 'not_located', reason: 'source_mismatch' };
+  }
+
   return {
     status: 'located',
     span: {
