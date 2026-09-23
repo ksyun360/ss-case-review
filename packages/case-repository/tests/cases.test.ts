@@ -1,9 +1,9 @@
+import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import {
   createCase,
   findOriginalReference,
-  installCaseSchema,
   listCasesForReviewer,
   registerOriginalReference,
 } from '../src/cases.ts';
@@ -25,7 +25,12 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await database.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
-  await installCaseSchema(database);
+  await database.exec(
+    await readFile(
+      new URL('../migrations/202609230001_initial_case_metadata.sql', import.meta.url),
+      'utf8',
+    ),
+  );
 });
 
 afterAll(async () => {

@@ -21,6 +21,7 @@
     "packages/**/*.tsx",
     "scripts/**/*.ts",
     "vitest.config.ts",
+    "vitest.postgres.config.ts",
     "vite.config.ts",
     "playwright.config.ts",
     "tests/**/*.ts"
