@@ -4,9 +4,13 @@ export type StoredOriginal = OriginalIdentity & Readonly<{ sha256: string; byteL
 
 export async function readOriginal(
   root: string,
-  _caseId: string,
+  caseId: string,
   reference: StoredOriginal,
 ): Promise<Buffer | undefined> {
+  if (reference.caseId !== caseId) {
+    return undefined;
+  }
+
   const directory = join(root, createHash('sha256').update(reference.caseId).digest('hex'));
   const filename = createHash('sha256').update(reference.documentVersionId).digest('hex');
   return fs.readFile(join(directory, filename));

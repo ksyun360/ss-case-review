@@ -32,6 +32,12 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('refuses a reference from another case before reading any original bytes', async () => {
+  const reference = await writeOriginal(storageRoot, identity, bytes);
+  expect(await readOriginal(storageRoot, 'synthetic-case-b', reference)).toBeUndefined();
+  expect(fs.readFile).not.toHaveBeenCalled();
+});
+
 test('reads the exact original from its persisted document reference', async () => {
   const reference = await writeOriginal(storageRoot, identity, bytes);
   expect(await readOriginal(storageRoot, identity.caseId, reference)).toEqual(bytes);
