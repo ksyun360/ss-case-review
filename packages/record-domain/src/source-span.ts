@@ -35,6 +35,10 @@ export function locateSourceSpan(
     return { status: 'not_located', reason: 'source_unavailable' };
   }
 
+  if (source.recordRevision !== candidate.recordRevision) {
+    return { status: 'not_located', reason: 'source_mismatch' };
+  }
+
   return {
     status: 'located',
     span: {

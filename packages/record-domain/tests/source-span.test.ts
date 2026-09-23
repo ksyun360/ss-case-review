@@ -29,6 +29,13 @@ test('rejects a stored source from another case without exposing the passage', (
   });
 });
 
+test('rejects a candidate tied to another record revision', () => {
+  expect(locateSourceSpan('case-a', source, { ...candidate, recordRevision: 2 })).toEqual({
+    status: 'not_located',
+    reason: 'source_mismatch',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
