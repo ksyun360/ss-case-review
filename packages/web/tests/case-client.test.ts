@@ -16,6 +16,13 @@ test('requests one reviewer-scoped draft through the same-origin API', async () 
   });
 });
 
+test('treats an inaccessible case as unavailable without reading its body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 404, ok: false, json }));
+  await expect(getSyntheticCase('00000000-0000-4000-8000-000000000099')).resolves.toBeUndefined();
+  expect(json).not.toHaveBeenCalled();
+});
+
 test('creates a synthetic draft through the guarded same-origin API', async () => {
   const created = {
     caseId: '00000000-0000-4000-8000-000000000002',
