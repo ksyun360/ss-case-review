@@ -32,6 +32,12 @@ test('rejects production use of the synthetic development configuration', () => 
   });
 });
 
+test('rejects court-record data in the Gemini development configuration', () => {
+  expect(
+    readGeminiDevelopmentConfig({ ...environment, DATA_CLASSIFICATION: 'court-record' }),
+  ).toEqual({ status: 'configuration_error', code: 'synthetic_data_only' });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
