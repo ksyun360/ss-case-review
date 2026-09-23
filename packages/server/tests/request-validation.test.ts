@@ -45,3 +45,14 @@ test('rejects whitespace-only case labels before calling the repository', async 
   expect(response.json()).toEqual({ code: 'invalid_request' });
   expect(database.query).not.toHaveBeenCalled();
 });
+
+test('rejects case labels longer than 120 characters', async () => {
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    payload: { label: 'S'.repeat(121) },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ code: 'invalid_request' });
+  expect(database.query).not.toHaveBeenCalled();
+});

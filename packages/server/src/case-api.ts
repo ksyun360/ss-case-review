@@ -25,7 +25,7 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
         body: {
           type: 'object',
           required: ['label'],
-          properties: { label: { type: 'string', pattern: '\\S' } },
+          properties: { label: { type: 'string', pattern: '\\S', maxLength: 120 } },
         },
       },
     },
