@@ -60,6 +60,17 @@ test('streams separate original chunks into one private version with a content h
   expect(closed).toBe(true);
 });
 
+test('leaves no published original after an input stream fails midway', async () => {
+  const failure = new Error('Synthetic interrupted source');
+  async function* chunks() {
+    yield Buffer.from('a');
+    throw failure;
+  }
+  await expect(writeOriginalStream(storageRoot, identity, chunks())).rejects.toBe(failure);
+  await expect(fs.readFile(originalPath())).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await fs.readdir(caseDirectory())).toEqual([]);
+});
+
 test('reports a missing stored version as an I/O failure without fabricating original bytes', async () => {
   await expect(
     readOriginal(storageRoot, identity.caseId, { ...identity, sha256, byteLength: 3 }),
