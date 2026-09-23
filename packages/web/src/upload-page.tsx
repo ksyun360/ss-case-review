@@ -31,6 +31,7 @@ export function UploadPage() {
               onChange={(event) => {
                 const selected = Array.from(event.currentTarget.files as FileList);
                 setFiles((previous) => [...previous, ...selected]);
+                event.currentTarget.value = '';
               }}
             />
           </div>

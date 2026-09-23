@@ -7,6 +7,22 @@ import { UploadPage } from '../src/upload-page.tsx';
 
 afterEach(cleanup);
 
+test('allows the same document to be selected again after removal', async () => {
+  const user = userEvent.setup();
+  render(<UploadPage />);
+  const chooser = screen.getByLabelText('Choose case documents');
+  const file = new File(['abc'], 'record.pdf', { type: 'application/pdf' });
+  await user.upload(chooser, file);
+  await user.click(screen.getByRole('button', { name: 'Remove record.pdf' }));
+  const documents = within(screen.getByRole('list', { name: 'Selected documents' }));
+  expect(documents.queryAllByRole('listitem')).toHaveLength(0);
+
+  await user.upload(chooser, file);
+
+  expect(documents.getAllByRole('listitem')).toHaveLength(1);
+  expect(documents.getByText('record.pdf')).toBeVisible();
+});
+
 test('removes only the chosen document when filenames match', async () => {
   const user = userEvent.setup();
   render(<UploadPage />);
