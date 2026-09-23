@@ -1,17 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import { getSyntheticCase, type CaseSummary } from './case-client.ts';
 
 export function CaseDetailPage() {
   const { caseId } = useParams();
-  const [record, setRecord] = useState<CaseSummary | null>();
-  useEffect(() => {
-    void getSyntheticCase(caseId as string).then((found) => setRecord(found ?? null));
+  const [record, setRecord] = useState<CaseSummary | null | 'unavailable'>();
+  const load = useCallback(() => {
+    setRecord(undefined);
+    void getSyntheticCase(caseId as string).then(
+      (found) => setRecord(found ?? null),
+      () => setRecord('unavailable'),
+    );
   }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <main id="main-content" className="page" tabIndex={-1}>
-      {record === null ? (
+      {record === 'unavailable' ? (
+        <section className="panel empty-state">
+          <h1>Case service unavailable</h1>
+          <p>The local case service could not load this synthetic draft.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry loading case
+          </button>
+        </section>
+      ) : record === null ? (
         <section className="panel empty-state">
           <h1>Case unavailable</h1>
           <p>This case is not available in your synthetic workspace.</p>

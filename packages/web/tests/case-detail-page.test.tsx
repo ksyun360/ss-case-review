@@ -70,3 +70,29 @@ test('explains when a saved synthetic case is not available to this reviewer', a
   );
   expect(getSyntheticCase).toHaveBeenCalledExactlyOnceWith(caseId);
 });
+
+test('retries a temporary case-detail failure without inventing case metadata', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  let resolveRetry!: (value: CaseSummary) => void;
+  vi.mocked(getSyntheticCase)
+    .mockRejectedValueOnce(new Error('synthetic service outage'))
+    .mockImplementationOnce(
+      () =>
+        new Promise<CaseSummary>((resolve) => {
+          resolveRetry = resolve;
+        }),
+    );
+  const user = userEvent.setup();
+  render(
+    <MemoryRouter initialEntries={[`/cases/${caseId}`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('heading', { name: 'Case service unavailable' })).toBeVisible();
+  expect(screen.queryByText('Synthetic saved draft')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Retry loading case' }));
+  expect(screen.getByRole('status')).toHaveTextContent('Loading case');
+  resolveRetry({ caseId, label: 'Synthetic saved draft', recordRevision: 1 });
+  expect(await screen.findByRole('heading', { name: 'Synthetic saved draft' })).toBeVisible();
+  expect(getSyntheticCase).toHaveBeenCalledTimes(2);
+});
