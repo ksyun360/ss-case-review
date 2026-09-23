@@ -10,6 +10,7 @@ export async function writeOriginalStream(
   root: string,
   identity: OriginalIdentity,
   chunks: AsyncIterable<Uint8Array>,
+  maximumBytes: number,
 ): Promise<StoredOriginal> {
   const { caseId, documentVersionId } = identity;
   const directory = join(root, createHash('sha256').update(caseId).digest('hex'));
@@ -19,6 +20,8 @@ export async function writeOriginalStream(
   async function* preparedChunks() {
     for await (const chunk of chunks) {
       const content = Buffer.from(chunk);
+      if (byteLength + content.byteLength > maximumBytes)
+        throw new Error('Original exceeds byte limit');
       hash.update(content);
       byteLength += content.byteLength;
       yield content;

@@ -48,7 +48,7 @@ test('streams separate original chunks into one private version with a content h
     yield Buffer.from('a');
     yield Buffer.from('bc');
   }
-  expect(await writeOriginalStream(storageRoot, identity, chunks())).toEqual({
+  expect(await writeOriginalStream(storageRoot, identity, chunks(), 3)).toEqual({
     ...identity,
     sha256,
     byteLength: 3,
@@ -66,7 +66,19 @@ test('leaves no published original after an input stream fails midway', async ()
     yield Buffer.from('a');
     throw failure;
   }
-  await expect(writeOriginalStream(storageRoot, identity, chunks())).rejects.toBe(failure);
+  await expect(writeOriginalStream(storageRoot, identity, chunks(), 3)).rejects.toBe(failure);
+  await expect(fs.readFile(originalPath())).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await fs.readdir(caseDirectory())).toEqual([]);
+});
+
+test('rejects a stream that exceeds its byte budget without publishing partial bytes', async () => {
+  async function* chunks() {
+    yield Buffer.from('ab');
+    yield Buffer.from('cd');
+  }
+  await expect(writeOriginalStream(storageRoot, identity, chunks(), 3)).rejects.toThrow(
+    'Original exceeds byte limit',
+  );
   await expect(fs.readFile(originalPath())).rejects.toMatchObject({ code: 'ENOENT' });
   expect(await fs.readdir(caseDirectory())).toEqual([]);
 });
