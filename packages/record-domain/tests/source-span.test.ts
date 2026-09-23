@@ -22,6 +22,13 @@ const candidate: SourceSpanCandidate = {
   quote: 'Quoted text.',
 };
 
+test('rejects a stored source from another case without exposing the passage', () => {
+  expect(locateSourceSpan('case-a', { ...source, caseId: 'case-b' }, candidate)).toEqual({
+    status: 'not_located',
+    reason: 'source_unavailable',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',

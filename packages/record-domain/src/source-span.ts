@@ -23,11 +23,15 @@ export type SourceSpanResult =
     }>;
 
 export function locateSourceSpan(
-  _caseId: string,
+  caseId: string,
   source: SourceUnit | undefined,
   candidate: SourceSpanCandidate,
 ): SourceSpanResult {
   if (source === undefined) {
+    return { status: 'not_located', reason: 'source_unavailable' };
+  }
+
+  if (source.caseId !== caseId) {
     return { status: 'not_located', reason: 'source_unavailable' };
   }
 
