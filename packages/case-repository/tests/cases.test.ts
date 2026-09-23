@@ -246,3 +246,15 @@ test('requires a content hash for every original reference', async () => {
   ).rejects.toMatchObject({ code: '23502' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('requires a byte length for every original reference', async () => {
+  await createCase(database, input);
+  await expect(
+    database.query(
+      `INSERT INTO original_references (case_id, document_version_id, sha256)
+      VALUES ($1, $2, $3)`,
+      [caseId, original.documentVersionId, original.sha256],
+    ),
+  ).rejects.toMatchObject({ code: '23502' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
