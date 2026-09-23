@@ -191,3 +191,19 @@ test('finds the exact original reference within the requested member case and ve
     await findOriginalReference(database, reviewerId, secondCaseId, original.documentVersionId),
   ).toEqual(target);
 });
+
+test('does not disclose original metadata through membership in a different case', async () => {
+  await createCase(database, input);
+  await registerOriginalReference(database, reviewerId, original);
+  const otherReviewer = '00000000-0000-4000-8000-000000000012';
+  const otherCase = '00000000-0000-4000-8000-000000000002';
+  await createCase(database, { ...input, caseId: otherCase, reviewerId: otherReviewer });
+  await registerOriginalReference(database, otherReviewer, {
+    ...original,
+    caseId: otherCase,
+    sha256: 'b'.repeat(64),
+  });
+  expect(
+    await findOriginalReference(database, otherReviewer, caseId, original.documentVersionId),
+  ).toBeUndefined();
+});
