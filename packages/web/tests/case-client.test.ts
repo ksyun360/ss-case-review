@@ -1,7 +1,28 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { listSyntheticCases } from '../src/case-client.ts';
+import { createSyntheticCase, listSyntheticCases } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
+
+test('creates a synthetic draft through the guarded same-origin API', async () => {
+  const created = {
+    caseId: '00000000-0000-4000-8000-000000000002',
+    label: 'Synthetic new draft',
+    recordRevision: 1,
+  };
+  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ case: created }) });
+  vi.stubGlobal('fetch', fetch);
+  expect(await createSyntheticCase('Synthetic new draft')).toEqual(created);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/v1/cases', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: JSON.stringify({ label: 'Synthetic new draft' }),
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
 
 test('rejects a case row with a zero record revision', async () => {
   vi.stubGlobal(
