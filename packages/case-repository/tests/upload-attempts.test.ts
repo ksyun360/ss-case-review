@@ -2,7 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createCase } from '../src/cases.ts';
-import { completeOriginalUpload, reserveOriginalUpload } from '../src/upload-attempts.ts';
+import {
+  completeOriginalUpload,
+  failOriginalUpload,
+  reserveOriginalUpload,
+} from '../src/upload-attempts.ts';
 
 let database: PGlite;
 const caseId = '00000000-0000-4000-8000-000000000001';
@@ -85,4 +89,25 @@ test('does not reserve an upload attempt for a reviewer outside the case', async
     }),
   ).toBeUndefined();
   expect((await database.query('SELECT * FROM original_upload_attempts')).rows).toEqual([]);
+});
+
+test('marks an interrupted reserved attempt failed without inventing an original reference', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Interrupted upload case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    reviewerId,
+    documentVersionId,
+    maximumBytes: 16,
+  });
+  expect(await failOriginalUpload(database, reviewerId, caseId, documentVersionId)).toEqual({
+    caseId,
+    documentVersionId,
+    reviewerId,
+    maximumBytes: 16,
+    state: 'failed',
+  });
+  expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+    { state: 'failed' },
+  ]);
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });

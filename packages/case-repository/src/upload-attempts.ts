@@ -60,3 +60,20 @@ export async function completeOriginalUpload(
   );
   return result.rows[0];
 }
+
+export async function failOriginalUpload(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+  documentVersionId: string,
+): Promise<OriginalUploadAttempt | undefined> {
+  const result = await client.query<OriginalUploadAttempt>(
+    `UPDATE original_upload_attempts SET state = 'failed', updated_at = now()
+    WHERE case_id = $1 AND document_version_id = $2 AND reviewer_id = $3
+      AND state = 'receiving'
+    RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
+      reviewer_id AS "reviewerId", maximum_bytes::float8 AS "maximumBytes", state`,
+    [caseId, documentVersionId, reviewerId],
+  );
+  return result.rows[0];
+}
