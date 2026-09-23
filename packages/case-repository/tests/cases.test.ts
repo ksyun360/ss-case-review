@@ -1,11 +1,22 @@
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
-import { createCase, installCaseSchema, listCasesForReviewer } from '../src/cases.ts';
+import {
+  createCase,
+  installCaseSchema,
+  listCasesForReviewer,
+  registerOriginalReference,
+} from '../src/cases.ts';
 
 let database: PGlite;
 const caseId = '00000000-0000-4000-8000-000000000001';
 const reviewerId = '00000000-0000-4000-8000-000000000011';
 const input = { caseId, reviewerId, label: 'Synthetic case A' };
+const original = {
+  caseId,
+  documentVersionId: '00000000-0000-4000-8000-000000000021',
+  sha256: 'a'.repeat(64),
+  byteLength: 2_147_483_648,
+};
 
 beforeAll(async () => {
   database = await PGlite.create();
@@ -102,4 +113,22 @@ test('lists only the reviewer cases in stable case identity order', async () => 
 test('returns no cases for a reviewer without case membership', async () => {
   await createCase(database, input);
   expect(await listCasesForReviewer(database, '00000000-0000-4000-8000-000000000012')).toEqual([]);
+});
+
+test('registers original metadata for a case member without truncating the byte length', async () => {
+  await createCase(database, input);
+  expect(await registerOriginalReference(database, reviewerId, original)).toEqual(original);
+  expect(
+    (
+      await database.query(`SELECT case_id, document_version_id, sha256,
+        byte_length::text AS byte_length FROM original_references`)
+    ).rows,
+  ).toEqual([
+    {
+      case_id: caseId,
+      document_version_id: original.documentVersionId,
+      sha256: original.sha256,
+      byte_length: '2147483648',
+    },
+  ]);
 });

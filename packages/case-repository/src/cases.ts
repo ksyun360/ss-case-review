@@ -10,6 +10,28 @@ export type SqlClient = {
 export type CaseRecord = Readonly<{ caseId: string; label: string; recordRevision: number }>;
 export type NewCase = Readonly<{ caseId: string; label: string; reviewerId: string }>;
 
+export type OriginalReference = Readonly<{
+  caseId: string;
+  documentVersionId: string;
+  sha256: string;
+  byteLength: number;
+}>;
+
+export async function registerOriginalReference(
+  client: SqlClient,
+  _reviewerId: string,
+  reference: OriginalReference,
+): Promise<OriginalReference | undefined> {
+  const result = await client.query<OriginalReference>(
+    `INSERT INTO original_references (case_id, document_version_id, sha256, byte_length)
+    VALUES ($1, $2, $3, $4)
+    RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
+      sha256, byte_length::float8 AS "byteLength"`,
+    [reference.caseId, reference.documentVersionId, reference.sha256, reference.byteLength],
+  );
+  return result.rows[0];
+}
+
 export async function listCasesForReviewer(
   client: SqlClient,
   reviewerId: string,
@@ -35,6 +57,12 @@ export async function installCaseSchema(client: SqlClient): Promise<void> {
     case_id uuid REFERENCES cases(case_id),
     reviewer_id uuid,
     PRIMARY KEY (case_id, reviewer_id)
+  )`);
+  await client.query(`CREATE TABLE original_references (
+    case_id uuid,
+    document_version_id uuid,
+    sha256 text,
+    byte_length bigint
   )`);
 }
 
