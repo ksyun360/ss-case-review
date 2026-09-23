@@ -4,9 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./cases": "./src/cases.ts"
+    "./cases": "./src/cases.ts",
+    "./migrations": "./src/migrations.ts"
   },
   "dependencies": {
+    "node-pg-migrate": "9.0.0",
     "pg": "8.23.0"
   }
 }
