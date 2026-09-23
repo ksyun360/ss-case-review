@@ -27,7 +27,8 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
   api.setErrorHandler<FastifyError>((error, _request, reply) => {
     if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE')
       return reply.code(413).send({ code: 'request_too_large' });
-    if (error.validation) return reply.code(400).send({ code: 'invalid_request' });
+    if (error.validation || error.code === 'FST_ERR_CTP_INVALID_JSON_BODY')
+      return reply.code(400).send({ code: 'invalid_request' });
     return reply.code(503).send({ code: 'case_service_unavailable' });
   });
   api.get('/api/v1/cases', async () => ({

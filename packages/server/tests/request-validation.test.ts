@@ -2,6 +2,18 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
+test('rejects malformed JSON without returning submitted text or parser details', async () => {
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: '{"label":"synthetic-private-parser-input"',
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.json()).toEqual({ code: 'invalid_request' });
+  expect(database.query).not.toHaveBeenCalled();
+});
+
 test('rejects oversized case metadata before validation or database access', async () => {
   const response = await api.inject({
     method: 'POST',
