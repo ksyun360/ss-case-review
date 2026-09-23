@@ -46,3 +46,13 @@ test('rejects a duplicate case identity without changing the original case or me
     { case_id: caseId, reviewer_id: reviewerId },
   ]);
 });
+
+test('rejects membership in a nonexistent case', async () => {
+  await expect(
+    database.query('INSERT INTO case_memberships (case_id, reviewer_id) VALUES ($1, $2)', [
+      caseId,
+      reviewerId,
+    ]),
+  ).rejects.toMatchObject({ code: '23503' });
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
+});
