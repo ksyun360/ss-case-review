@@ -3,6 +3,7 @@ import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router';
 import { Brand } from './brand.tsx';
 import { HomePage } from './home-page.tsx';
 import { CasesPage } from './cases-page.tsx';
+import { CaseDetailPage } from './case-detail-page.tsx';
 import { UploadPage } from './upload-page.tsx';
 
 export function App() {
@@ -62,6 +63,7 @@ export function App() {
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/cases" element={<CasesPage />} />
+        <Route path="/cases/:caseId" element={<CaseDetailPage />} />
         <Route path="/upload" element={<UploadPage />} />
       </Routes>
       <footer className="site-footer">
