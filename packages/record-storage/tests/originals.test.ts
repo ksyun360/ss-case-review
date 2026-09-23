@@ -29,6 +29,16 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('rejects replacement bytes for an existing document version without changing the original', async () => {
+  await writeOriginal(storageRoot, identity, bytes);
+  await expect(
+    writeOriginal(storageRoot, identity, Buffer.from('replacement')),
+  ).rejects.toMatchObject({
+    code: 'EEXIST',
+  });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
+});
+
 test('stores exact original bytes privately and returns their SHA-256 metadata', async () => {
   expect(await writeOriginal(storageRoot, identity, bytes)).toEqual({
     ...identity,
