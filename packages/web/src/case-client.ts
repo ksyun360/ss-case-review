@@ -15,7 +15,12 @@ export async function listSyntheticCases(): Promise<CaseSummary[]> {
   const cases = payload?.cases;
   if (
     !Array.isArray(cases) ||
-    !cases.every((item) => typeof item?.label === 'string' && typeof item.caseId === 'string')
+    !cases.every(
+      (item) =>
+        typeof item?.label === 'string' &&
+        typeof item.caseId === 'string' &&
+        Number.isInteger(item.recordRevision),
+    )
   )
     throw new Error('case_list_unavailable');
   return cases;
