@@ -32,6 +32,14 @@ afterEach(async () => {
   await fs.rm(temporaryRoot, { recursive: true, force: true });
 });
 
+test('preserves the supplied byte snapshot when the caller changes a buffer during storage', async () => {
+  const mutableBytes = Buffer.from(bytes);
+  const pending = writeOriginal(storageRoot, identity, mutableBytes);
+  mutableBytes.fill(0);
+  expect(await pending).toEqual({ ...identity, sha256, byteLength: 3 });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
+});
+
 test('publishes exactly one complete original when two writes race for a document version', async () => {
   const outcomes = await Promise.allSettled([
     writeOriginal(storageRoot, identity, bytes),
