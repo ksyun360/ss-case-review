@@ -87,6 +87,20 @@ test('accepts a quote covering the entire source unit with an exclusive end offs
   });
 });
 
+test('rejects a negative start offset even when slicing would find matching text', () => {
+  expect(
+    locateSourceSpan('case-a', source, {
+      ...candidate,
+      start: -1,
+      end: source.rawText.length,
+      quote: source.rawText.slice(-1),
+    }),
+  ).toEqual({
+    status: 'not_located',
+    reason: 'invalid_offsets',
+  });
+});
+
 test('locates the selected stored text and returns its full source identity', () => {
   expect(locateSourceSpan('case-a', source, candidate)).toEqual({
     status: 'located',
