@@ -19,7 +19,8 @@ export async function listSyntheticCases(): Promise<CaseSummary[]> {
       (item) =>
         typeof item?.label === 'string' &&
         typeof item.caseId === 'string' &&
-        Number.isInteger(item.recordRevision),
+        Number.isInteger(item.recordRevision) &&
+        item.recordRevision > 0,
     )
   )
     throw new Error('case_list_unavailable');

@@ -3,6 +3,25 @@ import { listSyntheticCases } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
+test('rejects a case row with a zero record revision', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        cases: [
+          {
+            caseId: '00000000-0000-4000-8000-000000000001',
+            label: 'Synthetic draft',
+            recordRevision: 0,
+          },
+        ],
+      }),
+    }),
+  );
+  await expect(listSyntheticCases()).rejects.toThrow('case_list_unavailable');
+});
+
 test('rejects a case row with a nonnumeric record revision', async () => {
   vi.stubGlobal(
     'fetch',
