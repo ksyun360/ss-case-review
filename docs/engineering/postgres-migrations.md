@@ -40,7 +40,7 @@ The official PostgreSQL 18 image stores data beneath `/var/lib/postgresql`; the 
 
 ## Evidence and limits
 
-Seven native cases cover initial migration and repository round-trips, repeat runs, rollback/retry, advisory-lock contention across two connections, unknown history, unversioned-schema rejection, and migration discovery from the compiled package. A separate unit test verifies the wrapper's fixed options. PGlite retains the 21 fast repository SQL cases.
+Eight native cases cover initial migration and repository round-trips, repeat runs, rollback/retry, advisory-lock contention across two connections, unknown history, unversioned-schema rejection, migration discovery from the compiled package, and the [synthetic case API](case-api.md). The API workflow creates a case through Fastify request injection, excludes another reviewer's case, and observes membership revocation on the next list request while preserving the case row. Request injection does not open an HTTP listener or qualify browser-to-server behavior. A separate unit test verifies the wrapper's fixed options. PGlite retains the 21 fast repository SQL cases.
 
 The native suite runs separately from TypeScript mutation testing. The existing mutation scope and thresholds remain active; Stryker does not mutate SQL files or third-party migration internals. Positive and negative SQL execution tests supply separate evidence.
 

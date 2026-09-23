@@ -1,6 +1,6 @@
 # PostgreSQL case metadata
 
-Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. A [versioned migration runner and native PostgreSQL tests](postgres-migrations.md) now supplement the fast SQL tests. The browser does not call this package. Application database startup, authenticated API access, and coordinated file/database storage remain pending. Use synthetic fixtures only.
+Status: The case-repository package provides internal SQL operations for cases, memberships, and original-file references. A [versioned migration runner and native PostgreSQL tests](postgres-migrations.md) supplement the fast SQL tests. The [synthetic case API](case-api.md) now calls case creation and listing with a fixed development reviewer. The browser does not call this package. Application database startup, court-authenticated API access, and coordinated file/database storage remain pending. Use synthetic fixtures only.
 
 ## Server contract
 
@@ -17,7 +17,7 @@ The caller must authenticate the reviewer and authorize case creation before cal
 
 Supply canonical lowercase, hyphenated UUIDs from trusted server context. Allocate and canonicalize case/document-version identifiers before using the filesystem adapter, and preserve the same identifiers across both stores. PostgreSQL UUID values normalize alternate spellings; the filesystem adapter hashes the exact supplied strings. The future API must reject or canonicalize external identifiers before any storage operation.
 
-All public types describe trusted internal values, not runtime request schemas. The caller must validate labels and identifiers, enforce limits, and translate database failures into safe API diagnostics. Internal PostgreSQL errors currently propagate; do not expose database errors or query parameters to browser clients. Case-list pagination, operational error mapping, and full case-field constraints remain pending.
+All public types describe trusted internal values, not runtime request schemas. The caller must validate labels and identifiers, enforce limits, and translate database failures into safe API diagnostics. Internal PostgreSQL errors propagate; do not expose database errors or query parameters to browser clients. The synthetic case API now validates case-creation labels, generates UUIDs, rejects caller-supplied ownership fields, and returns fixed failure codes. Case-list pagination, broader operational error mapping, and full case-field constraints remain pending.
 
 ## Reference integrity
 

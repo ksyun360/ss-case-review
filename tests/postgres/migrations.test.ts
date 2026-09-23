@@ -12,6 +12,55 @@ import {
   registerOriginalReference,
 } from '../../packages/case-repository/src/cases.ts';
 import { migrateCaseSchema } from '../../packages/case-repository/src/migrations.ts';
+import { createDevelopmentApi } from '../../packages/server/src/case-api.ts';
+
+test('persists API-created cases in native PostgreSQL and rechecks membership on each request', async () => {
+  await migrateCaseSchema(client);
+  const api = createDevelopmentApi(
+    {
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      AUTH_MODE: 'development',
+      BIND_ADDRESS: '127.0.0.1',
+    },
+    client,
+  );
+  const headers = { host: '127.0.0.1:5176', 'x-record-review-client': 'synthetic-workspace' };
+  try {
+    const created = await api.inject({
+      method: 'POST',
+      url: '/api/v1/cases',
+      headers,
+      payload: { label: 'Synthetic native API case' },
+    });
+    expect(created.statusCode).toBe(201);
+    const body = created.json<{
+      case: { caseId: string; label: string; recordRevision: number };
+    }>();
+    expect(body.case).toEqual({
+      caseId: expect.any(String),
+      label: 'Synthetic native API case',
+      recordRevision: 1,
+    });
+    await createCase(client, {
+      caseId: '00000000-0000-4000-8000-000000000099',
+      label: 'Synthetic private case',
+      reviewerId: '00000000-0000-4000-8000-000000000012',
+    });
+    const listed = await api.inject({ url: '/api/v1/cases', headers });
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json()).toEqual({ cases: [body.case] });
+    await client.query('DELETE FROM case_memberships WHERE case_id = $1', [body.case.caseId]);
+    const revoked = await api.inject({ url: '/api/v1/cases', headers });
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json()).toEqual({ cases: [] });
+    expect(
+      (await client.query('SELECT label FROM cases WHERE case_id = $1', [body.case.caseId])).rows,
+    ).toEqual([{ label: body.case.label }]);
+  } finally {
+    await api.close();
+  }
+});
 
 const postgresImage =
   'postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873';
