@@ -289,3 +289,13 @@ test('returns no reference for an unknown version within a member case', async (
     ),
   ).toBeUndefined();
 });
+
+test('stores SQL-like case labels as literal values', async () => {
+  const label = "Synthetic '; DROP TABLE cases; --";
+  const expected = { caseId, label, recordRevision: 1 };
+  expect(await createCase(database, { ...input, label })).toEqual(expected);
+  expect(await listCasesForReviewer(database, reviewerId)).toEqual([expected]);
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([
+    { case_id: caseId, reviewer_id: reviewerId },
+  ]);
+});

@@ -1,12 +1,14 @@
 # Private local original storage
 
-Status: The record-storage package provides internal filesystem operations for synthetic development. The browser does not upload documents or invoke this adapter. PostgreSQL metadata, user authorization, source extraction, upload finalization, and court deployment remain pending.
+Status: The record-storage package provides internal filesystem operations for synthetic development. The browser does not upload documents or invoke this adapter. A separate [PostgreSQL metadata repository](case-repository.md) now stores original references and filters queries by case membership. File/database coordination, authenticated user access, source extraction, upload finalization, and court deployment remain pending.
 
 ## Server contract
 
 Import `writeOriginal` and `readOriginal` from `@record-review/record-storage/originals` in server code only. The caller supplies a trusted private storage root, prevalidated case/document-version identifiers, and trusted metadata. Never take the storage root or an authoritative stored reference from a browser request or model response.
 
 `writeOriginal(root, identity, bytes)` copies the supplied byte buffer and identity before asynchronous work begins. The helper returns the case ID, document-version ID, content SHA-256, and byte length after publication and staging cleanup. The helper does not store that reference in a database. The future metadata transaction must preserve the reference and coordinate publication, retry, and recovery.
+
+The separate metadata repository can register and retrieve these reference fields. The application does not yet connect the two packages. Allocate canonical lowercase UUID identifiers before file publication and preserve the exact identifiers across both stores; PostgreSQL normalizes UUID spellings while this adapter hashes raw identifier strings. Obtain authoritative references through trusted, membership-scoped server context before reading bytes.
 
 `readOriginal(root, caseId, reference)` compares the server-supplied case ID with the stored reference before reading a file. A mismatch returns `undefined` without file access. A matching case permits a read, followed by byte-length and SHA-256 checks. An integrity mismatch throws a fixed error without returning the file bytes. The caller must obtain case identity from authorized server context; identifier equality does not authenticate a user or establish case membership.
 
