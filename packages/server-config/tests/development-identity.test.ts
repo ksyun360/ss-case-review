@@ -1,6 +1,12 @@
 import { expect, test } from 'vitest';
 import { readDevelopmentIdentity } from '../src/development-identity.ts';
 
+test('rejects a nondevelopment identity mode in the synthetic configuration', () => {
+  expect(() => readDevelopmentIdentity({ ...environment, AUTH_MODE: 'court-identity' })).toThrow(
+    'development_identity_disabled',
+  );
+});
+
 test('rejects court-record classification for the synthetic development identity', () => {
   expect(() =>
     readDevelopmentIdentity({ ...environment, DATA_CLASSIFICATION: 'court-record' }),
