@@ -98,6 +98,29 @@ test('rejects an invalid stream byte budget before creating storage', async () =
   });
 });
 
+test('does not replace an existing original with streamed bytes for the same version', async () => {
+  await writeOriginalStream(
+    storageRoot,
+    identity,
+    (async function* () {
+      yield bytes;
+    })(),
+    3,
+  );
+  await expect(
+    writeOriginalStream(
+      storageRoot,
+      identity,
+      (async function* () {
+        yield Buffer.from('xyz');
+      })(),
+      3,
+    ),
+  ).rejects.toMatchObject({ code: 'EEXIST' });
+  expect(await fs.readFile(originalPath())).toEqual(bytes);
+  expect(await fs.readdir(caseDirectory())).toEqual([basename(originalPath())]);
+});
+
 test('reports a missing stored version as an I/O failure without fabricating original bytes', async () => {
   await expect(
     readOriginal(storageRoot, identity.caseId, { ...identity, sha256, byteLength: 3 }),
