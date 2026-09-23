@@ -69,3 +69,12 @@ test('rejects duplicate membership for the same case and reviewer', async () => 
     { case_id: caseId, reviewer_id: reviewerId },
   ]);
 });
+
+test('rolls back case creation when the creator membership cannot be inserted', async () => {
+  await database.exec(
+    'ALTER TABLE case_memberships ADD CONSTRAINT synthetic_membership_failure CHECK (false)',
+  );
+  await expect(createCase(database, input)).rejects.toMatchObject({ code: '23514' });
+  expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
+});
