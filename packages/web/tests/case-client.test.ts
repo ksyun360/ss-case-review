@@ -24,6 +24,15 @@ test('creates a synthetic draft through the guarded same-origin API', async () =
   });
 });
 
+test('rejects a failed draft creation without trusting an error body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json }));
+  await expect(createSyntheticCase('Synthetic failed draft')).rejects.toThrow(
+    'case_creation_unavailable',
+  );
+  expect(json).not.toHaveBeenCalled();
+});
+
 test('rejects a case row with a zero record revision', async () => {
   vi.stubGlobal(
     'fetch',

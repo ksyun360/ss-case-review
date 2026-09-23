@@ -15,6 +15,7 @@ export async function createSyntheticCase(label: string): Promise<CaseSummary> {
     cache: 'no-store',
     redirect: 'error',
   });
+  if (!response.ok) throw new Error('case_creation_unavailable');
   const payload = (await response.json()) as { case: CaseSummary };
   return payload.case;
 }
