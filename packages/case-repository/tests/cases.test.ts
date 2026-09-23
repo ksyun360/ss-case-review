@@ -29,3 +29,20 @@ test('creates a case with its initial revision and creator membership', async ()
   const membership = await database.query('SELECT case_id, reviewer_id FROM case_memberships');
   expect(membership.rows).toEqual([{ case_id: caseId, reviewer_id: reviewerId }]);
 });
+
+test('rejects a duplicate case identity without changing the original case or membership', async () => {
+  await createCase(database, input);
+  await expect(
+    createCase(database, {
+      ...input,
+      label: 'Replacement case',
+      reviewerId: '00000000-0000-4000-8000-000000000012',
+    }),
+  ).rejects.toMatchObject({ code: '23505' });
+  expect((await database.query('SELECT * FROM cases')).rows).toEqual([
+    { case_id: caseId, label: input.label, record_revision: 1 },
+  ]);
+  expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([
+    { case_id: caseId, reviewer_id: reviewerId },
+  ]);
+});

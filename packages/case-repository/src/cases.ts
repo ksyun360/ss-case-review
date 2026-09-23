@@ -12,7 +12,7 @@ export type NewCase = Readonly<{ caseId: string; label: string; reviewerId: stri
 
 export async function installCaseSchema(client: SqlClient): Promise<void> {
   await client.query(`CREATE TABLE cases (
-    case_id uuid,
+    case_id uuid PRIMARY KEY,
     label text,
     record_revision integer DEFAULT 1
   )`);
