@@ -1,6 +1,22 @@
 import { expect, test } from '@playwright/test';
 import { AxeBuilder } from '@axe-core/playwright';
 
+test('keeps the saved-case empty state and recovery action accessible', async ({ page }) => {
+  await page.goto('/cases');
+  await expect(page.getByRole('heading', { name: 'Case storage is not connected' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Saved cases', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  const result = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(result.violations).toEqual([]);
+  await page.getByRole('link', { name: 'Prepare a case record', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Prepare a case record' })).toBeVisible();
+});
+
 test('passes the automated home workspace accessibility scan', async ({ page }) => {
   await page.goto('/home');
   await expect(page.getByRole('heading', { name: 'Your case workspace' })).toBeVisible();
