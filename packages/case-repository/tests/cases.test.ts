@@ -258,3 +258,21 @@ test('requires a byte length for every original reference', async () => {
   ).rejects.toMatchObject({ code: '23502' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('stops returning original metadata after the creator membership is revoked', async () => {
+  await createCase(database, input);
+  await registerOriginalReference(database, reviewerId, original);
+  expect(
+    await findOriginalReference(database, reviewerId, caseId, original.documentVersionId),
+  ).toEqual(original);
+  await database.query('DELETE FROM case_memberships WHERE case_id = $1 AND reviewer_id = $2', [
+    caseId,
+    reviewerId,
+  ]);
+  expect(
+    await findOriginalReference(database, reviewerId, caseId, original.documentVersionId),
+  ).toBeUndefined();
+  expect((await database.query('SELECT sha256 FROM original_references')).rows).toEqual([
+    { sha256: original.sha256 },
+  ]);
+});
