@@ -218,3 +218,11 @@ test('rejects original byte lengths outside the JavaScript safe integer range', 
   ).rejects.toMatchObject({ code: '23514' });
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
 });
+
+test('rejects negative original byte lengths', async () => {
+  await createCase(database, input);
+  await expect(
+    registerOriginalReference(database, reviewerId, { ...original, byteLength: -1 }),
+  ).rejects.toMatchObject({ code: '23514' });
+  expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
