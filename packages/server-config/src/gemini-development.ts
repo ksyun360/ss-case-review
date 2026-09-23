@@ -1,5 +1,18 @@
 export type ServerEnvironment = Readonly<Record<string, string | undefined>>;
 
-export function readGeminiDevelopmentConfig(_environment: ServerEnvironment): unknown {
-  return { status: 'configuration_error', code: 'unsupported_provider' };
+export function readGeminiDevelopmentConfig(environment: ServerEnvironment) {
+  if (environment.MODEL_PROVIDER !== 'gemini') {
+    return { status: 'configuration_error', code: 'unsupported_provider' } as const;
+  }
+
+  const apiKey = environment.GEMINI_API_KEY;
+  return {
+    status: 'configured',
+    config: {
+      provider: 'gemini',
+      transport: 'developer-api',
+      modelId: environment.GEMINI_MODEL_ID,
+      getApiKey: () => apiKey,
+    },
+  } as const;
 }
