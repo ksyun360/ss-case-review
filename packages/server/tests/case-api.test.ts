@@ -3,6 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { createCase } from '@record-review/case-repository/cases';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
+import { requestHeaders } from './fixtures.ts';
 
 const environment = {
   APP_ENV: 'development',
@@ -53,7 +54,7 @@ test('lists only server-selected reviewer cases despite request identity claims'
   const response = await api.inject({
     method: 'GET',
     url: `/api/v1/cases?reviewerId=${otherReviewerId}`,
-    headers: { 'x-reviewer-id': otherReviewerId },
+    headers: { ...requestHeaders, 'x-reviewer-id': otherReviewerId },
   });
   expect(response.statusCode).toBe(200);
   expect(response.json()).toEqual({
@@ -66,6 +67,7 @@ test('creates a synthetic draft with a server-generated identity and creator mem
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: '  Synthetic draft  ' },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(201);
   const body = response.json<{ case: { caseId: string; label: string; recordRevision: number } }>();
@@ -81,7 +83,9 @@ test('creates a synthetic draft with a server-generated identity and creator mem
   expect((await database.query('SELECT case_id, reviewer_id FROM case_memberships')).rows).toEqual([
     { case_id: body.case.caseId, reviewer_id: reviewerId },
   ]);
-  expect((await api.inject('/api/v1/cases')).json()).toEqual({ cases: [body.case] });
+  expect((await api.inject({ url: '/api/v1/cases', headers: requestHeaders })).json()).toEqual({
+    cases: [body.case],
+  });
 });
 
 test('returns a safe failure when case creation rolls back in the database', async () => {
@@ -92,6 +96,7 @@ test('returns a safe failure when case creation rolls back in the database', asy
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: 'Synthetic rejected draft' },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(503);
   expect(response.json()).toEqual({ code: 'case_service_unavailable' });

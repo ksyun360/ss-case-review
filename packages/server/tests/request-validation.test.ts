@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
+import { requestHeaders } from './fixtures.ts';
 
 const environment = {
   APP_ENV: 'development',
@@ -22,6 +23,7 @@ test('rejects a numeric case label without coercion or database writes', async (
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: 123 },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ code: 'invalid_request' });
@@ -29,7 +31,12 @@ test('rejects a numeric case label without coercion or database writes', async (
 });
 
 test('rejects case creation without a label', async () => {
-  const response = await api.inject({ method: 'POST', url: '/api/v1/cases', payload: {} });
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    payload: {},
+    headers: requestHeaders,
+  });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ code: 'invalid_request' });
   expect(database.query).not.toHaveBeenCalled();
@@ -40,6 +47,7 @@ test('rejects whitespace-only case labels before calling the repository', async 
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: ' \t\n ' },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ code: 'invalid_request' });
@@ -51,6 +59,7 @@ test('rejects case labels longer than 120 characters', async () => {
     method: 'POST',
     url: '/api/v1/cases',
     payload: { label: 'S'.repeat(121) },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ code: 'invalid_request' });
@@ -67,8 +76,16 @@ test('rejects caller-supplied case identity and ownership fields', async () => {
       reviewerId: '00000000-0000-4000-8000-000000000012',
       recordRevision: 99,
     },
+    headers: requestHeaders,
   });
   expect(response.statusCode).toBe(400);
   expect(response.json()).toEqual({ code: 'invalid_request' });
+  expect(database.query).not.toHaveBeenCalled();
+});
+
+test('rejects requests without the development browser marker before database access', async () => {
+  const response = await api.inject({ url: '/api/v1/cases', headers: { host: '127.0.0.1:5176' } });
+  expect(response.statusCode).toBe(403);
+  expect(response.json()).toEqual({ code: 'development_request_forbidden' });
   expect(database.query).not.toHaveBeenCalled();
 });

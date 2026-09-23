@@ -11,6 +11,11 @@ import { readDevelopmentIdentity } from '@record-review/server-config/developmen
 export function createDevelopmentApi(environment: ServerEnvironment, database: SqlClient) {
   const identity = readDevelopmentIdentity(environment);
   const api = Fastify({ ajv: { customOptions: { coerceTypes: false, removeAdditional: false } } });
+  api.addHook('onRequest', async (request, reply) => {
+    if (request.headers['x-record-review-client'] !== 'synthetic-workspace') {
+      return reply.code(403).send({ code: 'development_request_forbidden' });
+    }
+  });
   api.setErrorHandler<FastifyError>((error, _request, reply) => {
     if (error.validation) return reply.code(400).send({ code: 'invalid_request' });
     return reply.code(503).send({ code: 'case_service_unavailable' });
