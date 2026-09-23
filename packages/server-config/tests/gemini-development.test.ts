@@ -69,6 +69,13 @@ test('rejects a missing Gemini key without using a competing Google credential',
   ).toEqual({ status: 'configuration_error', code: 'missing_api_key' });
 });
 
+test('rejects a whitespace-only Gemini credential without echoing configuration values', () => {
+  expect(readGeminiDevelopmentConfig({ ...environment, GEMINI_API_KEY: ' \t ' })).toEqual({
+    status: 'configuration_error',
+    code: 'missing_api_key',
+  });
+});
+
 test('rejects an environment without an explicitly selected provider', () => {
   expect(readGeminiDevelopmentConfig({})).toEqual({
     status: 'configuration_error',
