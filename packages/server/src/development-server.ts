@@ -12,9 +12,17 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
   api.addHook('onClose', async () => {
     await database.end();
   });
-  const client = await database.connect();
-  await migrateCaseSchema(client);
-  client.release();
-  await api.listen({ host: '127.0.0.1', port: 5176 });
-  return api;
+  try {
+    const client = await database.connect();
+    try {
+      await migrateCaseSchema(client);
+    } finally {
+      client.release();
+    }
+    await api.listen({ host: '127.0.0.1', port: 5176 });
+    return api;
+  } catch {
+    await api.close();
+    throw new Error('development_server_start_failed');
+  }
 }

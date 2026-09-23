@@ -11,6 +11,16 @@ vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
 
+test('releases migration resources and refuses to listen after a schema failure', async () => {
+  vi.mocked(migrateCaseSchema).mockRejectedValue(new Error('synthetic private schema details'));
+  await expect(startDevelopmentServer(environment)).rejects.toThrow(
+    'development_server_start_failed',
+  );
+  expect(client.release).toHaveBeenCalledExactlyOnceWith();
+  expect(database.end).toHaveBeenCalledExactlyOnceWith();
+  expect(api.listen).not.toHaveBeenCalled();
+});
+
 test('rejects nondevelopment identity before constructing database resources', async () => {
   await expect(startDevelopmentServer({ ...environment, APP_ENV: 'production' })).rejects.toThrow(
     'development_identity_disabled',
