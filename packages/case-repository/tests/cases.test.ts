@@ -98,3 +98,8 @@ test('lists only the reviewer cases in stable case identity order', async () => 
     { caseId: secondCase, label: 'Synthetic case B', recordRevision: 1 },
   ]);
 });
+
+test('returns no cases for a reviewer without case membership', async () => {
+  await createCase(database, input);
+  expect(await listCasesForReviewer(database, '00000000-0000-4000-8000-000000000012')).toEqual([]);
+});
