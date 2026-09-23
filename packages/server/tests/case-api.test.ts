@@ -60,3 +60,26 @@ test('lists only server-selected reviewer cases despite request identity claims'
     cases: [{ caseId: visible.caseId, label: visible.label, recordRevision: 1 }],
   });
 });
+
+test('creates a synthetic draft with a server-generated identity and creator membership', async () => {
+  const response = await api.inject({
+    method: 'POST',
+    url: '/api/v1/cases',
+    payload: { label: '  Synthetic draft  ' },
+  });
+  expect(response.statusCode).toBe(201);
+  const body = response.json<{ case: { caseId: string; label: string; recordRevision: number } }>();
+  expect(body).toEqual({
+    case: {
+      caseId: expect.stringMatching(
+        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/,
+      ),
+      label: 'Synthetic draft',
+      recordRevision: 1,
+    },
+  });
+  expect((await database.query('SELECT case_id, reviewer_id FROM case_memberships')).rows).toEqual([
+    { case_id: body.case.caseId, reviewer_id: reviewerId },
+  ]);
+  expect((await api.inject('/api/v1/cases')).json()).toEqual({ cases: [body.case] });
+});
