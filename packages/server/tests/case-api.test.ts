@@ -250,3 +250,25 @@ test('rejects an oversized synthetic original with a safe response and no stored
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('rejects an unsupported synthetic original media type without an upload attempt', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-original-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000006';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Unsupported media case' });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'text/plain' },
+      payload: 'abc',
+    });
+    expect(response.statusCode).toBe(415);
+    expect(response.json()).toEqual({ code: 'unsupported_media_type' });
+    expect((await database.query('SELECT * FROM original_upload_attempts')).rows).toEqual([]);
+    expect(await readdir(root)).toEqual([]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

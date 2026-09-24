@@ -96,6 +96,8 @@ export function createDevelopmentApi(
         },
       },
       async (request, reply) => {
+        if (request.headers['content-type'] !== 'application/octet-stream')
+          return reply.code(415).send({ code: 'unsupported_media_type' });
         const original = await storeOriginalForReviewer(
           database,
           identity.reviewerId,
