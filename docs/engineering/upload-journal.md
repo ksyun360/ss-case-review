@@ -1,0 +1,11 @@
+# Original-upload attempt journal
+
+Status: The case repository stores a persistent attempt row for each synthetic original version before file receipt. The internal ingestion service closes tested attempts as `registered` or `failed`. No HTTP upload route, crash scanner, retention process, or court identity uses this journal yet.
+
+The second ordered migration adds `original_upload_attempts` with case ID, document-version ID, reviewer ID, positive safe-integer byte ceiling, state, and timestamps. The `(case_id, document_version_id)` key prevents replacement of an attempt. The state permits `receiving`, `registered`, and `failed`; an index supports scanning nonregistered rows in creation order.
+
+`reserveOriginalUpload` inserts a `receiving` row only from an existing case membership. The server generates the version ID before inserting the row and before consuming any bytes. `completeOriginalUpload` checks the attempt and current membership again, inserts the content hash and byte length into `original_references`, and marks the attempt `registered` in one PostgreSQL statement. `failOriginalUpload` marks a matching `receiving` attempt `failed` without requiring continuing case membership. The ingestion service calls failure marking only after its tested file cleanup paths.
+
+The journal makes a stranded version identifiable; the journal does not itself recover bytes. A process can stop between file publication and PostgreSQL completion, leaving `receiving` with a published file. A cleanup or database failure can also leave an unresolved row. Future recovery must inspect exact version paths, verify hashes, reconcile references, apply an approved retry/retention policy, and record an auditable outcome. The filesystem still lacks directory synchronization, so the service cannot promise power-loss durability. No client should receive a durable-upload acknowledgment from this internal protocol.
+
+Fast PGlite tests exercise membership-filtered reservation, successful completion, and failed attempts. A native PostgreSQL 18.6 test confirms reserve-and-complete behavior. The tests use only synthetic identifiers and generated test databases. Run `npm run verify:commit` for the full local gate.
