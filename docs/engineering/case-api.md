@@ -23,13 +23,14 @@ The synthetic reviewer represents one trusted local developer, not an authentica
 
 The API requires `Host: 127.0.0.1:5176` and `x-record-review-client: synthetic-workspace`. When a request contains `Origin`, the API accepts only `http://127.0.0.1:5175`. The API ignores forwarded-host claims and grants no cross-origin access. The client marker is public and provides a browser request safeguard, not a password or authentication token. Local software can construct these headers.
 
-The development entry point validates startup configuration and binds the listener to `127.0.0.1:5176`. Vite proxies browser case-metadata requests during local development. Do not expose the development API through a shared server or reverse proxy.
+The development entry point validates startup configuration and binds the listener to `127.0.0.1:5176`. Vite proxies browser case-metadata and capability requests during local development. Do not expose the development API through a shared server or reverse proxy.
 
 | Endpoint                    | Behavior                                                                                                                                                               |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/v1/cases`         | Returns `{ cases: [...] }` using membership-filtered repository queries for the configured reviewer.                                                                   |
 | `POST /api/v1/cases`        | Accepts a JSON object containing only `label`; returns HTTP 201 with `{ case: { caseId, label, recordRevision } }` after atomic case and creator-membership insertion. |
 | `GET /api/v1/cases/:caseId` | Returns `{ case: { caseId, label, recordRevision } }` only for the configured reviewer; returns the same 404 for an unknown or inaccessible UUID.                      |
+| `GET /api/v1/capabilities`  | Returns `{ syntheticOriginalUpload: boolean }` according to the server-owned storage setting without disclosing the storage path.                                      |
 
 When a trusted caller supplies `originalStorage`, `POST /api/v1/cases/:caseId/synthetic-originals` accepts only `application/octet-stream` and streams bytes through the attempt journal and private original store. The route returns HTTP 201 with `{ original: { caseId, documentVersionId, sha256, byteLength } }` after reference registration. A nonmember receives the same 404 as an unknown case. An oversized stream receives 413 and leaves a failed attempt but no registered original. An unsupported media type receives 415 before attempt reservation. The route does not inspect a document format, accept a filename, provide a download, or start extraction. Default server startup leaves the route disabled, and the browser upload control remains disabled even when a developer enables the route for synthetic tests.
 
@@ -50,7 +51,7 @@ The error handler returns fixed codes rather than exception messages, query deta
 
 ## Verification and remaining work
 
-Run `npm test -- packages/server packages/server-config/tests/development-identity.test.ts` for focused checks. Eight API integration cases use a real in-memory PostgreSQL test engine to check reviewer scoping, creation, atomic rollback, member-only case lookup, synthetic stream receipt, and upload safety responses. Eleven request cases check validation, request restrictions, payload limits, malformed JSON, and response caching. Seven configuration cases check the development identity contract.
+Run `npm test -- packages/server packages/server-config/tests/development-identity.test.ts` for focused checks. Nine API integration cases use a real in-memory PostgreSQL test engine to check reviewer scoping, creation, atomic rollback, member-only case lookup, synthetic stream receipt, upload safety responses, and guarded capability reporting. Eleven request cases check validation, request restrictions, payload limits, malformed JSON, and response caching. Seven configuration cases check the development identity contract.
 
 The [native PostgreSQL suite](postgres-migrations.md) additionally checks API creation, filtering, and membership revocation against PostgreSQL 18.6. Request injection exercises Fastify's lifecycle without opening an HTTP listener. The [development server checks](development-server.md) cover startup ordering, pool cleanup, loopback binding, and a separate real-process HTTP smoke run. These tests do not establish browser-to-server behavior, production authentication, general concurrency, or recovery.
 
