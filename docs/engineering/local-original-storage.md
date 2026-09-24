@@ -1,6 +1,6 @@
 # Private local original storage
 
-Status: The record-storage package provides internal filesystem operations for synthetic development. The browser does not upload documents or invoke this adapter. A separate [PostgreSQL metadata repository](case-repository.md) stores original references and filters queries by case membership. An [internal ingestion service](original-ingestion.md) connects the two for tested synthetic paths, but crash-safe file/database coordination, authenticated user access, source extraction, upload finalization, and court deployment remain pending.
+Status: The record-storage package provides internal filesystem operations for synthetic development. The browser can send selected synthetic files to the opt-in API route, which invokes this adapter through the ingestion service. A separate [PostgreSQL metadata repository](case-repository.md) stores original references and filters queries by case membership. An [internal ingestion service](original-ingestion.md) connects the two for tested synthetic paths, but crash-safe file/database coordination, authenticated user access, source extraction, upload finalization, and court deployment remain pending.
 
 ## Server contract
 
