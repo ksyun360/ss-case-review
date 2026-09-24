@@ -4,6 +4,31 @@ export type CaseSummary = Readonly<{
   recordRevision: number;
 }>;
 
+export type SyntheticOriginalReceipt = Readonly<{
+  caseId: string;
+  documentVersionId: string;
+  sha256: string;
+  byteLength: number;
+}>;
+
+export async function uploadSyntheticOriginal(
+  caseId: string,
+  file: File,
+): Promise<SyntheticOriginalReceipt> {
+  const response = await fetch(`/api/v1/cases/${caseId}/synthetic-originals`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: file,
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  const payload = (await response.json()) as { original: SyntheticOriginalReceipt };
+  return payload.original;
+}
+
 export async function getSyntheticCase(caseId: string): Promise<CaseSummary | undefined> {
   const response = await fetch(`/api/v1/cases/${caseId}`, {
     headers: { 'x-record-review-client': 'synthetic-workspace' },

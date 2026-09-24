@@ -1,5 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { createSyntheticCase, getSyntheticCase, listSyntheticCases } from '../src/case-client.ts';
+import {
+  createSyntheticCase,
+  getSyntheticCase,
+  listSyntheticCases,
+  uploadSyntheticOriginal,
+} from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -172,6 +177,30 @@ test('requests reviewer-scoped cases through the same-origin development route',
   expect(await listSyntheticCases()).toEqual(cases);
   expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/v1/cases', {
     headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
+
+test('streams one selected synthetic file to its saved case through the same-origin route', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const file = new File(['synthetic bytes'], 'synthetic.pdf', { type: 'application/pdf' });
+  const original = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000003',
+    sha256: '0123456789abcdef'.repeat(4),
+    byteLength: 15,
+  };
+  const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ original }) });
+  vi.stubGlobal('fetch', fetch);
+  expect(await uploadSyntheticOriginal(caseId, file)).toEqual(original);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/v1/cases/${caseId}/synthetic-originals`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: file,
     cache: 'no-store',
     redirect: 'error',
   });
