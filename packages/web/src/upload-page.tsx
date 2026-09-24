@@ -1,7 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { getSyntheticUploadCapability } from './case-client.ts';
 
 export function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
+  const [transferStatus, setTransferStatus] = useState('Checking synthetic original transfer.');
+  const capabilityRequested = useRef(false);
+
+  useEffect(() => {
+    if (capabilityRequested.current) return;
+    capabilityRequested.current = true;
+    void getSyntheticUploadCapability().then(
+      (enabled) =>
+        setTransferStatus(
+          enabled
+            ? 'Synthetic original transfer is available.'
+            : 'Synthetic original transfer is not configured.',
+        ),
+      () => setTransferStatus('Synthetic original transfer status is unavailable.'),
+    );
+  });
 
   return (
     <main id="main-content" className="page upload-page" tabIndex={-1}>
@@ -63,6 +80,7 @@ export function UploadPage() {
             </ul>
           </section>
           <div className="upload-actions">
+            <p role="status">{transferStatus}</p>
             <button
               className="button primary-button"
               type="button"
