@@ -217,3 +217,15 @@ test('reports an oversized synthetic original without reading the server error b
   ).rejects.toThrow('original_upload_too_large');
   expect(json).not.toHaveBeenCalled();
 });
+
+test('rejects a failed synthetic original transfer without reading the error body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503, json }));
+  await expect(
+    uploadSyntheticOriginal(
+      '00000000-0000-4000-8000-000000000002',
+      new File(['synthetic bytes'], 'synthetic.pdf'),
+    ),
+  ).rejects.toThrow('original_upload_unavailable');
+  expect(json).not.toHaveBeenCalled();
+});
