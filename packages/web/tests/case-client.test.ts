@@ -229,3 +229,37 @@ test('rejects a failed synthetic original transfer without reading the error bod
   ).rejects.toThrow('original_upload_unavailable');
   expect(json).not.toHaveBeenCalled();
 });
+
+test('rejects a synthetic transfer receipt that cannot identify the saved bytes', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const file = new File(['synthetic bytes'], 'synthetic.pdf');
+  const valid = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000003',
+    sha256: '0123456789abcdef'.repeat(4),
+    byteLength: file.size,
+  };
+  const invalidPayloads = [
+    null,
+    { original: null },
+    { original: { ...valid, caseId: '00000000-0000-4000-8000-000000000099' } },
+    { original: { ...valid, documentVersionId: 'not-a-version' } },
+    { original: { ...valid, documentVersionId: `x${valid.documentVersionId}` } },
+    { original: { ...valid, documentVersionId: `${valid.documentVersionId}x` } },
+    { original: { ...valid, sha256: 'not-a-digest' } },
+    { original: { ...valid, sha256: `x${valid.sha256}` } },
+    { original: { ...valid, sha256: `${valid.sha256}x` } },
+    { original: { ...valid, byteLength: file.size + 1 } },
+  ];
+  const fetch = vi.fn();
+  for (const payload of invalidPayloads) {
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => payload });
+  }
+  vi.stubGlobal('fetch', fetch);
+  for (let index = 0; index < invalidPayloads.length; index += 1) {
+    await expect(uploadSyntheticOriginal(caseId, file)).rejects.toThrow(
+      'original_upload_unavailable',
+    );
+  }
+  expect(fetch).toHaveBeenCalledTimes(invalidPayloads.length);
+});

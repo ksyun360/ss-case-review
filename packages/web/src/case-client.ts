@@ -27,8 +27,19 @@ export async function uploadSyntheticOriginal(
   });
   if (response.status === 413) throw new Error('original_upload_too_large');
   if (!response.ok) throw new Error('original_upload_unavailable');
-  const payload = (await response.json()) as { original: SyntheticOriginalReceipt };
-  return payload.original;
+  const payload = (await response.json()) as { original?: SyntheticOriginalReceipt } | null;
+  const original = payload?.original;
+  if (
+    !original ||
+    original.caseId !== caseId ||
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+      original.documentVersionId,
+    ) ||
+    !/^[a-f0-9]{64}$/.test(original.sha256) ||
+    original.byteLength !== file.size
+  )
+    throw new Error('original_upload_unavailable');
+  return original;
 }
 
 export async function getSyntheticCase(caseId: string): Promise<CaseSummary | undefined> {
