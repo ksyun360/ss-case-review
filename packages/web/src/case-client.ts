@@ -17,6 +17,7 @@ export async function getSyntheticUploadCapability(): Promise<boolean> {
     cache: 'no-store',
     redirect: 'error',
   });
+  if (!response.ok) throw new Error('upload_capability_unavailable');
   const payload = (await response.json()) as { syntheticOriginalUpload: boolean };
   return payload.syntheticOriginalUpload;
 }

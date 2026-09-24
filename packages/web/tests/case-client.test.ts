@@ -43,6 +43,13 @@ test('reads the guarded synthetic upload capability from the same-origin API', a
   });
 });
 
+test('rejects an unavailable synthetic upload capability without reading its error body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503, json }));
+  await expect(getSyntheticUploadCapability()).rejects.toThrow('upload_capability_unavailable');
+  expect(json).not.toHaveBeenCalled();
+});
+
 test('treats an inaccessible case as unavailable without reading its body', async () => {
   const json = vi.fn();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 404, ok: false, json }));
