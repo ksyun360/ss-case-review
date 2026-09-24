@@ -41,6 +41,9 @@ export function createDevelopmentApi(
       return reply.code(400).send({ code: 'invalid_request' });
     return reply.code(503).send({ code: 'case_service_unavailable' });
   });
+  api.get('/api/v1/capabilities', async () => ({
+    syntheticOriginalUpload: originalStorage !== undefined,
+  }));
   api.get('/api/v1/cases', async () => ({
     cases: await listCasesForReviewer(database, identity.reviewerId),
   }));

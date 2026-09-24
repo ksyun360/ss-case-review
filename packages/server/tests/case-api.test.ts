@@ -74,6 +74,21 @@ test('lists only server-selected reviewer cases despite request identity claims'
   });
 });
 
+test('reports synthetic upload availability without disclosing storage configuration', async () => {
+  const disabled = await api.inject({ url: '/api/v1/capabilities', headers: requestHeaders });
+  expect(disabled.statusCode).toBe(200);
+  expect(disabled.json()).toEqual({ syntheticOriginalUpload: false });
+  await api.close();
+  api = createDevelopmentApi(environment, database, {
+    root: '/synthetic-private-root',
+    maximumBytes: 3,
+  });
+  const enabled = await api.inject({ url: '/api/v1/capabilities', headers: requestHeaders });
+  expect(enabled.statusCode).toBe(200);
+  expect(enabled.json()).toEqual({ syntheticOriginalUpload: true });
+  expect(enabled.body).not.toContain('synthetic-private-root');
+});
+
 test('opens only a case assigned to the configured development reviewer', async () => {
   const visibleId = '00000000-0000-4000-8000-000000000001';
   const hiddenId = '00000000-0000-4000-8000-000000000002';
