@@ -11,6 +11,7 @@ export function UploadPage() {
   const [transferAvailable, setTransferAvailable] = useState(false);
   const [label, setLabel] = useState('');
   const [registrationStarted, setRegistrationStarted] = useState(false);
+  const [creationUncertain, setCreationUncertain] = useState(false);
   const [registeredCount, setRegisteredCount] = useState(0);
   const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
   const capabilityRequested = useRef(false);
@@ -35,7 +36,13 @@ export function UploadPage() {
     event.preventDefault();
     setRegistrationStarted(true);
     void (async () => {
-      const created = await createSyntheticCase(label.trim());
+      let created;
+      try {
+        created = await createSyntheticCase(label.trim());
+      } catch {
+        setCreationUncertain(true);
+        return;
+      }
       for (const file of files) {
         await uploadSyntheticOriginal(created.caseId, file);
         setRegisteredCount((count) => count + 1);
@@ -139,6 +146,12 @@ export function UploadPage() {
               </>
             )}
             {savedCaseId && <a href={`/cases/${savedCaseId}`}>Open synthetic case</a>}
+            {creationUncertain && (
+              <p role="alert">
+                Draft creation could not be confirmed. <a href="/cases">Check saved cases</a> before
+                trying again.
+              </p>
+            )}
             <p id="processing-note">Extraction and review are not available yet.</p>
           </form>
         </section>
