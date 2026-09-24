@@ -216,3 +216,31 @@ test('registers a received original and closes its journal attempt', async () =>
     await rm(root, { recursive: true, force: true });
   }
 }, 15_000);
+
+test('marks an interrupted original stream failed without publishing partial bytes', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000007';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  const failure = new Error('Synthetic interrupted source');
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, reviewerId, label: 'Interrupted stream case' });
+    async function* chunks() {
+      yield Buffer.from('a');
+      throw failure;
+    }
+    await expect(
+      storeOriginalForReviewer(database, reviewerId, caseId, root, chunks(), 3),
+    ).rejects.toBe(failure);
+    expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+      { state: 'failed' },
+    ]);
+    expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+    const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
+    expect(await readdir(caseDirectory)).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);
