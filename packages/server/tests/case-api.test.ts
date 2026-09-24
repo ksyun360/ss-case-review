@@ -221,3 +221,32 @@ test('refuses a nonmember synthetic original without storing bytes or an attempt
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('rejects an oversized synthetic original with a safe response and no stored bytes', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-original-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000005';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Oversized original case' });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abcd'),
+    });
+    expect(response.statusCode).toBe(413);
+    expect(response.json()).toEqual({ code: 'request_too_large' });
+    expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+      { state: 'failed' },
+    ]);
+    expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+    const caseDirectories = await readdir(root);
+    expect(caseDirectories).toHaveLength(1);
+    const [directory] = caseDirectories;
+    if (!directory) throw new Error('Expected a case storage directory');
+    expect(await readdir(join(root, directory))).toEqual([]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

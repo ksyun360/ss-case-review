@@ -8,6 +8,7 @@ import {
 } from '@record-review/case-repository/cases';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
+import { OriginalTooLargeError } from '@record-review/record-storage/originals';
 import { storeOriginalForReviewer } from './original-ingestion.ts';
 
 export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
@@ -34,7 +35,7 @@ export function createDevelopmentApi(
     }
   });
   api.setErrorHandler<FastifyError>((error, _request, reply) => {
-    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE')
+    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE' || error instanceof OriginalTooLargeError)
       return reply.code(413).send({ code: 'request_too_large' });
     if (error.validation || error.code === 'FST_ERR_CTP_INVALID_JSON_BODY')
       return reply.code(400).send({ code: 'invalid_request' });

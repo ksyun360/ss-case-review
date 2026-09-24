@@ -6,6 +6,12 @@ export type OriginalIdentity = Readonly<{ caseId: string; documentVersionId: str
 
 export type StoredOriginal = OriginalIdentity & Readonly<{ sha256: string; byteLength: number }>;
 
+export class OriginalTooLargeError extends Error {
+  constructor() {
+    super('Original exceeds byte limit');
+  }
+}
+
 export async function writeOriginalStream(
   root: string,
   identity: OriginalIdentity,
@@ -23,8 +29,7 @@ export async function writeOriginalStream(
   async function* preparedChunks() {
     for await (const chunk of chunks) {
       const content = Buffer.from(chunk);
-      if (byteLength + content.byteLength > maximumBytes)
-        throw new Error('Original exceeds byte limit');
+      if (byteLength + content.byteLength > maximumBytes) throw new OriginalTooLargeError();
       hash.update(content);
       byteLength += content.byteLength;
       yield content;
