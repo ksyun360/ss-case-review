@@ -14,7 +14,7 @@ The development team will continue with durable synthetic document transfer and 
 
 ## Current evidence
 
-The local gate passes 187 fast unit/integration tests, 9 native PostgreSQL tests, and 9 Chromium workflows. Current first-party source coverage reaches 100% across the four measured metrics; mutation testing kills all 685 generated mutants. These measurements cover implemented code, not the unfinished application. A browser test exercises creation and case navigation at 320 pixels with intercepted API responses; the test does not prove a browser-to-database round trip. Read the [build-status report](build-status.md), [development startup guide](development-server.md), and [case API contract](case-api.md) for scope and limitations.
+The local gate passes 188 fast unit/integration tests, 9 native PostgreSQL tests, and 9 Chromium workflows. Current first-party source coverage reaches 100% across the four measured metrics; mutation testing kills all 688 generated mutants. These measurements cover implemented code, not the unfinished application. A browser test exercises creation and case navigation at 320 pixels with intercepted API responses; the test does not prove a browser-to-database round trip. Read the [build-status report](build-status.md), [development startup guide](development-server.md), and [case API contract](case-api.md) for scope and limitations.
 
 The current browser preview supports interface and synthetic case-metadata feedback only. The development proxy forwards case-metadata requests to the loopback API when both processes run. No developer credential, real case record, or live model request enters the deterministic checks. No shared deployment or PR has occurred.
 
@@ -33,4 +33,4 @@ The current browser preview supports interface and synthetic case-metadata feedb
 - [ ] Add source-backed corrections, revision history, filtering, and approved reference lookups.
 - [ ] Complete application integration tests and development/deployment documentation before Phase 5 qualification.
 
-The private storage adapter and internal ingestion service accept bounded byte streams and maintain a persistent attempt journal, but no HTTP upload invokes either component. Crash recovery and directory synchronization remain incomplete. The next milestone is durable synthetic document transfer and source provenance. That milestone will not complete the remaining upload-to-review features.
+The private storage adapter and internal ingestion service accept bounded byte streams and maintain a persistent attempt journal. A bounded query identifies stale receiving attempts, but no recovery worker acts on them, and no HTTP upload invokes the service. Crash recovery and directory synchronization remain incomplete. The next milestone is durable synthetic document transfer and source provenance. That milestone will not complete the remaining upload-to-review features.
