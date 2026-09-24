@@ -81,6 +81,7 @@ export function UploadPage() {
               id="case-files"
               type="file"
               multiple
+              disabled={registrationStarted}
               accept=".pdf,.doc,.docx,.xlsx,.tif,.tiff"
               aria-describedby="file-help local-only-note"
               onChange={(event) => {
@@ -113,6 +114,7 @@ export function UploadPage() {
                   <button
                     className="button secondary-button remove-file"
                     type="button"
+                    disabled={registrationStarted}
                     aria-label={`Remove ${file.name}`}
                     onClick={() =>
                       setFiles((previous) => previous.filter((_, row) => row !== index))
@@ -130,6 +132,7 @@ export function UploadPage() {
             <input
               id="upload-case-label"
               value={label}
+              disabled={registrationStarted}
               onChange={(event) => setLabel(event.currentTarget.value)}
               maxLength={120}
               required
