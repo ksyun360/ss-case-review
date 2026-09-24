@@ -40,8 +40,8 @@ export function App() {
             {' '}
             ·{' '}
           </span>
-          Use synthetic documents only. Synthetic case metadata can be listed; uploads, processing,
-          and court sign-in are unavailable.
+          Use synthetic documents only. Local original registration requires a configured API;
+          processing and court sign-in are unavailable.
         </p>
       </div>
       <Routes>

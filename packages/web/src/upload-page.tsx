@@ -1,24 +1,48 @@
-import { useEffect, useRef, useState } from 'react';
-import { getSyntheticUploadCapability } from './case-client.ts';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {
+  createSyntheticCase,
+  getSyntheticUploadCapability,
+  uploadSyntheticOriginal,
+} from './case-client.ts';
 
 export function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [transferStatus, setTransferStatus] = useState('Checking synthetic original transfer.');
+  const [transferAvailable, setTransferAvailable] = useState(false);
+  const [label, setLabel] = useState('');
+  const [registrationStarted, setRegistrationStarted] = useState(false);
+  const [registeredCount, setRegisteredCount] = useState(0);
+  const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
   const capabilityRequested = useRef(false);
 
   useEffect(() => {
     if (capabilityRequested.current) return;
     capabilityRequested.current = true;
     void getSyntheticUploadCapability().then(
-      (enabled) =>
+      (enabled) => {
+        setTransferAvailable(enabled);
         setTransferStatus(
           enabled
             ? 'Synthetic original transfer is available.'
             : 'Synthetic original transfer is not configured.',
-        ),
+        );
+      },
       () => setTransferStatus('Synthetic original transfer status is unavailable.'),
     );
   });
+
+  const registerOriginals = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setRegistrationStarted(true);
+    void (async () => {
+      const created = await createSyntheticCase(label.trim());
+      for (const file of files) {
+        await uploadSyntheticOriginal(created.caseId, file);
+        setRegisteredCount((count) => count + 1);
+      }
+      setSavedCaseId(created.caseId);
+    })();
+  };
 
   return (
     <main id="main-content" className="page upload-page" tabIndex={-1}>
@@ -26,7 +50,8 @@ export function UploadPage() {
         <p className="eyebrow">CASE REVIEW / NEW RECORD</p>
         <h1>Prepare a case record</h1>
         <p className="lede">
-          Gather the documents for one case. Review the file list before any future upload.
+          Gather synthetic documents for one case. Review the file list before registering
+          originals.
         </p>
       </div>
       <div className="upload-grid">
@@ -53,8 +78,8 @@ export function UploadPage() {
             />
           </div>
           <p id="local-only-note" className="local-note">
-            Files remain on your device. This preview does not upload, read, or process document
-            contents.
+            Selection stays on your device until you register the originals. This preview does not
+            inspect or process document contents.
           </p>
           <section className="manifest" aria-labelledby="manifest-heading">
             <h3 id="manifest-heading">Selected documents</h3>
@@ -64,6 +89,7 @@ export function UploadPage() {
                   <div className="file-details">
                     <strong>{file.name}</strong>
                     <span>{file.size} bytes</span>
+                    <span>{index < registeredCount ? 'Registered' : 'Ready'}</span>
                   </div>
                   <button
                     className="button secondary-button remove-file"
@@ -79,18 +105,42 @@ export function UploadPage() {
               ))}
             </ul>
           </section>
-          <div className="upload-actions">
+          <form className="upload-actions" onSubmit={registerOriginals}>
             <p role="status">{transferStatus}</p>
+            <label htmlFor="upload-case-label">Synthetic case label</label>
+            <input
+              id="upload-case-label"
+              value={label}
+              onChange={(event) => setLabel(event.currentTarget.value)}
+              maxLength={120}
+              required
+            />
             <button
               className="button primary-button"
-              type="button"
-              disabled
+              type="submit"
+              disabled={
+                !transferAvailable || files.length === 0 || !label.trim() || registrationStarted
+              }
               aria-describedby="processing-note"
             >
-              Upload and process
+              Register synthetic originals
             </button>
-            <p id="processing-note">Upload and processing are not connected yet.</p>
-          </div>
+            {files.length > 0 && (
+              <>
+                <progress
+                  aria-label="Original registration progress"
+                  aria-valuenow={registeredCount}
+                  value={registeredCount}
+                  max={files.length}
+                />
+                <p>
+                  {registeredCount} of {files.length} originals registered
+                </p>
+              </>
+            )}
+            {savedCaseId && <a href={`/cases/${savedCaseId}`}>Open synthetic case</a>}
+            <p id="processing-note">Extraction and review are not available yet.</p>
+          </form>
         </section>
         <aside className="panel checklist-panel" aria-labelledby="checklist-heading">
           <p className="eyebrow">BEFORE YOU START</p>

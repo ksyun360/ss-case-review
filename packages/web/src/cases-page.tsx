@@ -53,7 +53,9 @@ export function CasesPage() {
       ) : view.kind === 'ready' ? (
         <section className="panel" aria-labelledby="saved-cases-heading">
           <h2 id="saved-cases-heading">Saved cases</h2>
-          <p>These drafts do not include uploaded documents yet.</p>
+          <p>
+            Drafts may include unprocessed synthetic originals. Review artifacts are unavailable.
+          </p>
           <form className="case-create" onSubmit={(event) => submitDraft(event, view.cases)}>
             <label htmlFor="synthetic-case-label">Synthetic case label</label>
             <div className="case-create-controls">

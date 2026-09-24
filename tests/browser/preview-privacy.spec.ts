@@ -23,7 +23,7 @@ test('clears the selected manifest on reload without writing browser storage', a
   await expect(page.getByRole('heading', { name: 'Prepare a case record' })).toBeVisible();
   await expect(documents.getByRole('listitem')).toHaveCount(0);
   await expect(page.getByLabel('Choose case documents')).toHaveValue('');
-  await expect(page.getByRole('button', { name: 'Upload and process' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Register synthetic originals' })).toBeDisabled();
 });
 
 test('keeps document selection and removal free of network requests', async ({ page }) => {
@@ -44,7 +44,7 @@ test('keeps document selection and removal free of network requests', async ({ p
   const documents = page.getByRole('list', { name: 'Selected documents' });
   await expect(documents.getByRole('listitem')).toHaveCount(1);
   await expect(documents).toContainText('synthetic-privacy-check.pdf');
-  await expect(page.getByRole('button', { name: 'Upload and process' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Register synthetic originals' })).toBeDisabled();
 
   await page.getByRole('button', { name: 'Remove synthetic-privacy-check.pdf' }).click();
   await expect(documents.getByRole('listitem')).toHaveCount(0);

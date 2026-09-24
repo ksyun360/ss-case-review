@@ -42,8 +42,8 @@ export function HomePage() {
           </span>
           <h3>Prepare synthetic documents</h3>
           <p>
-            Select synthetic documents locally; this preview does not upload or process selected
-            files. Browse saved synthetic case drafts from the Saved cases page.
+            Select synthetic documents locally. A configured development API can register originals,
+            but processing is unavailable. Browse drafts from the Saved cases page.
           </p>
           <a className="text-link" href="/upload">
             Prepare a case record <span aria-hidden="true">→</span>

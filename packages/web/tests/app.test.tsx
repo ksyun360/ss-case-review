@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { expect, test } from 'vitest';
 import { App } from '../src/app.tsx';
 
-test('describes the metadata-only preview accurately across routes', () => {
+test('describes the synthetic transfer limits accurately across routes', () => {
   const home = renderToStaticMarkup(
     <MemoryRouter initialEntries={['/home']}>
       <App />
@@ -14,7 +14,7 @@ test('describes the metadata-only preview accurately across routes', () => {
       <App />
     </MemoryRouter>,
   );
-  expect(home).toContain('Synthetic case metadata can be listed');
+  expect(home).toContain('Local original registration requires a configured API');
   expect(home).toContain('Select synthetic documents locally');
   expect(cases).toContain('Browse synthetic case drafts');
   expect(home).not.toContain('Case storage is not connected');

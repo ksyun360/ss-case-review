@@ -46,7 +46,7 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   expect(await screen.findByRole('heading', { name: 'Synthetic saved draft' })).toBeVisible();
   expect(screen.getByText('Record revision 1')).toBeVisible();
   expect(
-    screen.getByText('No documents have been uploaded for this synthetic draft.'),
+    screen.getByText('This page does not show registered originals or extracted sources yet.'),
   ).toBeVisible();
   expect(getSyntheticCase).toHaveBeenCalledExactlyOnceWith(caseId);
   await user.click(screen.getByRole('link', { name: 'Next synthetic draft' }));

@@ -69,5 +69,5 @@ test('lists selected file names and sizes without enabling processing', async ()
   expect(rows[0]).toHaveTextContent('3 bytes');
   expect(rows[1]).toHaveTextContent('synthetic-record.tiff');
   expect(rows[1]).toHaveTextContent('9 bytes');
-  expect(screen.getByRole('button', { name: 'Upload and process' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Register synthetic originals' })).toBeDisabled();
 });

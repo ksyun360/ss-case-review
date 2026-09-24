@@ -42,8 +42,8 @@ export function CaseDetailPage() {
             <p className="lede">Record revision {record.recordRevision}</p>
           </div>
           <section className="panel empty-state">
-            <h2>Record not uploaded</h2>
-            <p>No documents have been uploaded for this synthetic draft.</p>
+            <h2>Record review pending</h2>
+            <p>This page does not show registered originals or extracted sources yet.</p>
             <a className="button secondary-button" href="/cases">
               Back to saved cases
             </a>

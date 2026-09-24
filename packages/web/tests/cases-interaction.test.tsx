@@ -106,6 +106,10 @@ test('retries an unavailable case list and displays only returned case metadata'
   await user.click(retry);
   expect(await screen.findByText('Synthetic draft')).toBeVisible();
   expect(screen.getByRole('list', { name: 'Saved cases' })).toHaveTextContent('Record revision 1');
-  expect(screen.getByText('These drafts do not include uploaded documents yet.')).toBeVisible();
+  expect(
+    screen.getByText(
+      'Drafts may include unprocessed synthetic originals. Review artifacts are unavailable.',
+    ),
+  ).toBeVisible();
   expect(listSyntheticCases).toHaveBeenCalledTimes(2);
 });

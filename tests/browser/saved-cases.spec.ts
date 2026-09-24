@@ -73,7 +73,7 @@ test('creates and opens a synthetic draft at mobile width without uploading file
   await page.getByRole('link', { name: draft.label }).click();
   await expect(page.getByRole('heading', { name: draft.label })).toBeVisible();
   await expect(
-    page.getByText('No documents have been uploaded for this synthetic draft.'),
+    page.getByText('This page does not show registered originals or extracted sources yet.'),
   ).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
   const result = await new AxeBuilder({ page })

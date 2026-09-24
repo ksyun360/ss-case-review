@@ -62,7 +62,7 @@ test('keeps the home-to-upload workflow usable at 320 pixels', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Prepare a case record' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
   await expect(page.getByLabel('Choose case documents')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Upload and process' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Register synthetic originals' })).toBeDisabled();
 });
 
 test('renders the approved desktop workspace with a visible keyboard skip link', async ({
