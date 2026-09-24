@@ -205,3 +205,15 @@ test('streams one selected synthetic file to its saved case through the same-ori
     redirect: 'error',
   });
 });
+
+test('reports an oversized synthetic original without reading the server error body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 413, json }));
+  await expect(
+    uploadSyntheticOriginal(
+      '00000000-0000-4000-8000-000000000002',
+      new File(['synthetic bytes'], 'synthetic.pdf'),
+    ),
+  ).rejects.toThrow('original_upload_too_large');
+  expect(json).not.toHaveBeenCalled();
+});

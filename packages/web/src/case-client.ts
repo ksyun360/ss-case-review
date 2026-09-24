@@ -25,6 +25,7 @@ export async function uploadSyntheticOriginal(
     cache: 'no-store',
     redirect: 'error',
   });
+  if (response.status === 413) throw new Error('original_upload_too_large');
   const payload = (await response.json()) as { original: SyntheticOriginalReceipt };
   return payload.original;
 }
