@@ -1,6 +1,9 @@
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { createCase } from '@record-review/case-repository/cases';
+import { createCase, findOriginalReference } from '@record-review/case-repository/cases';
+import { readOriginal } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
@@ -25,6 +28,15 @@ beforeEach(async () => {
     await readFile(
       new URL(
         '../../case-repository/migrations/202609230001_initial_case_metadata.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  );
+  await database.exec(
+    await readFile(
+      new URL(
+        '../../case-repository/migrations/202609230002_original_upload_attempts.sql',
         import.meta.url,
       ),
       'utf8',
@@ -124,4 +136,62 @@ test('returns a safe failure when case creation rolls back in the database', asy
   expect(response.json()).toEqual({ code: 'case_service_unavailable' });
   expect((await database.query('SELECT * FROM cases')).rows).toEqual([]);
   expect((await database.query('SELECT * FROM case_memberships')).rows).toEqual([]);
+});
+
+test('accepts one synthetic original as streamed bytes for a member case', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-original-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000003';
+  try {
+    const disabled = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    expect(disabled.statusCode).toBe(404);
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Synthetic original case' });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    expect(response.statusCode).toBe(201);
+    const reference = response.json<{
+      original: {
+        caseId: string;
+        documentVersionId: string;
+        sha256: string;
+        byteLength: number;
+      };
+    }>().original;
+    expect(reference).toEqual({
+      caseId,
+      documentVersionId: expect.stringMatching(/^[a-f0-9-]{36}$/),
+      sha256: 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+      byteLength: 3,
+    });
+    expect(await readOriginal(root, caseId, reference)).toEqual(Buffer.from('abc'));
+    expect(
+      await findOriginalReference(database, reviewerId, caseId, reference.documentVersionId),
+    ).toEqual(reference);
+    expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+      { state: 'registered' },
+    ]);
+    const malformed = await api.inject({
+      method: 'POST',
+      url: '/api/v1/cases/not-a-uuid/synthetic-originals',
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    expect(malformed.statusCode).toBe(400);
+    expect(malformed.json()).toEqual({ code: 'invalid_request' });
+    expect(
+      (await database.query('SELECT count(*)::int AS count FROM original_upload_attempts')).rows,
+    ).toEqual([{ count: 1 }]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

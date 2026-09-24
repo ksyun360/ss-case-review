@@ -8,8 +8,15 @@ import {
 } from '@record-review/case-repository/cases';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
+import { storeOriginalForReviewer } from './original-ingestion.ts';
 
-export function createDevelopmentApi(environment: ServerEnvironment, database: SqlClient) {
+export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
+
+export function createDevelopmentApi(
+  environment: ServerEnvironment,
+  database: SqlClient,
+  originalStorage?: SyntheticOriginalStorage,
+) {
   const identity = readDevelopmentIdentity(environment);
   const api = Fastify({
     bodyLimit: 4096,
@@ -73,5 +80,32 @@ export function createDevelopmentApi(environment: ServerEnvironment, database: S
       return reply.code(201).send({ case: created });
     },
   );
+  if (originalStorage) {
+    api.addContentTypeParser('application/octet-stream', (_request, payload, done) => {
+      done(null, payload);
+    });
+    api.post<{ Params: { caseId: string }; Body: AsyncIterable<Uint8Array> }>(
+      '/api/v1/cases/:caseId/synthetic-originals',
+      {
+        schema: {
+          params: {
+            type: 'object',
+            properties: { caseId: { type: 'string', format: 'uuid' } },
+          },
+        },
+      },
+      async (request, reply) => {
+        const original = await storeOriginalForReviewer(
+          database,
+          identity.reviewerId,
+          request.params.caseId,
+          originalStorage.root,
+          request.body,
+          originalStorage.maximumBytes,
+        );
+        return reply.code(201).send({ original });
+      },
+    );
+  }
   return api;
 }
