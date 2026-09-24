@@ -1,10 +1,10 @@
 # Synthetic development case API
 
-Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser lists, creates, and opens saved synthetic case metadata through the development proxy. Document transfer and source-linked review remain pending. Use synthetic fixtures only.
+Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser lists, creates, and opens saved synthetic case metadata through the development proxy. An opt-in factory route accepts one synthetic original byte stream for a member case; normal server startup and the browser do not enable that route. Source-linked review remains pending. Use synthetic fixtures only.
 
 ## Construction and identity
 
-`createDevelopmentApi(environment, database)` lives in `packages/server/src/case-api.ts`. Supply a trusted server-owned environment map and an already-connected `SqlClient` against the migrated case schema. The caller owns migration execution, connection settings, database lifetime, and eventual listener startup. The factory returns a Fastify instance for request injection and later integration; the factory does not load `.env`, call Gemini, or read original documents.
+`createDevelopmentApi(environment, database, originalStorage?)` lives in `packages/server/src/case-api.ts`. Supply a trusted server-owned environment map and an already-connected `SqlClient` against the migrated case schema. The optional storage argument contains a server-owned private root and positive byte limit; only explicit factory callers enable the synthetic original route. The caller owns migration execution, connection settings, database lifetime, and eventual listener startup. The factory returns a Fastify instance for request injection and later integration; the factory does not load `.env`, call Gemini, or read original documents.
 
 The factory calls `readDevelopmentIdentity` before constructing the API. The helper requires every setting below and returns the fixed synthetic reviewer `00000000-0000-4000-8000-000000000011`:
 
@@ -31,24 +31,27 @@ The development entry point validates startup configuration and binds the listen
 | `POST /api/v1/cases`        | Accepts a JSON object containing only `label`; returns HTTP 201 with `{ case: { caseId, label, recordRevision } }` after atomic case and creator-membership insertion. |
 | `GET /api/v1/cases/:caseId` | Returns `{ case: { caseId, label, recordRevision } }` only for the configured reviewer; returns the same 404 for an unknown or inaccessible UUID.                      |
 
+When a trusted caller supplies `originalStorage`, `POST /api/v1/cases/:caseId/synthetic-originals` accepts only `application/octet-stream` and streams bytes through the attempt journal and private original store. The route returns HTTP 201 with `{ original: { caseId, documentVersionId, sha256, byteLength } }` after reference registration. A nonmember receives the same 404 as an unknown case. An oversized stream receives 413 and leaves a failed attempt but no registered original. An unsupported media type receives 415 before attempt reservation. The route does not inspect a document format, accept a filename, provide a download, or start extraction. The normal development server does not pass `originalStorage`, so the browser cannot reach this route.
+
 Labels must contain non-whitespace text and contain at most 120 Unicode code points before trimming. The JSON schema rejects numeric labels without coercion and rejects extra fields without silently removing those fields. The server trims surrounding label whitespace and generates a canonical version-4 UUID. Initial record revision remains 1; case creation does not upload or process documents.
 
-The metadata API limits request bodies to 4,096 bytes and sets `Cache-Control: no-store`. The limit applies to this metadata factory, not to a future document-upload allowance. Every successful POST creates a new draft; the API provides no idempotency key or automatic retry. The browser disables the create control while a request is pending and warns users to check the saved list after an ambiguous failure. Add idempotency before any automated retry.
+The metadata API limits parsed request bodies to 4,096 bytes and sets `Cache-Control: no-store`. The optional octet-stream parser passes a stream to the bounded original store instead of buffering the body; `originalStorage.maximumBytes` governs accepted original bytes. Every successful case-creation POST creates a new draft; the API provides no idempotency key or automatic retry. The browser disables the create control while a request is pending and warns users to check the saved list after an ambiguous failure. Add idempotency before any automated retry.
 
-| HTTP status / code                    | Meaning                                                                                       |
-| ------------------------------------- | --------------------------------------------------------------------------------------------- |
-| 400 / `invalid_request`               | The JSON body fails schema validation or contains malformed JSON.                             |
-| 403 / `development_request_forbidden` | A required request marker, Host value, or supplied Origin fails the development restrictions. |
-| 413 / `request_too_large`             | The request exceeds the metadata body limit.                                                  |
-| 404 / `case_not_found`                | The requested case does not exist or the configured reviewer lacks membership.                |
-| 503 / `case_service_unavailable`      | An unclassified handler or parser failure prevents completion, including database failures.   |
+| HTTP status / code                    | Meaning                                                                                         |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 400 / `invalid_request`               | The JSON body fails schema validation or contains malformed JSON.                               |
+| 403 / `development_request_forbidden` | A required request marker, Host value, or supplied Origin fails the development restrictions.   |
+| 413 / `request_too_large`             | A parsed request exceeds the metadata body limit or a streamed original exceeds its byte limit. |
+| 404 / `case_not_found`                | The requested case does not exist or the configured reviewer lacks membership.                  |
+| 415 / `unsupported_media_type`        | The optional original route receives a content type other than `application/octet-stream`.      |
+| 503 / `case_service_unavailable`      | An unclassified handler or parser failure prevents completion, including database failures.     |
 
-The error handler returns fixed codes rather than exception messages, query details, or submitted text. Additional parser/error classifications remain pending. Unknown routes retain Fastify's default not-found behavior. The factory provides no source, download, upload, artifact, or membership-administration endpoint.
+The error handler returns fixed codes rather than exception messages, query details, or submitted text. Additional parser/error classifications remain pending. Unknown routes retain Fastify's default not-found behavior. The factory provides no source, download, artifact, or membership-administration endpoint; its opt-in upload route supports synthetic fixtures only.
 
 ## Verification and remaining work
 
-Run `npm test -- packages/server packages/server-config/tests/development-identity.test.ts` for focused checks. Four API integration cases use a real in-memory PostgreSQL test engine to check reviewer scoping, creation, atomic rollback, and member-only case lookup with safe failure responses. Eleven request cases check validation, request restrictions, payload limits, malformed JSON, and response caching. Seven configuration cases check the development identity contract.
+Run `npm test -- packages/server packages/server-config/tests/development-identity.test.ts` for focused checks. Eight API integration cases use a real in-memory PostgreSQL test engine to check reviewer scoping, creation, atomic rollback, member-only case lookup, synthetic stream receipt, and upload safety responses. Eleven request cases check validation, request restrictions, payload limits, malformed JSON, and response caching. Seven configuration cases check the development identity contract.
 
 The [native PostgreSQL suite](postgres-migrations.md) additionally checks API creation, filtering, and membership revocation against PostgreSQL 18.6. Request injection exercises Fastify's lifecycle without opening an HTTP listener. The [development server checks](development-server.md) cover startup ordering, pool cleanup, loopback binding, and a separate real-process HTTP smoke run. These tests do not establish browser-to-server behavior, production authentication, general concurrency, or recovery.
 
-Connect private-file finalization and source provenance next. Add pagination, case administration, request idempotency, complete error classification, and audit records before a shared deployment. Keep real records blocked until court IT approves identity and data handling. Return to Phase 3 at the very end before pilot handoff.
+Connect guarded startup configuration, private-file finalization, crash reconciliation, browser transfer, and source provenance next. Add pagination, case administration, request idempotency, complete error classification, and audit records before a shared deployment. Keep real records blocked until court IT approves identity and data handling. Return to Phase 3 at the very end before pilot handoff.
