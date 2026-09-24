@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import {
   createSyntheticCase,
+  getSyntheticUploadCapability,
   getSyntheticCase,
   listSyntheticCases,
   uploadSyntheticOriginal,
@@ -15,6 +16,27 @@ test('requests one reviewer-scoped draft through the same-origin API', async () 
   vi.stubGlobal('fetch', fetch);
   expect(await getSyntheticCase(caseId)).toEqual(saved);
   expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/v1/cases/${caseId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
+
+test('reads the guarded synthetic upload capability from the same-origin API', async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ syntheticOriginalUpload: false }) })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ syntheticOriginalUpload: true }) });
+  vi.stubGlobal('fetch', fetch);
+  expect(await getSyntheticUploadCapability()).toBe(false);
+  expect(await getSyntheticUploadCapability()).toBe(true);
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(fetch).toHaveBeenNthCalledWith(1, '/api/v1/capabilities', {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  expect(fetch).toHaveBeenNthCalledWith(2, '/api/v1/capabilities', {
     headers: { 'x-record-review-client': 'synthetic-workspace' },
     cache: 'no-store',
     redirect: 'error',

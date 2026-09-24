@@ -11,6 +11,16 @@ export type SyntheticOriginalReceipt = Readonly<{
   byteLength: number;
 }>;
 
+export async function getSyntheticUploadCapability(): Promise<boolean> {
+  const response = await fetch('/api/v1/capabilities', {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  const payload = (await response.json()) as { syntheticOriginalUpload: boolean };
+  return payload.syntheticOriginalUpload;
+}
+
 export async function uploadSyntheticOriginal(
   caseId: string,
   file: File,
