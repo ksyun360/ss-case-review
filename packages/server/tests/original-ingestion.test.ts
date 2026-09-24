@@ -274,3 +274,32 @@ test('marks a revoked upload failed after discarding its published bytes', async
     await rm(root, { recursive: true, force: true });
   }
 }, 15_000);
+
+test('marks a registration-error attempt failed after discarding its bytes', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000009';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, reviewerId, label: 'Failed completion case' });
+    async function* chunks() {
+      await database.exec(
+        'ALTER TABLE original_references ADD CONSTRAINT synthetic_completion_failure CHECK (false)',
+      );
+      yield Buffer.from('private');
+    }
+    await expect(
+      storeOriginalForReviewer(database, reviewerId, caseId, root, chunks(), 100),
+    ).rejects.toMatchObject({ code: '23514' });
+    expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+      { state: 'failed' },
+    ]);
+    const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
+    expect(await readdir(caseDirectory)).toEqual([]);
+    expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);

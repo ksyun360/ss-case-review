@@ -40,6 +40,7 @@ export async function storeOriginalForReviewer(
     registered = await completeOriginalUpload(database, reviewerId, reference);
   } catch (error) {
     await discardOriginal(root, reference);
+    await failOriginalUpload(database, reviewerId, caseId, documentVersionId);
     throw error;
   }
   if (!registered) {
