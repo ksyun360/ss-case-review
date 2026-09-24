@@ -103,6 +103,7 @@ export function createDevelopmentApi(
           request.body,
           originalStorage.maximumBytes,
         );
+        if (!original) return reply.code(404).send({ code: 'case_not_found' });
         return reply.code(201).send({ original });
       },
     );

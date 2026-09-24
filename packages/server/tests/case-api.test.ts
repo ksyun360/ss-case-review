@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
@@ -191,6 +191,32 @@ test('accepts one synthetic original as streamed bytes for a member case', async
     expect(
       (await database.query('SELECT count(*)::int AS count FROM original_upload_attempts')).rows,
     ).toEqual([{ count: 1 }]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('refuses a nonmember synthetic original without storing bytes or an attempt', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-original-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000004';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, {
+      caseId,
+      reviewerId: otherReviewerId,
+      label: 'Other reviewer case',
+    });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ code: 'case_not_found' });
+    expect(await readdir(root)).toEqual([]);
+    expect((await database.query('SELECT * FROM original_upload_attempts')).rows).toEqual([]);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
