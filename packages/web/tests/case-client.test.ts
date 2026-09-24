@@ -50,6 +50,17 @@ test('rejects an unavailable synthetic upload capability without reading its err
   expect(json).not.toHaveBeenCalled();
 });
 
+test('rejects a synthetic upload capability without a Boolean value', async () => {
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => null })
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ syntheticOriginalUpload: 'true' }) });
+  vi.stubGlobal('fetch', fetch);
+  await expect(getSyntheticUploadCapability()).rejects.toThrow('upload_capability_unavailable');
+  await expect(getSyntheticUploadCapability()).rejects.toThrow('upload_capability_unavailable');
+  expect(fetch).toHaveBeenCalledTimes(2);
+});
+
 test('treats an inaccessible case as unavailable without reading its body', async () => {
   const json = vi.fn();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ status: 404, ok: false, json }));
