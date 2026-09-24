@@ -2,17 +2,28 @@ import type { ServerEnvironment } from '@record-review/server-config/gemini-deve
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { Pool } from 'pg';
 import process from 'node:process';
+import { isAbsolute, parse, resolve } from 'node:path';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
 
 export async function startDevelopmentServer(environment: ServerEnvironment) {
   readDevelopmentIdentity(environment);
+  const configuredRoot = environment.DEVELOPMENT_ORIGINAL_STORAGE_ROOT;
+  let originalStorage;
+  if (configuredRoot !== undefined) {
+    const root = resolve(configuredRoot);
+    if (!isAbsolute(configuredRoot) || root === parse(root).root)
+      throw new Error('development_original_root_invalid');
+    originalStorage = { root, maximumBytes: 512 * 1024 * 1024 };
+  }
   const database = new Pool(readDevelopmentDatabaseConfig(environment));
   database.on('error', () => {
     process.stderr.write('development_database_connection_lost\n');
   });
-  const api = createDevelopmentApi(environment, database);
+  const api = originalStorage
+    ? createDevelopmentApi(environment, database, originalStorage)
+    : createDevelopmentApi(environment, database);
   api.addHook('onClose', async () => {
     await database.end();
   });

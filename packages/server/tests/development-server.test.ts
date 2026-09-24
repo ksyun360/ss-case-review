@@ -1,4 +1,6 @@
 import { EventEmitter } from 'node:events';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import process from 'node:process';
 import Fastify from 'fastify';
 import { Pool } from 'pg';
@@ -123,4 +125,26 @@ test('migrates before listening and closes the pool with the development API', a
   expect(database.end).not.toHaveBeenCalled();
   await api.close();
   expect(database.end).toHaveBeenCalledExactlyOnceWith();
+});
+
+test('enables bounded synthetic original storage only for an explicit absolute root', async () => {
+  const root = join(tmpdir(), 'record-review-synthetic-originals');
+  const configured = { ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root };
+  await startDevelopmentServer(configured);
+  expect(createDevelopmentApi).toHaveBeenCalledExactlyOnceWith(configured, database, {
+    root,
+    maximumBytes: 512 * 1024 * 1024,
+  });
+  expect(api.listen).toHaveBeenCalledExactlyOnceWith({ host: '127.0.0.1', port: 5176 });
+  vi.mocked(createDevelopmentApi).mockClear();
+  vi.mocked(api.listen).mockClear();
+  await expect(
+    startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: 'relative-root' }),
+  ).rejects.toThrow('development_original_root_invalid');
+  expect(createDevelopmentApi).not.toHaveBeenCalled();
+  expect(api.listen).not.toHaveBeenCalled();
+  await expect(
+    startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: '/' }),
+  ).rejects.toThrow('development_original_root_invalid');
+  expect(createDevelopmentApi).not.toHaveBeenCalled();
 });
