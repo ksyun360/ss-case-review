@@ -12,6 +12,7 @@ export function UploadPage() {
   const [label, setLabel] = useState('');
   const [registrationStarted, setRegistrationStarted] = useState(false);
   const [creationUncertain, setCreationUncertain] = useState(false);
+  const [unconfirmedIndex, setUnconfirmedIndex] = useState<number | null>(null);
   const [registeredCount, setRegisteredCount] = useState(0);
   const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
   const capabilityRequested = useRef(false);
@@ -43,11 +44,16 @@ export function UploadPage() {
         setCreationUncertain(true);
         return;
       }
-      for (const file of files) {
-        await uploadSyntheticOriginal(created.caseId, file);
+      setSavedCaseId(created.caseId);
+      for (const [index, file] of files.entries()) {
+        try {
+          await uploadSyntheticOriginal(created.caseId, file);
+        } catch {
+          setUnconfirmedIndex(index);
+          return;
+        }
         setRegisteredCount((count) => count + 1);
       }
-      setSavedCaseId(created.caseId);
     })();
   };
 
@@ -96,7 +102,13 @@ export function UploadPage() {
                   <div className="file-details">
                     <strong>{file.name}</strong>
                     <span>{file.size} bytes</span>
-                    <span>{index < registeredCount ? 'Registered' : 'Ready'}</span>
+                    <span>
+                      {index < registeredCount
+                        ? 'Registered'
+                        : index === unconfirmedIndex
+                          ? 'Unconfirmed'
+                          : 'Ready'}
+                    </span>
                   </div>
                   <button
                     className="button secondary-button remove-file"
@@ -150,6 +162,12 @@ export function UploadPage() {
               <p role="alert">
                 Draft creation could not be confirmed. <a href="/cases">Check saved cases</a> before
                 trying again.
+              </p>
+            )}
+            {unconfirmedIndex !== null && (
+              <p role="alert">
+                A file transfer could not be confirmed. The case may contain some originals. Do not
+                retry this upload from this page.
               </p>
             )}
             <p id="processing-note">Extraction and review are not available yet.</p>
