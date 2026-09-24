@@ -5,6 +5,7 @@ import { createCase } from '../src/cases.ts';
 import {
   completeOriginalUpload,
   failOriginalUpload,
+  listRecoverableOriginalUploads,
   reserveOriginalUpload,
 } from '../src/upload-attempts.ts';
 
@@ -110,4 +111,48 @@ test('marks an interrupted reserved attempt failed without inventing an original
     { state: 'failed' },
   ]);
   expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+});
+
+test('lists only stale receiving attempts in bounded recovery order', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Recovery scan case' });
+  const versions = [
+    '00000000-0000-4000-8000-000000000021',
+    '00000000-0000-4000-8000-000000000022',
+    '00000000-0000-4000-8000-000000000023',
+    '00000000-0000-4000-8000-000000000024',
+    '00000000-0000-4000-8000-000000000025',
+  ] as const;
+  for (const version of versions) {
+    await reserveOriginalUpload(database, {
+      caseId,
+      reviewerId,
+      documentVersionId: version,
+      maximumBytes: 16,
+    });
+  }
+  for (const [version, createdAt] of [
+    [versions[0], '2026-08-01T00:00:00Z'],
+    [versions[1], '2026-09-02T00:00:00Z'],
+    [versions[2], '2026-07-01T00:00:00Z'],
+    [versions[3], '2026-07-02T00:00:00Z'],
+    [versions[4], '2026-08-02T00:00:00Z'],
+  ]) {
+    await database.query(
+      'UPDATE original_upload_attempts SET created_at = $1 WHERE document_version_id = $2',
+      [createdAt, version],
+    );
+  }
+  await failOriginalUpload(database, reviewerId, caseId, versions[2]);
+  await completeOriginalUpload(database, reviewerId, {
+    caseId,
+    documentVersionId: versions[3],
+    sha256: 'a'.repeat(64),
+    byteLength: 3,
+  });
+  expect(
+    await listRecoverableOriginalUploads(database, new Date('2026-09-01T00:00:00Z'), 2),
+  ).toEqual([
+    { caseId, documentVersionId: versions[0], reviewerId, maximumBytes: 16, state: 'receiving' },
+    { caseId, documentVersionId: versions[4], reviewerId, maximumBytes: 16, state: 'receiving' },
+  ]);
 });

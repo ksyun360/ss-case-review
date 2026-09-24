@@ -77,3 +77,20 @@ export async function failOriginalUpload(
   );
   return result.rows[0];
 }
+
+export async function listRecoverableOriginalUploads(
+  client: SqlClient,
+  olderThan: Date,
+  limit: number,
+): Promise<OriginalUploadAttempt[]> {
+  const result = await client.query<OriginalUploadAttempt>(
+    `SELECT case_id AS "caseId", document_version_id AS "documentVersionId",
+      reviewer_id AS "reviewerId", maximum_bytes::float8 AS "maximumBytes", state
+    FROM original_upload_attempts
+    WHERE state = 'receiving' AND created_at < $1
+    ORDER BY created_at, case_id, document_version_id
+    LIMIT $2`,
+    [olderThan, limit],
+  );
+  return result.rows;
+}
