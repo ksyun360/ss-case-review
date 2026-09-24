@@ -244,3 +244,33 @@ test('marks an interrupted original stream failed without publishing partial byt
     await rm(root, { recursive: true, force: true });
   }
 }, 15_000);
+
+test('marks a revoked upload failed after discarding its published bytes', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000008';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, reviewerId, label: 'Revoked upload case' });
+    async function* chunks() {
+      await database.query('DELETE FROM case_memberships WHERE case_id = $1 AND reviewer_id = $2', [
+        caseId,
+        reviewerId,
+      ]);
+      yield Buffer.from('private');
+    }
+    expect(
+      await storeOriginalForReviewer(database, reviewerId, caseId, root, chunks(), 100),
+    ).toBeUndefined();
+    expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
+      { state: 'failed' },
+    ]);
+    const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
+    expect(await readdir(caseDirectory)).toEqual([]);
+    expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);
