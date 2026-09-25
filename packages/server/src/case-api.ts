@@ -3,12 +3,13 @@ import Fastify, { type FastifyError } from 'fastify';
 import {
   createCase,
   findCaseForReviewer,
+  findOriginalReference,
   listCasesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
-import { OriginalTooLargeError } from '@record-review/record-storage/originals';
+import { OriginalTooLargeError, readOriginal } from '@record-review/record-storage/originals';
 import { storeOriginalForReviewer } from './original-ingestion.ts';
 
 export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
@@ -85,6 +86,35 @@ export function createDevelopmentApi(
     },
   );
   if (originalStorage) {
+    api.get<{ Params: { caseId: string; documentVersionId: string } }>(
+      '/api/v1/cases/:caseId/synthetic-originals/:documentVersionId',
+      {
+        schema: {
+          params: {
+            type: 'object',
+            properties: {
+              caseId: { type: 'string', format: 'uuid' },
+              documentVersionId: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        const reference = await findOriginalReference(
+          database,
+          identity.reviewerId,
+          request.params.caseId,
+          request.params.documentVersionId,
+        );
+        if (!reference) return reply.code(404).send({ code: 'original_not_found' });
+        const bytes = await readOriginal(originalStorage.root, request.params.caseId, reference);
+        if (!bytes) return reply.code(404).send({ code: 'original_not_found' });
+        return reply
+          .header('content-disposition', 'attachment')
+          .header('x-content-type-options', 'nosniff')
+          .send(bytes);
+      },
+    );
     api.addContentTypeParser('application/octet-stream', (_request, payload, done) => {
       done(null, payload);
     });

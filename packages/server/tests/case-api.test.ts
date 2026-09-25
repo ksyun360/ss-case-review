@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { createCase, findOriginalReference } from '@record-review/case-repository/cases';
+import * as originalStorage from '@record-review/record-storage/originals';
 import { readOriginal } from '@record-review/record-storage/originals';
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
 
@@ -206,6 +207,65 @@ test('accepts one synthetic original as streamed bytes for a member case', async
     expect(
       (await database.query('SELECT count(*)::int AS count FROM original_upload_attempts')).rows,
     ).toEqual([{ count: 1 }]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('downloads a member original as non-inline bytes after verifying its stored reference', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-download-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000013';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Synthetic download case' });
+    const uploaded = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    expect(uploaded.statusCode).toBe(201);
+    const versionId = uploaded.json<{ original: { documentVersionId: string } }>().original
+      .documentVersionId;
+    const downloaded = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/synthetic-originals/${versionId}`,
+      headers: requestHeaders,
+    });
+    expect(downloaded.statusCode).toBe(200);
+    expect(downloaded.headers['content-type']).toMatch(/^application\/octet-stream/);
+    expect(downloaded.headers['content-disposition']).toBe('attachment');
+    expect(downloaded.headers['x-content-type-options']).toBe('nosniff');
+    expect(downloaded.headers['cache-control']).toBe('no-store');
+    expect(downloaded.rawPayload).toEqual(Buffer.from('abc'));
+    const missing = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/synthetic-originals/00000000-0000-4000-8000-000000000099`,
+      headers: requestHeaders,
+    });
+    expect(missing.statusCode).toBe(404);
+    expect(missing.json()).toEqual({ code: 'original_not_found' });
+    for (const url of [
+      `/api/v1/cases/not-a-uuid/synthetic-originals/${versionId}`,
+      `/api/v1/cases/${caseId}/synthetic-originals/not-a-uuid`,
+    ]) {
+      const malformed = await api.inject({ method: 'GET', url, headers: requestHeaders });
+      expect(malformed.statusCode).toBe(400);
+      expect(malformed.json()).toEqual({ code: 'invalid_request' });
+    }
+    const read = vi.spyOn(originalStorage, 'readOriginal').mockResolvedValueOnce(undefined);
+    try {
+      const inconsistent = await api.inject({
+        method: 'GET',
+        url: `/api/v1/cases/${caseId}/synthetic-originals/${versionId}`,
+        headers: requestHeaders,
+      });
+      expect(inconsistent.statusCode).toBe(404);
+      expect(inconsistent.json()).toEqual({ code: 'original_not_found' });
+    } finally {
+      read.mockRestore();
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }
