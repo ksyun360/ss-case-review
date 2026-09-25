@@ -116,6 +116,57 @@ test('opens only a case assigned to the configured development reviewer', async 
   expect(malformed.json()).toEqual({ code: 'invalid_request' });
 });
 
+test('lists original metadata for a member case without exposing another case', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000031';
+  const emptyCaseId = '00000000-0000-4000-8000-000000000032';
+  const otherCaseId = '00000000-0000-4000-8000-000000000033';
+  const memberOriginal = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000041',
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+  };
+  await createCase(database, { caseId, reviewerId, label: 'Synthetic inventory' });
+  await createCase(database, { caseId: emptyCaseId, reviewerId, label: 'Empty inventory' });
+  await createCase(database, {
+    caseId: otherCaseId,
+    reviewerId: otherReviewerId,
+    label: 'Private inventory',
+  });
+  await registerOriginalReference(database, reviewerId, memberOriginal);
+  await registerOriginalReference(database, otherReviewerId, {
+    ...memberOriginal,
+    caseId: otherCaseId,
+    sha256: 'b'.repeat(64),
+  });
+  const listed = await api.inject({
+    url: `/api/v1/cases/${caseId}/synthetic-originals`,
+    headers: requestHeaders,
+  });
+  expect(listed.statusCode).toBe(200);
+  expect(listed.json()).toEqual({ originals: [memberOriginal] });
+  const empty = await api.inject({
+    url: `/api/v1/cases/${emptyCaseId}/synthetic-originals`,
+    headers: requestHeaders,
+  });
+  expect(empty.statusCode).toBe(200);
+  expect(empty.json()).toEqual({ originals: [] });
+  for (const hiddenCaseId of [otherCaseId, '00000000-0000-4000-8000-000000000099']) {
+    const hidden = await api.inject({
+      url: `/api/v1/cases/${hiddenCaseId}/synthetic-originals`,
+      headers: requestHeaders,
+    });
+    expect(hidden.statusCode).toBe(404);
+    expect(hidden.json()).toEqual({ code: 'case_not_found' });
+  }
+  const malformed = await api.inject({
+    url: '/api/v1/cases/not-a-uuid/synthetic-originals',
+    headers: requestHeaders,
+  });
+  expect(malformed.statusCode).toBe(400);
+  expect(malformed.json()).toEqual({ code: 'invalid_request' });
+});
+
 test('creates a synthetic draft with a server-generated identity and creator membership', async () => {
   const response = await api.inject({
     method: 'POST',

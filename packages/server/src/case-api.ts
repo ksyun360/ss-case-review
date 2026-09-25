@@ -5,6 +5,7 @@ import {
   findCaseForReviewer,
   findOriginalReference,
   listCasesForReviewer,
+  listOriginalReferencesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
@@ -62,6 +63,28 @@ export function createDevelopmentApi(
       const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
       if (!found) return reply.code(404).send({ code: 'case_not_found' });
       return { case: found };
+    },
+  );
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId/synthetic-originals',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      return {
+        originals: await listOriginalReferencesForReviewer(
+          database,
+          identity.reviewerId,
+          request.params.caseId,
+        ),
+      };
     },
   );
   api.post<{ Body: { label: string } }>(
