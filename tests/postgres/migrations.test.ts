@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import react from '@vitejs/plugin-react';
+import { chromium, expect as browserExpect, type Browser } from '@playwright/test';
 import { PG_MIGRATE_LOCK_ID } from 'node-pg-migrate';
 import { Client, type ClientConfig } from 'pg';
+import { createServer, type ViteDevServer } from 'vite';
 import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import {
   createCase,
@@ -17,6 +23,77 @@ import {
   reserveOriginalUpload,
 } from '../../packages/case-repository/src/upload-attempts.ts';
 import { createDevelopmentApi } from '../../packages/server/src/case-api.ts';
+import { readOriginal } from '../../packages/record-storage/src/originals.ts';
+
+test('registers browser-selected synthetic bytes in native PostgreSQL and private storage', async () => {
+  await migrateCaseSchema(client);
+  const root = await mkdtemp(join(tmpdir(), 'record-review-browser-original-'));
+  const api = createDevelopmentApi(
+    {
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      AUTH_MODE: 'development',
+      BIND_ADDRESS: '127.0.0.1',
+    },
+    client,
+    { root, maximumBytes: 1024 },
+  );
+  let vite: ViteDevServer | undefined;
+  let browser: Browser | undefined;
+  try {
+    await api.listen({ host: '127.0.0.1', port: 5176 });
+    vite = await createServer({
+      configFile: false,
+      root: fileURLToPath(new URL('../../packages/web/', import.meta.url)),
+      plugins: [react()],
+      server: {
+        host: '127.0.0.1',
+        port: 5175,
+        strictPort: true,
+        proxy: { '/api/v1': { target: 'http://127.0.0.1:5176', changeOrigin: true } },
+      },
+    });
+    await vite.listen();
+    browser = await chromium.launch();
+    const page = await browser.newPage();
+    await page.goto('http://127.0.0.1:5175/upload');
+    await browserExpect(page.getByText('Synthetic original transfer is available.')).toBeVisible();
+    const bytes = Buffer.from('synthetic original contents');
+    await page.getByLabel('Choose case documents').setInputFiles({
+      name: 'synthetic.pdf',
+      mimeType: 'application/pdf',
+      buffer: bytes,
+    });
+    await page.getByRole('textbox', { name: 'Synthetic case label' }).fill('Native browser draft');
+    await page.getByRole('button', { name: 'Register synthetic originals' }).click();
+    await browserExpect(page.getByText('1 of 1 originals registered')).toBeVisible();
+    const href = await page.getByRole('link', { name: 'Open synthetic case' }).getAttribute('href');
+    const caseId = href?.split('/').at(-1);
+    assert.ok(caseId);
+    assert.match(caseId, /^[a-f0-9-]{36}$/);
+    const rows = await client.query<{ document_version_id: string }>(
+      'SELECT document_version_id FROM original_references WHERE case_id = $1',
+      [caseId],
+    );
+    expect(rows.rows).toHaveLength(1);
+    const row = rows.rows[0];
+    assert.ok(row);
+    const reference = await findOriginalReference(
+      client,
+      '00000000-0000-4000-8000-000000000011',
+      caseId,
+      row.document_version_id,
+    );
+    assert.ok(reference);
+    expect(reference).toMatchObject({ caseId, byteLength: bytes.length });
+    expect(await readOriginal(root, caseId, reference)).toEqual(bytes);
+  } finally {
+    await browser?.close();
+    await vite?.close();
+    await api.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 30_000);
 
 test('persists API-created cases in native PostgreSQL and rechecks membership on each request', async () => {
   await migrateCaseSchema(client);
