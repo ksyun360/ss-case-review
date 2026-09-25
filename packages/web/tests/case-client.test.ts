@@ -4,6 +4,7 @@ import {
   getSyntheticUploadCapability,
   getSyntheticCase,
   listSyntheticCases,
+  listSyntheticOriginals,
   uploadSyntheticOriginal,
 } from '../src/case-client.ts';
 
@@ -216,6 +217,31 @@ test('requests reviewer-scoped cases through the same-origin development route',
   vi.stubGlobal('fetch', fetch);
   expect(await listSyntheticCases()).toEqual(cases);
   expect(fetch).toHaveBeenCalledExactlyOnceWith('/api/v1/cases', {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
+
+test('requests a case-scoped synthetic original inventory and rejects failed responses', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const original = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+  };
+  const json = vi.fn();
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => ({ originals: [original] }) })
+    .mockResolvedValueOnce({ ok: false, status: 503, json });
+  vi.stubGlobal('fetch', fetch);
+  expect(await listSyntheticOriginals(caseId)).toEqual([original]);
+  await expect(listSyntheticOriginals(caseId)).rejects.toThrow('original_list_unavailable');
+  expect(json).not.toHaveBeenCalled();
+  expect(fetch).toHaveBeenCalledTimes(2);
+  expect(fetch).toHaveBeenNthCalledWith(1, `/api/v1/cases/${caseId}/synthetic-originals`, {
     headers: { 'x-record-review-client': 'synthetic-workspace' },
     cache: 'no-store',
     redirect: 'error',
