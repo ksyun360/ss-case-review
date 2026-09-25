@@ -2,9 +2,13 @@ import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
-import { createCase, findOriginalReference } from '@record-review/case-repository/cases';
+import {
+  createCase,
+  findOriginalReference,
+  registerOriginalReference,
+} from '@record-review/case-repository/cases';
 import * as originalStorage from '@record-review/record-storage/originals';
-import { readOriginal } from '@record-review/record-storage/originals';
+import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { requestHeaders } from './fixtures.ts';
@@ -263,6 +267,44 @@ test('downloads a member original as non-inline bytes after verifying its stored
       });
       expect(inconsistent.statusCode).toBe(404);
       expect(inconsistent.json()).toEqual({ code: 'original_not_found' });
+    } finally {
+      read.mockRestore();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('hides another reviewer original even when its reference and bytes exist', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-private-download-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000014';
+  const documentVersionId = '00000000-0000-4000-8000-000000000024';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId: otherReviewerId, label: 'Other reviewer' });
+    const stored = await writeOriginalStream(
+      root,
+      { caseId, documentVersionId },
+      (async function* () {
+        yield Buffer.from('xyz');
+      })(),
+      3,
+    );
+    expect(await registerOriginalReference(database, otherReviewerId, stored)).toEqual(stored);
+    const read = vi.spyOn(originalStorage, 'readOriginal');
+    try {
+      for (const requestedCaseId of [caseId, '00000000-0000-4000-8000-000000000099']) {
+        const hidden = await api.inject({
+          method: 'GET',
+          url: `/api/v1/cases/${requestedCaseId}/synthetic-originals/${documentVersionId}`,
+          headers: requestHeaders,
+        });
+        expect(hidden.statusCode).toBe(404);
+        expect(hidden.json()).toEqual({ code: 'original_not_found' });
+        expect(hidden.rawPayload).not.toEqual(Buffer.from('xyz'));
+      }
+      expect(read).not.toHaveBeenCalled();
     } finally {
       read.mockRestore();
     }
