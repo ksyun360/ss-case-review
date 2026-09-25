@@ -17,6 +17,23 @@ export type OriginalReference = Readonly<{
   byteLength: number;
 }>;
 
+export async function listOriginalReferencesForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+): Promise<OriginalReference[]> {
+  const result = await client.query<OriginalReference>(
+    `SELECT original_references.case_id AS "caseId",
+      document_version_id AS "documentVersionId", sha256,
+      byte_length::float8 AS "byteLength"
+    FROM original_references JOIN case_memberships USING (case_id)
+    WHERE case_memberships.reviewer_id = $1 AND original_references.case_id = $2
+    ORDER BY document_version_id`,
+    [reviewerId, caseId],
+  );
+  return result.rows;
+}
+
 export async function findOriginalReference(
   client: SqlClient,
   reviewerId: string,

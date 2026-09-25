@@ -6,6 +6,7 @@ import {
   findCaseForReviewer,
   findOriginalReference,
   listCasesForReviewer,
+  listOriginalReferencesForReviewer,
   registerOriginalReference,
 } from '../src/cases.ts';
 
@@ -213,6 +214,33 @@ test('finds the exact original reference within the requested member case and ve
   expect(
     await findOriginalReference(database, reviewerId, secondCaseId, original.documentVersionId),
   ).toEqual(target);
+});
+
+test('lists only member-case original versions in stable identity order', async () => {
+  const otherReviewer = '00000000-0000-4000-8000-000000000012';
+  const otherCaseId = '00000000-0000-4000-8000-000000000002';
+  const laterVersion = {
+    ...original,
+    documentVersionId: '00000000-0000-4000-8000-000000000022',
+    sha256: 'b'.repeat(64),
+    byteLength: 12,
+  };
+  await createCase(database, input);
+  await createCase(database, { ...input, caseId: otherCaseId, reviewerId: otherReviewer });
+  expect(await listOriginalReferencesForReviewer(database, reviewerId, caseId)).toEqual([]);
+  await registerOriginalReference(database, reviewerId, laterVersion);
+  await registerOriginalReference(database, reviewerId, original);
+  await registerOriginalReference(database, otherReviewer, {
+    ...original,
+    caseId: otherCaseId,
+    sha256: 'c'.repeat(64),
+  });
+  expect(await listOriginalReferencesForReviewer(database, reviewerId, caseId)).toEqual([
+    original,
+    laterVersion,
+  ]);
+  expect(await listOriginalReferencesForReviewer(database, otherReviewer, caseId)).toEqual([]);
+  expect(await listOriginalReferencesForReviewer(database, reviewerId, otherCaseId)).toEqual([]);
 });
 
 test('does not disclose original metadata through membership in a different case', async () => {
