@@ -229,7 +229,7 @@ test('requests a case-scoped synthetic original inventory and rejects failed res
     caseId,
     documentVersionId: '00000000-0000-4000-8000-000000000021',
     sha256: 'a'.repeat(64),
-    byteLength: 12,
+    byteLength: 0,
   };
   const json = vi.fn();
   const fetch = vi
@@ -246,6 +246,41 @@ test('requests a case-scoped synthetic original inventory and rejects failed res
     cache: 'no-store',
     redirect: 'error',
   });
+});
+
+test('rejects malformed synthetic original inventory rows before display', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const original = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+  };
+  const invalidPayloads = [
+    null,
+    {},
+    { originals: null },
+    { originals: {} },
+    { originals: [null] },
+    { originals: [{ ...original, caseId: '00000000-0000-4000-8000-000000000099' }] },
+    { originals: [{ ...original, documentVersionId: 'not-a-uuid' }] },
+    { originals: [{ ...original, documentVersionId: `x${original.documentVersionId}` }] },
+    { originals: [{ ...original, documentVersionId: `${original.documentVersionId}x` }] },
+    { originals: [{ ...original, sha256: 'not-a-hash' }] },
+    { originals: [{ ...original, sha256: `x${original.sha256}` }] },
+    { originals: [{ ...original, sha256: `${original.sha256}x` }] },
+    { originals: [{ ...original, byteLength: -1 }] },
+    { originals: [{ ...original, byteLength: 1.5 }] },
+    { originals: [{ ...original, byteLength: Number.MAX_SAFE_INTEGER + 1 }] },
+    { originals: [original, { ...original, sha256: 'b'.repeat(63) }] },
+  ];
+  const fetch = vi.fn();
+  for (const payload of invalidPayloads)
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => payload });
+  vi.stubGlobal('fetch', fetch);
+  for (let index = 0; index < invalidPayloads.length; index += 1)
+    await expect(listSyntheticOriginals(caseId)).rejects.toThrow('original_list_unavailable');
+  expect(fetch).toHaveBeenCalledTimes(invalidPayloads.length);
 });
 
 test('streams one selected synthetic file to its saved case through the same-origin route', async () => {

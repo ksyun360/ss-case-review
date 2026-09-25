@@ -75,8 +75,25 @@ export async function listSyntheticOriginals(caseId: string): Promise<SyntheticO
     redirect: 'error',
   });
   if (!response.ok) throw new Error('original_list_unavailable');
-  const payload = (await response.json()) as { originals: SyntheticOriginalReceipt[] };
-  return payload.originals;
+  const payload = (await response.json()) as { originals?: unknown } | null;
+  const originals = payload?.originals;
+  if (
+    !Array.isArray(originals) ||
+    !originals.every((item: unknown) => {
+      const original = item as SyntheticOriginalReceipt | null;
+      return (
+        original?.caseId === caseId &&
+        /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(
+          original.documentVersionId,
+        ) &&
+        /^[a-f0-9]{64}$/.test(original.sha256) &&
+        Number.isSafeInteger(original.byteLength) &&
+        original.byteLength >= 0
+      );
+    })
+  )
+    throw new Error('original_list_unavailable');
+  return originals as SyntheticOriginalReceipt[];
 }
 
 export async function createSyntheticCase(label: string): Promise<CaseSummary> {
