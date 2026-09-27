@@ -66,15 +66,23 @@ test('creates and opens a synthetic draft at mobile width without uploading file
       body: JSON.stringify({ case: draft }),
     });
   });
+  await page.route(`**/api/v1/cases/${caseId}/synthetic-originals`, async (route) => {
+    expect(route.request().method()).toBe('GET');
+    expect(route.request().headers()['x-record-review-client']).toBe('synthetic-workspace');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ originals: [] }),
+    });
+  });
 
   await page.goto('/cases');
   await page.getByRole('textbox', { name: 'Synthetic case label' }).fill(draft.label);
   await page.getByRole('button', { name: 'Create synthetic draft' }).click();
   await page.getByRole('link', { name: draft.label }).click();
   await expect(page.getByRole('heading', { name: draft.label })).toBeVisible();
-  await expect(
-    page.getByText('This page does not show registered originals or extracted sources yet.'),
-  ).toBeVisible();
+  await expect(page.getByText('No registered originals yet.')).toBeVisible();
+  await expect(page.getByText('Sources have not been extracted yet.')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])

@@ -1,6 +1,52 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
-import { getSyntheticCase, type CaseSummary } from './case-client.ts';
+import {
+  getSyntheticCase,
+  listSyntheticOriginals,
+  type CaseSummary,
+  type SyntheticOriginalReceipt,
+} from './case-client.ts';
+
+export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
+  const [originals, setOriginals] = useState<SyntheticOriginalReceipt[] | 'unavailable'>();
+  const load = useCallback(() => {
+    setOriginals(undefined);
+    void listSyntheticOriginals(caseId).then(setOriginals, () => setOriginals('unavailable'));
+  }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <section className="panel empty-state" aria-live="polite">
+      <h2>Registered originals</h2>
+      {originals === 'unavailable' ? (
+        <>
+          <p>Original inventory unavailable. The case record has not been confirmed.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry loading originals
+          </button>
+        </>
+      ) : originals === undefined ? (
+        <p role="status">Loading registered originals…</p>
+      ) : originals.length === 0 ? (
+        <p>No registered originals yet.</p>
+      ) : (
+        <ul>
+          {originals.map((original) => (
+            <li key={original.documentVersionId}>
+              <code>{original.documentVersionId}</code> <span>{original.byteLength} bytes</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p>Sources have not been extracted yet.</p>
+      <a className="button secondary-button" href="/cases">
+        Back to saved cases
+      </a>
+    </section>
+  );
+}
 
 export function CaseDetailPage() {
   const { caseId } = useParams();
@@ -41,13 +87,7 @@ export function CaseDetailPage() {
             <h1>{record.label}</h1>
             <p className="lede">Record revision {record.recordRevision}</p>
           </div>
-          <section className="panel empty-state">
-            <h2>Record review pending</h2>
-            <p>This page does not show registered originals or extracted sources yet.</p>
-            <a className="button secondary-button" href="/cases">
-              Back to saved cases
-            </a>
-          </section>
+          <SyntheticOriginalInventory caseId={record.caseId} />
         </>
       ) : (
         <section className="panel empty-state" aria-live="polite">
