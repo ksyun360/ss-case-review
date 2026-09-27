@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./document-signature": "./src/document-signature.ts",
     "./source-span": "./src/source-span.ts"
   }
 }
