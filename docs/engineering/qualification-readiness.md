@@ -12,7 +12,7 @@ The project owner subsequently directed completion of Phase 4. Keep the preview 
 
 ## Evidence available now
 
-The repository contains a local browser preview with home, upload-selection, saved-case, metadata-only case-detail, and unknown-address recovery screens. The preview displays filenames and sizes, supports additive selection and removal before registration, and permits synthetic original registration only when a developer enables the local route. The saved-case and case-detail screens connect to the synthetic case API through the development proxy. The preview provides no source viewer, extraction worker, model client, or court identity integration.
+The repository contains a local browser preview with home, upload-selection, saved-case, synthetic case-detail, and unknown-address recovery screens. The preview displays selected filenames and sizes, supports additive selection and removal before registration, and permits synthetic original registration only when a developer enables the local route. The case-detail screen lists verified original version IDs and byte counts through a member-scoped API query. The preview provides no original download control, source viewer, extraction worker, model client, or court identity integration.
 
 Phase 4 now includes an internal [source-span validator](source-spans.md). Unit tests check source identity, exact raw-text correspondence, and selection bounds. The module has no storage/API/UI connection and does not establish end-to-end case isolation or record accuracy.
 
