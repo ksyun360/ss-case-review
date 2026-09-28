@@ -83,7 +83,7 @@ test('extracts every native PDF page with stable text offsets and source geometr
       });
       return page;
     });
-    const pages = await extractPdfPages(document);
+    const pages = await extractPdfPages(document, 3);
     expect(pages).toHaveLength(3);
     expect(pages.map((page) => page.pageNumber)).toEqual([1, 2, 3]);
     expect(pages.map((page) => page.rawText)).toEqual([
@@ -127,6 +127,31 @@ test('extracts every native PDF page with stable text offsets and source geometr
         includeMarkedContent: true,
         disableNormalization: true,
       });
+    }
+  } finally {
+    await task.destroy();
+  }
+});
+
+test('rejects invalid or exceeded PDF page budgets before reading any page', async () => {
+  const task = getDocument({ data: syntheticOnePagePdf(), stopAtErrors: true });
+  try {
+    const document = await task.promise;
+    const getPage = vi.spyOn(document, 'getPage');
+    for (const maximumPages of [0, -1, 0.5, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+      await expect(extractPdfPages(document, maximumPages)).rejects.toThrow(
+        'invalid_pdf_page_budget',
+      );
+    }
+    expect(getPage).not.toHaveBeenCalled();
+    const largeTask = getDocument({ data: syntheticOnePagePdf(['', '']), stopAtErrors: true });
+    try {
+      const largeDocument = await largeTask.promise;
+      const largeGetPage = vi.spyOn(largeDocument, 'getPage');
+      await expect(extractPdfPages(largeDocument, 1)).rejects.toThrow('pdf_page_budget_exceeded');
+      expect(largeGetPage).not.toHaveBeenCalled();
+    } finally {
+      await largeTask.destroy();
     }
   } finally {
     await task.destroy();

@@ -14,7 +14,16 @@ export type PdfTextPage = Readonly<{
   }>[];
 }>;
 
-export async function extractPdfPages(document: PDFDocumentProxy): Promise<PdfTextPage[]> {
+export async function extractPdfPages(
+  document: PDFDocumentProxy,
+  maximumPages: number,
+): Promise<PdfTextPage[]> {
+  if (!Number.isSafeInteger(maximumPages) || maximumPages < 1) {
+    throw new Error('invalid_pdf_page_budget');
+  }
+  if (document.numPages > maximumPages) {
+    throw new Error('pdf_page_budget_exceeded');
+  }
   const pages: PdfTextPage[] = [];
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
     const page = await document.getPage(pageNumber);

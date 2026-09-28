@@ -18,13 +18,13 @@ The inspection function does not extract text, render pages, inspect attachments
 
 ## Native PDF text extraction
 
-`extractPdfPages` accepts a loaded PDF.js document and visits every physical page in order. The caller owns the document loading task and must destroy that task after use. The extractor releases each page through `cleanup`, including when text extraction fails.
+`extractPdfPages` accepts a loaded PDF.js document and a required positive safe-integer `maximumPages` budget. The extractor rejects invalid budgets with `invalid_pdf_page_budget` and documents above the budget with `pdf_page_budget_exceeded`, before requesting any page. The extractor visits every physical page in order when the document fits the budget. The caller owns the document loading task and must destroy that task after use. The extractor releases each page through `cleanup`, including when text extraction fails.
 
 Each returned page contains a one-based physical page number, extracted `rawText`, PDF.js page view box and rotation, and text-item offsets and geometry. Offsets use zero-based UTF-16 positions with an inclusive start and exclusive end. The extractor concatenates PDF.js text strings without rewriting medical terms, dates, or punctuation; PDF.js end-of-line markers add newline characters. Tagged-content markers contribute no text. The extractor disables PDF.js text normalization. Extracted text remains a parser transcription, not a claim of perfect correspondence with the original visual record.
 
 Geometry retains the PDF.js text transform, width, and height in the parser's coordinate convention. The future source mapper must convert that geometry to the approved canonical coordinates before displaying highlights. No viewer consumes these values yet. A three-page synthetic fixture checks page ordering, multiple lines, tagged content, an empty page, exact offsets, geometry, parser options, and page cleanup. An empty extracted page does not establish a blank original; image-only pages still need rendering and OCR.
 
-The extractor has no worker isolation or resource budgets, persistent source identity, OCR, quality assessment, or upload integration. Loading-task errors and page-extraction failures require bounded worker handling before untrusted-record use.
+The page budget limits extraction after document loading; the budget does not bound parser loading, a single page's size, processing time, or memory. The extractor has no worker isolation, byte/text/time/memory budgets, persistent source identity, OCR, quality assessment, or upload integration. Loading-task errors and page-extraction failures require bounded worker handling before untrusted-record use. A separate regression verifies invalid budgets and an over-budget two-page PDF without reading any page.
 
 ## Verification and next integration
 
