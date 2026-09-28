@@ -14,7 +14,7 @@ The application preview provides responsive home, upload-selection, saved-case, 
 
 The [Gemini development configuration helper](docs/engineering/gemini-development.md) now validates explicit server-side settings for synthetic testing. Keep credentials in the ignored root `.env`; `.env.example` contains placeholders only. The helper does not load environment files or connect the preview to Gemini. Model-client and worker integration remain pending.
 
-Internal [document-inspection modules](docs/engineering/document-inspection.md) identify PDF/TIFF signatures and parse a synthetic PDF page count. The upload workflow does not call these modules yet. Resource isolation, complete inspection, extraction, and persisted processing states remain pending.
+Internal [document-inspection modules](docs/engineering/document-inspection.md) identify PDF/TIFF signatures, parse a synthetic PDF page count, and extract native text with page numbers, UTF-16 offsets, and parser geometry. The upload workflow does not call these modules yet. Resource isolation, complete inspection, OCR, source mapping, and persisted processing states remain pending.
 
 Use synthetic documents only. Court sign-in, durable uploads, extraction, and case-review artifacts remain unimplemented. The preview does not support real court records or shared deployment.
 
