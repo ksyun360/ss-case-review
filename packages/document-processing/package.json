@@ -1,0 +1,12 @@
+{
+  "name": "@record-review/document-processing",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./pdf": "./src/pdf.ts"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.3.289"
+  }
+}
