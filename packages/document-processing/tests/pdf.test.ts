@@ -32,7 +32,7 @@ function syntheticOnePagePdf(
 }
 
 test('inspects a structurally valid one-page synthetic PDF', async () => {
-  await expect(inspectPdf(syntheticOnePagePdf())).resolves.toEqual({ pageCount: 1 });
+  await expect(inspectPdf(syntheticOnePagePdf(), 1024)).resolves.toEqual({ pageCount: 1 });
   let destroy: ReturnType<typeof vi.fn> | undefined;
   const loadDocument: typeof getDocument = (source) => {
     expect(source).toMatchObject({ stopAtErrors: true });
@@ -40,7 +40,9 @@ test('inspects a structurally valid one-page synthetic PDF', async () => {
     destroy = vi.spyOn(task, 'destroy');
     return task;
   };
-  await expect(inspectPdf(syntheticOnePagePdf(), loadDocument)).resolves.toEqual({ pageCount: 1 });
+  await expect(inspectPdf(syntheticOnePagePdf(), 1024, loadDocument)).resolves.toEqual({
+    pageCount: 1,
+  });
   expect(destroy).toHaveBeenCalledOnce();
 });
 
@@ -52,7 +54,7 @@ test('rejects malformed PDF content with a safe error after releasing parser res
     return task;
   };
   const bytes = new TextEncoder().encode('%PDF-1.7\nsynthetic malformed content');
-  await expect(inspectPdf(bytes, loadDocument)).rejects.toThrow('pdf_inspection_failed');
+  await expect(inspectPdf(bytes, 1024, loadDocument)).rejects.toThrow('pdf_inspection_failed');
   expect(destroy).toHaveBeenCalledOnce();
 });
 
@@ -223,4 +225,28 @@ test('retains successful PDF pages and records safe gaps after page-processing f
   } finally {
     await task.destroy();
   }
+});
+
+test('enforces PDF inspection byte budgets before creating a parser task', async () => {
+  const bytes = syntheticOnePagePdf();
+  const snapshot = new Uint8Array(bytes);
+  const loadDocument = vi.fn(getDocument);
+  for (const maximumBytes of [0, -1, 0.5, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    await expect(inspectPdf(bytes, maximumBytes, loadDocument)).rejects.toThrow(
+      'invalid_pdf_byte_budget',
+    );
+  }
+  await expect(inspectPdf(bytes, bytes.byteLength - 1, loadDocument)).rejects.toThrow(
+    'pdf_byte_budget_exceeded',
+  );
+  expect(loadDocument).not.toHaveBeenCalled();
+  await expect(inspectPdf(bytes, bytes.byteLength, loadDocument)).resolves.toEqual({
+    pageCount: 1,
+  });
+  expect(loadDocument).toHaveBeenCalledOnce();
+  expect(bytes).toEqual(snapshot);
+  await expect(inspectPdf(new Uint8Array(), 1, loadDocument)).rejects.toThrow(
+    'pdf_inspection_failed',
+  );
+  expect(loadDocument).toHaveBeenCalledTimes(2);
 });

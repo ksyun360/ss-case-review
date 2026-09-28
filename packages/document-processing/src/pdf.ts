@@ -75,8 +75,15 @@ export async function extractPdfPages(
 
 export async function inspectPdf(
   bytes: Uint8Array,
+  maximumBytes: number,
   loadDocument: typeof getDocument = getDocument,
 ): Promise<{ pageCount: number }> {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+    throw new Error('invalid_pdf_byte_budget');
+  }
+  if (bytes.byteLength > maximumBytes) {
+    throw new Error('pdf_byte_budget_exceeded');
+  }
   const task = loadDocument({
     data: new Uint8Array(bytes),
     stopAtErrors: true,
