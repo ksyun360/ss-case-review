@@ -83,7 +83,9 @@ test('extracts every native PDF page with stable text offsets and source geometr
       });
       return page;
     });
-    const pages = await extractPdfPages(document, 3);
+    const results = await extractPdfPages(document, 3);
+    expect(results.map((page) => page.status)).toEqual(['extracted', 'extracted', 'extracted']);
+    const pages = results.filter((page) => page.status === 'extracted');
     expect(pages).toHaveLength(3);
     expect(pages.map((page) => page.pageNumber)).toEqual([1, 2, 3]);
     expect(pages.map((page) => page.rawText)).toEqual([
@@ -153,6 +155,71 @@ test('rejects invalid or exceeded PDF page budgets before reading any page', asy
     } finally {
       await largeTask.destroy();
     }
+  } finally {
+    await task.destroy();
+  }
+});
+
+test('retains successful PDF pages and records safe gaps after page-processing failures', async () => {
+  const task = getDocument({
+    data: syntheticOnePagePdf([
+      '',
+      '',
+      'BT /F1 12 Tf 72 720 Td (Retained source) Tj ET',
+      '',
+      'BT /F1 12 Tf 72 720 Td (Final source) Tj ET',
+    ]),
+    stopAtErrors: true,
+    standardFontDataUrl: new URL(
+      '../../../node_modules/pdfjs-dist/standard_fonts/',
+      import.meta.url,
+    ).pathname,
+  });
+  try {
+    const document = await task.promise;
+    const getPage = document.getPage.bind(document);
+    const diagnostic = new Error('Synthetic private extraction diagnostic');
+    const cleanups: ReturnType<typeof vi.fn>[] = [];
+    const pageCalls = vi.spyOn(document, 'getPage').mockImplementation(async (pageNumber) => {
+      if (pageNumber === 1) throw diagnostic;
+      const page = await getPage(pageNumber);
+      if (pageNumber === 2) {
+        vi.spyOn(page, 'getTextContent').mockRejectedValue(diagnostic);
+        cleanups.push(vi.spyOn(page, 'cleanup'));
+      }
+      if (pageNumber === 4) {
+        const cleanup = page.cleanup.bind(page);
+        cleanups.push(
+          vi.spyOn(page, 'cleanup').mockImplementation(() => {
+            cleanup();
+            throw diagnostic;
+          }),
+        );
+      }
+      return page;
+    });
+    const pages = await extractPdfPages(document, 5);
+    expect(pages).toHaveLength(5);
+    expect(pages.map((page) => page.pageNumber)).toEqual([1, 2, 3, 4, 5]);
+    expect(pages.map((page) => page.status)).toEqual([
+      'unavailable',
+      'unavailable',
+      'extracted',
+      'unavailable',
+      'extracted',
+    ]);
+    for (const index of [0, 1, 3]) {
+      expect(pages[index]).toEqual({
+        pageNumber: index + 1,
+        status: 'unavailable',
+        reason: 'page_extraction_failed',
+      });
+    }
+    expect(pages[2]).toMatchObject({ rawText: 'Retained source' });
+    expect(pages[4]).toMatchObject({ rawText: 'Final source' });
+    expect(pageCalls.mock.calls).toEqual([[1], [2], [3], [4], [5]]);
+    for (const cleanup of cleanups) expect(cleanup).toHaveBeenCalledOnce();
+    expect(JSON.stringify(pages)).not.toContain(diagnostic.message);
   } finally {
     await task.destroy();
   }

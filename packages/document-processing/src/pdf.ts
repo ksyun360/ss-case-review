@@ -1,6 +1,7 @@
 import { getDocument, type PDFDocumentProxy } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 export type PdfTextPage = Readonly<{
+  status: 'extracted';
   pageNumber: number;
   rawText: string;
   view: readonly number[];
@@ -14,48 +15,59 @@ export type PdfTextPage = Readonly<{
   }>[];
 }>;
 
+export type PdfPageResult =
+  | PdfTextPage
+  | Readonly<{ pageNumber: number; status: 'unavailable'; reason: 'page_extraction_failed' }>;
+
 export async function extractPdfPages(
   document: PDFDocumentProxy,
   maximumPages: number,
-): Promise<PdfTextPage[]> {
+): Promise<PdfPageResult[]> {
   if (!Number.isSafeInteger(maximumPages) || maximumPages < 1) {
     throw new Error('invalid_pdf_page_budget');
   }
   if (document.numPages > maximumPages) {
     throw new Error('pdf_page_budget_exceeded');
   }
-  const pages: PdfTextPage[] = [];
+  const pages: PdfPageResult[] = [];
   for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
-    const page = await document.getPage(pageNumber);
     try {
-      const content = await page.getTextContent({
-        includeMarkedContent: true,
-        disableNormalization: true,
-      });
-      let rawText = '';
-      const items: PdfTextPage['items'][number][] = [];
-      for (const item of content.items) {
-        if (!('str' in item)) continue;
-        const start = rawText.length;
-        rawText += item.str;
-        items.push({
-          start,
-          end: rawText.length,
-          transform: [...item.transform],
-          width: item.width,
-          height: item.height,
+      const page = await document.getPage(pageNumber);
+      let result: PdfTextPage;
+      try {
+        const content = await page.getTextContent({
+          includeMarkedContent: true,
+          disableNormalization: true,
         });
-        if (item.hasEOL) rawText += '\n';
+        let rawText = '';
+        const items: PdfTextPage['items'][number][] = [];
+        for (const item of content.items) {
+          if (!('str' in item)) continue;
+          const start = rawText.length;
+          rawText += item.str;
+          items.push({
+            start,
+            end: rawText.length,
+            transform: [...item.transform],
+            width: item.width,
+            height: item.height,
+          });
+          if (item.hasEOL) rawText += '\n';
+        }
+        result = {
+          status: 'extracted',
+          pageNumber,
+          rawText,
+          view: [...page.view],
+          rotation: page.rotate,
+          items,
+        };
+      } finally {
+        page.cleanup();
       }
-      pages.push({
-        pageNumber,
-        rawText,
-        view: [...page.view],
-        rotation: page.rotate,
-        items,
-      });
-    } finally {
-      page.cleanup();
+      pages.push(result);
+    } catch {
+      pages.push({ pageNumber, status: 'unavailable', reason: 'page_extraction_failed' });
     }
   }
   return pages;
