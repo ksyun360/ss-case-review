@@ -11,6 +11,8 @@ export async function inspectPdf(
   try {
     const document = await task.promise;
     return { pageCount: document.numPages };
+  } catch {
+    throw new Error('pdf_inspection_failed');
   } finally {
     await task.destroy();
   }

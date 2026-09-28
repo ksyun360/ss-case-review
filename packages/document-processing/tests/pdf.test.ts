@@ -38,3 +38,15 @@ test('inspects a structurally valid one-page synthetic PDF', async () => {
   await expect(inspectPdf(syntheticOnePagePdf(), loadDocument)).resolves.toEqual({ pageCount: 1 });
   expect(destroy).toHaveBeenCalledOnce();
 });
+
+test('rejects malformed PDF content with a safe error after releasing parser resources', async () => {
+  let destroy: ReturnType<typeof vi.fn> | undefined;
+  const loadDocument: typeof getDocument = (source) => {
+    const task = getDocument(source);
+    destroy = vi.spyOn(task, 'destroy');
+    return task;
+  };
+  const bytes = new TextEncoder().encode('%PDF-1.7\nsynthetic malformed content');
+  await expect(inspectPdf(bytes, loadDocument)).rejects.toThrow('pdf_inspection_failed');
+  expect(destroy).toHaveBeenCalledOnce();
+});
