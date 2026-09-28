@@ -1,6 +1,6 @@
 # PostgreSQL migrations and native checks
 
-Status: The case-repository package provides two ordered schema migrations and a transactional migration runner. Native tests exercise PostgreSQL 18.6 through node-postgres. The [development API](development-server.md) opens a dedicated connection pool, runs migrations before listening, and serves synthetic case-metadata requests. The browser connects to case metadata through the development proxy; original uploads remain disconnected. Use synthetic fixtures only.
+Status: The case-repository package provides three ordered schema migrations and a transactional migration runner. Native tests exercise PostgreSQL 18.6 through node-postgres. The [development API](development-server.md) opens a dedicated connection pool, runs migrations before listening, and serves synthetic case-metadata requests. The browser connects to case metadata and opt-in original registration through the development proxy; extraction publication remains disconnected. Use synthetic fixtures only.
 
 ## Migration contract
 
@@ -8,7 +8,7 @@ Import `migrateCaseSchema` from `@record-review/case-repository/migrations`. Sup
 
 The wrapper pins node-pg-migrate 9.0.0, the repository's migration directory, the `public` schema, the `record_review_migrations` ledger, upward migration direction, and a single transaction for pending migrations. The migration library checks history order and acquires a session advisory lock before changing the schema. A competing runner fails rather than waiting indefinitely. [Pinned migration runner implementation](https://github.com/salsita/node-pg-migrate/blob/v9.0.0/src/runner.ts).
 
-The initial SQL migration creates cases, case memberships, and original references. The second migration adds [original-upload attempts](upload-journal.md) and a nonregistered-attempt scan index. The repository no longer exports the draft `installCaseSchema` helper. Fast repository tests and native migration tests consume the same ordered SQL files.
+The initial SQL migration creates cases, case memberships, and original references. The second migration adds [original-upload attempts](upload-journal.md) and a nonregistered-attempt scan index. The third migration adds [text-source units](text-source-storage.md), compound original references, provenance constraints, and unique source identities. The third file supplies a downward operation, but the application wrapper exposes only upward migration; rollback execution and recovery rehearsal remain pending. The repository no longer exports the draft `installCaseSchema` helper. Fast repository tests and native migration tests consume the same ordered SQL files.
 
 A repeated run returns an empty result when no migrations remain. A failed migration rolls back the pending schema changes and leaves no applied entry. The library creates the migration ledger before the migration transaction, so a failed first run can leave an empty ledger. Failure does not imply that the database contains no objects.
 

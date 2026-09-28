@@ -1,0 +1,58 @@
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
+import { createCase, registerOriginalReference } from '../src/cases.ts';
+import { insertTextSourceForReviewer } from '../src/source-units.ts';
+
+let database: PGlite;
+const reviewerId = '00000000-0000-4000-8000-000000000011';
+const source = {
+  sourceUnitId: '00000000-0000-4000-8000-000000000031',
+  caseId: '00000000-0000-4000-8000-000000000001',
+  documentVersionId: '00000000-0000-4000-8000-000000000021',
+  recordRevision: 1,
+  documentSha256: 'a'.repeat(64),
+  extractionVersion: 'synthetic-native-v1',
+  pageNumber: 1,
+  rawText: "Synthetic source: A😀B\nQuoted text'; DROP TABLE cases; --",
+};
+
+beforeAll(async () => {
+  database = await PGlite.create();
+});
+
+beforeEach(async () => {
+  await database.exec('DROP SCHEMA public CASCADE; CREATE SCHEMA public;');
+  await database.exec(
+    await readFile(
+      new URL('../migrations/202609230001_initial_case_metadata.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  const sourceMigration = await readFile(
+    new URL('../migrations/202609280001_text_source_units.sql', import.meta.url),
+    'utf8',
+  );
+  await database.exec(sourceMigration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await createCase(database, { caseId: source.caseId, reviewerId, label: 'Synthetic source case' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId: source.caseId,
+    documentVersionId: source.documentVersionId,
+    sha256: source.documentSha256,
+    byteLength: 100,
+  });
+});
+
+afterAll(async () => {
+  await database.close();
+});
+
+test('persists exact page text with original provenance for a case member', async () => {
+  expect(await insertTextSourceForReviewer(database, reviewerId, source)).toEqual(source);
+  expect((await database.query('SELECT count(*)::integer AS count FROM cases')).rows).toEqual([
+    { count: 1 },
+  ]);
+  expect((await database.query('SELECT raw_text FROM text_source_units')).rows).toEqual([
+    { raw_text: source.rawText },
+  ]);
+});

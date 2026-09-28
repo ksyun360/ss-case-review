@@ -1,6 +1,6 @@
 # Source-span validation
 
-Status: Internal text-span contract implemented. The [local original-storage adapter](local-original-storage.md) now preserves document bytes separately. Extracted source-unit persistence, API integration, geometry mapping, and browser source navigation remain pending.
+Status: Internal text-span contract implemented. The [local original-storage adapter](local-original-storage.md) preserves document bytes separately, and an internal [text-source repository](text-source-storage.md) now stores synthetic source identity and exact text. Extraction publication, authorized source reads, API integration, geometry mapping, and browser source navigation remain pending.
 
 The record-domain package exposes `locateSourceSpan` through `@record-review/record-domain/source-span`. The [implementation](../../packages/record-domain/src/source-span.ts) checks a typed candidate against a trusted stored-text unit. The validator performs no network request, file read, database query, model call, or text normalization.
 
