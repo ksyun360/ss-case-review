@@ -12,6 +12,7 @@ import type { ServerEnvironment } from '@record-review/server-config/gemini-deve
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { OriginalTooLargeError, readOriginal } from '@record-review/record-storage/originals';
 import { storeOriginalForReviewer } from './original-ingestion.ts';
+import { findTextSourceForReviewer } from '@record-review/case-repository/source-units';
 
 export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
 
@@ -49,6 +50,30 @@ export function createDevelopmentApi(
   api.get('/api/v1/cases', async () => ({
     cases: await listCasesForReviewer(database, identity.reviewerId),
   }));
+  api.get<{ Params: { caseId: string; sourceUnitId: string } }>(
+    '/api/v1/cases/:caseId/text-sources/:sourceUnitId',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            caseId: { type: 'string', format: 'uuid' },
+            sourceUnitId: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const source = await findTextSourceForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+        request.params.sourceUnitId,
+      );
+      if (!source) return reply.code(404).send({ code: 'source_not_found' });
+      return { source };
+    },
+  );
   api.get<{ Params: { caseId: string } }>(
     '/api/v1/cases/:caseId',
     {

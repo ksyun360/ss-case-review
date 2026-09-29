@@ -8,6 +8,7 @@ import {
   registerOriginalReference,
 } from '@record-review/case-repository/cases';
 import * as originalStorage from '@record-review/record-storage/originals';
+import { insertTextSourceForReviewer } from '@record-review/case-repository/source-units';
 import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
@@ -54,6 +55,66 @@ afterEach(async () => {
 });
 afterAll(async () => {
   await database.close();
+});
+
+test('opens stored page text through a guarded member-scoped source route', async () => {
+  const migration = await readFile(
+    new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),
+    'utf8',
+  );
+  await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  const source = {
+    sourceUnitId: '00000000-0000-4000-8000-000000000031',
+    caseId: '00000000-0000-4000-8000-000000000001',
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 1,
+    rawText: 'Synthetic source A😀B\nLiteral quotation',
+  };
+  await createCase(database, {
+    caseId: source.caseId,
+    reviewerId,
+    label: 'Synthetic source API case',
+  });
+  await registerOriginalReference(database, reviewerId, {
+    caseId: source.caseId,
+    documentVersionId: source.documentVersionId,
+    sha256: source.documentSha256,
+    byteLength: 100,
+  });
+  await insertTextSourceForReviewer(database, reviewerId, source);
+  const url = `/api/v1/cases/${source.caseId}/text-sources/${source.sourceUnitId}`;
+  const response = await api.inject({ method: 'GET', url, headers: requestHeaders });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({ source });
+  expect(response.headers['cache-control']).toBe('no-store');
+  const absent = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${source.caseId}/text-sources/00000000-0000-4000-8000-000000000032`,
+    headers: requestHeaders,
+  });
+  expect(absent.statusCode).toBe(404);
+  expect(absent.json()).toEqual({ code: 'source_not_found' });
+  const query = vi.spyOn(database, 'query');
+  try {
+    for (const invalidUrl of [
+      `/api/v1/cases/invalid/text-sources/${source.sourceUnitId}`,
+      `/api/v1/cases/${source.caseId}/text-sources/invalid`,
+    ]) {
+      const invalid = await api.inject({ method: 'GET', url: invalidUrl, headers: requestHeaders });
+      expect(invalid.statusCode).toBe(400);
+      expect(invalid.json()).toEqual({ code: 'invalid_request' });
+    }
+    expect(query).not.toHaveBeenCalled();
+    query.mockRejectedValueOnce(new Error('Synthetic private source diagnostic'));
+    const unavailable = await api.inject({ method: 'GET', url, headers: requestHeaders });
+    expect(unavailable.statusCode).toBe(503);
+    expect(unavailable.json()).toEqual({ code: 'case_service_unavailable' });
+  } finally {
+    query.mockRestore();
+  }
 });
 
 test('lists only server-selected reviewer cases despite request identity claims', async () => {

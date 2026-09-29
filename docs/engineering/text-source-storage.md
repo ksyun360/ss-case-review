@@ -1,6 +1,6 @@
 # Text-source persistence
 
-Status: Phase 4 includes internal text-source insertion and member-scoped retrieval, backed by a third ordered PostgreSQL migration. Extraction workers, source-read APIs, and browser source navigation do not call this repository yet. Use synthetic fixtures only.
+Status: Phase 4 includes text-source insertion, member-scoped retrieval, and a guarded source-read API, backed by a third ordered PostgreSQL migration. Extraction workers and browser source navigation do not call this repository yet. Use synthetic fixtures only.
 
 ## Stored identity
 
@@ -20,6 +20,8 @@ The caller must validate external inputs and enforce processing budgets before c
 
 Four PGlite regressions check exact synthetic text and source identity after original registration, denied insertion through another case's membership, member retrieval followed by a Unicode quotation check through `locateSourceSpan`, and denied retrieval of an existing source by another reviewer. The denied read preserves the authorized owner's result. The existing implementation passed both new permission regressions, so each permission increment adds a test without production changes. The native migration suite checks the three-step history and source-table discovery in the compiled package layout. Further requested-case, membership-revocation, hash/revision mismatch, constraint, and replacement regressions remain pending. Stryker mutates the TypeScript helper but does not mutate SQL migration files.
 
-Next work must add runtime API schemas, source-read permission regressions, extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. No source lookup or case artifact currently reaches the browser through this table.
+The guarded development API exposes `GET /api/v1/cases/:caseId/text-sources/:sourceUnitId`. One Fastify regression connects registered original metadata, persisted source text, and an HTTP response with source provenance. The regression also checks no-store headers, absent sources, malformed UUIDs before database access, and fixed service-failure responses. The route uses the server-selected reviewer and the repository's membership filter. Browser navigation and a separate HTTP cross-case regression remain pending.
+
+Next work must add extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. Uploaded originals do not automatically create source rows; no case artifact currently uses this route.
 
 Return to Phase 3 at the very end before pilot handoff. Keep private design/session files and credentials outside commits.
