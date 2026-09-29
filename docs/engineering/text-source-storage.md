@@ -1,6 +1,6 @@
 # Text-source persistence
 
-Status: Phase 4 includes an internal insert-only text-source repository and a third ordered PostgreSQL migration. Extraction workers, source-read APIs, and browser source navigation do not call this repository yet. Use synthetic fixtures only.
+Status: Phase 4 includes internal text-source insertion and member-scoped retrieval, backed by a third ordered PostgreSQL migration. Extraction workers, source-read APIs, and browser source navigation do not call this repository yet. Use synthetic fixtures only.
 
 ## Stored identity
 
@@ -16,8 +16,10 @@ The caller must validate external inputs and enforce processing budgets before c
 
 ## Evidence and remaining work
 
-Two PGlite regressions check exact synthetic text and source identity after original registration, and denial when a reviewer belongs only to another case. The denial case retains an existing source and verifies that the rejected write creates no new source or replacement. The existing implementation passed that new regression, so the permission increment adds a test without production changes. The native migration suite checks the three-step history and source-table discovery in the compiled package layout. Further permission, hash/revision mismatch, constraint, replacement, and retrieval regressions remain pending. Stryker mutates the TypeScript helper but does not mutate SQL migration files.
+`findTextSourceForReviewer` accepts server-selected reviewer identity, case identity, and source-unit identity. The query joins current case membership and the registered original, checks the stored hash against original metadata, and returns the stored source or `undefined`. The query retains the source's stored record revision; retrieval does not rewrite provenance to the case's latest revision. API callers must validate identifiers and return safe, nonrevealing failures.
 
-Next work must add member-scoped reads, source-span integration, extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. No source lookup or case artifact currently reaches the browser through this table.
+Three PGlite regressions check exact synthetic text and source identity after original registration, denied insertion through another case's membership, and member retrieval followed by a Unicode quotation check through `locateSourceSpan`. The denial case retains an existing source and verifies that the rejected write creates no new source or replacement. The existing implementation passed that new regression, so the permission increment adds a test without production changes. The native migration suite checks the three-step history and source-table discovery in the compiled package layout. Further read permission, hash/revision mismatch, constraint, and replacement regressions remain pending. Stryker mutates the TypeScript helper but does not mutate SQL migration files.
+
+Next work must add runtime API schemas, source-read permission regressions, extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. No source lookup or case artifact currently reaches the browser through this table.
 
 Return to Phase 3 at the very end before pilot handoff. Keep private design/session files and credentials outside commits.

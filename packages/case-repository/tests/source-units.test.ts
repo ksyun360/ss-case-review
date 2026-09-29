@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createCase, registerOriginalReference } from '../src/cases.ts';
-import { insertTextSourceForReviewer } from '../src/source-units.ts';
+import { locateSourceSpan } from '../../record-domain/src/source-span.ts';
+import { findTextSourceForReviewer, insertTextSourceForReviewer } from '../src/source-units.ts';
 
 let database: PGlite;
 const reviewerId = '00000000-0000-4000-8000-000000000011';
@@ -76,4 +77,32 @@ test('denies source insertion through membership in another case without changin
   expect(
     (await database.query('SELECT source_unit_id, raw_text FROM text_source_units')).rows,
   ).toEqual([{ source_unit_id: source.sourceUnitId, raw_text: source.rawText }]);
+});
+
+test('loads an exact member source and validates a Unicode quotation against persisted text', async () => {
+  await insertTextSourceForReviewer(database, reviewerId, source);
+  const found = await findTextSourceForReviewer(
+    database,
+    reviewerId,
+    source.caseId,
+    source.sourceUnitId,
+  );
+  expect(found).toEqual(source);
+  const quote = 'A😀B';
+  const start = source.rawText.indexOf(quote);
+  const candidate = { ...source, start, end: start + quote.length, quote };
+  expect(locateSourceSpan(source.caseId, found, candidate)).toEqual({
+    status: 'located',
+    span: {
+      caseId: source.caseId,
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: source.sourceUnitId,
+      start,
+      end: start + quote.length,
+      quote,
+    },
+  });
 });
