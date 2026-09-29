@@ -8,7 +8,10 @@ import {
   registerOriginalReference,
 } from '@record-review/case-repository/cases';
 import * as originalStorage from '@record-review/record-storage/originals';
-import { insertTextSourceForReviewer } from '@record-review/case-repository/source-units';
+import {
+  findTextSourceForReviewer,
+  insertTextSourceForReviewer,
+} from '@record-review/case-repository/source-units';
 import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
@@ -115,6 +118,48 @@ test('opens stored page text through a guarded member-scoped source route', asyn
   } finally {
     query.mockRestore();
   }
+});
+
+test('hides another reviewer text source through the guarded source route', async () => {
+  const migration = await readFile(
+    new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),
+    'utf8',
+  );
+  await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  const source = {
+    sourceUnitId: '00000000-0000-4000-8000-000000000031',
+    caseId: '00000000-0000-4000-8000-000000000002',
+    documentVersionId: '00000000-0000-4000-8000-000000000022',
+    recordRevision: 1,
+    documentSha256: 'b'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 1,
+    rawText: 'Synthetic private source text',
+  };
+  await createCase(database, {
+    caseId: source.caseId,
+    reviewerId: otherReviewerId,
+    label: 'Synthetic private source API case',
+  });
+  await registerOriginalReference(database, otherReviewerId, {
+    caseId: source.caseId,
+    documentVersionId: source.documentVersionId,
+    sha256: source.documentSha256,
+    byteLength: 100,
+  });
+  await insertTextSourceForReviewer(database, otherReviewerId, source);
+  expect(
+    await findTextSourceForReviewer(database, otherReviewerId, source.caseId, source.sourceUnitId),
+  ).toEqual(source);
+
+  const response = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${source.caseId}/text-sources/${source.sourceUnitId}`,
+    headers: requestHeaders,
+  });
+  expect(response.statusCode).toBe(404);
+  expect(response.json()).toEqual({ code: 'source_not_found' });
+  expect(response.headers['cache-control']).toBe('no-store');
 });
 
 test('lists only server-selected reviewer cases despite request identity claims', async () => {
