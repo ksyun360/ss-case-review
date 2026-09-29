@@ -106,3 +106,19 @@ test('loads an exact member source and validates a Unicode quotation against per
     },
   });
 });
+
+test('denies retrieval of an existing source through another case membership', async () => {
+  await insertTextSourceForReviewer(database, reviewerId, source);
+  const otherReviewerId = '00000000-0000-4000-8000-000000000012';
+  await createCase(database, {
+    caseId: '00000000-0000-4000-8000-000000000002',
+    reviewerId: otherReviewerId,
+    label: 'Synthetic unrelated source reader',
+  });
+  expect(
+    await findTextSourceForReviewer(database, otherReviewerId, source.caseId, source.sourceUnitId),
+  ).toBeUndefined();
+  expect(
+    await findTextSourceForReviewer(database, reviewerId, source.caseId, source.sourceUnitId),
+  ).toEqual(source);
+});
