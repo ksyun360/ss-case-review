@@ -16,7 +16,7 @@ The caller must validate external inputs and enforce processing budgets before c
 
 ## Evidence and remaining work
 
-One PGlite regression stores exact synthetic text and source identity after registering an original. The native migration suite checks the three-step history and source-table discovery in the compiled package layout. Separate permission, hash/revision mismatch, constraint, replacement, and retrieval regressions remain pending. Stryker mutates the TypeScript helper but does not mutate SQL migration files.
+Two PGlite regressions check exact synthetic text and source identity after original registration, and denial when a reviewer belongs only to another case. The denial case retains an existing source and verifies that the rejected write creates no new source or replacement. The existing implementation passed that new regression, so the permission increment adds a test without production changes. The native migration suite checks the three-step history and source-table discovery in the compiled package layout. Further permission, hash/revision mismatch, constraint, replacement, and retrieval regressions remain pending. Stryker mutates the TypeScript helper but does not mutate SQL migration files.
 
 Next work must add member-scoped reads, source-span integration, extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. No source lookup or case artifact currently reaches the browser through this table.
 

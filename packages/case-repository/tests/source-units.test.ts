@@ -56,3 +56,24 @@ test('persists exact page text with original provenance for a case member', asyn
     { raw_text: source.rawText },
   ]);
 });
+
+test('denies source insertion through membership in another case without changing existing text', async () => {
+  await insertTextSourceForReviewer(database, reviewerId, source);
+  const otherReviewerId = '00000000-0000-4000-8000-000000000012';
+  await createCase(database, {
+    caseId: '00000000-0000-4000-8000-000000000002',
+    reviewerId: otherReviewerId,
+    label: 'Synthetic unrelated case',
+  });
+  expect(
+    await insertTextSourceForReviewer(database, otherReviewerId, {
+      ...source,
+      sourceUnitId: '00000000-0000-4000-8000-000000000032',
+      pageNumber: 2,
+      rawText: 'Synthetic unauthorized replacement',
+    }),
+  ).toBeUndefined();
+  expect(
+    (await database.query('SELECT source_unit_id, raw_text FROM text_source_units')).rows,
+  ).toEqual([{ source_unit_id: source.sourceUnitId, raw_text: source.rawText }]);
+});
