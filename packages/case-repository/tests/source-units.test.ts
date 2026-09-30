@@ -3,7 +3,11 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createCase, registerOriginalReference } from '../src/cases.ts';
 import { locateSourceSpan } from '../../record-domain/src/source-span.ts';
-import { findTextSourceForReviewer, insertTextSourceForReviewer } from '../src/source-units.ts';
+import {
+  findTextSourceForReviewer,
+  insertTextSourceForReviewer,
+  listTextSourcesForReviewer,
+} from '../src/source-units.ts';
 
 let database: PGlite;
 const reviewerId = '00000000-0000-4000-8000-000000000011';
@@ -121,4 +125,60 @@ test('denies retrieval of an existing source through another case membership', a
   expect(
     await findTextSourceForReviewer(database, reviewerId, source.caseId, source.sourceUnitId),
   ).toEqual(source);
+});
+
+test('lists only member-case text sources in stable physical page order', async () => {
+  const pageTwo = {
+    ...source,
+    sourceUnitId: '00000000-0000-4000-8000-000000000032',
+    pageNumber: 2,
+    rawText: 'Synthetic second page',
+  };
+  await insertTextSourceForReviewer(database, reviewerId, pageTwo);
+  await insertTextSourceForReviewer(database, reviewerId, source);
+
+  const otherReviewerId = '00000000-0000-4000-8000-000000000012';
+  const otherCaseId = '00000000-0000-4000-8000-000000000002';
+  const otherDocumentVersionId = '00000000-0000-4000-8000-000000000022';
+  await createCase(database, {
+    caseId: otherCaseId,
+    reviewerId: otherReviewerId,
+    label: 'Synthetic unrelated source inventory',
+  });
+  await registerOriginalReference(database, otherReviewerId, {
+    caseId: otherCaseId,
+    documentVersionId: otherDocumentVersionId,
+    sha256: 'b'.repeat(64),
+    byteLength: 80,
+  });
+  await insertTextSourceForReviewer(database, otherReviewerId, {
+    ...source,
+    sourceUnitId: '00000000-0000-4000-8000-000000000033',
+    caseId: otherCaseId,
+    documentVersionId: otherDocumentVersionId,
+    documentSha256: 'b'.repeat(64),
+    rawText: 'Synthetic private source',
+  });
+
+  expect(await listTextSourcesForReviewer(database, reviewerId, source.caseId)).toEqual([
+    {
+      sourceUnitId: source.sourceUnitId,
+      caseId: source.caseId,
+      documentVersionId: source.documentVersionId,
+      recordRevision: source.recordRevision,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      pageNumber: source.pageNumber,
+    },
+    {
+      sourceUnitId: pageTwo.sourceUnitId,
+      caseId: pageTwo.caseId,
+      documentVersionId: pageTwo.documentVersionId,
+      recordRevision: pageTwo.recordRevision,
+      documentSha256: pageTwo.documentSha256,
+      extractionVersion: pageTwo.extractionVersion,
+      pageNumber: pageTwo.pageNumber,
+    },
+  ]);
+  expect(await listTextSourcesForReviewer(database, otherReviewerId, source.caseId)).toEqual([]);
 });
