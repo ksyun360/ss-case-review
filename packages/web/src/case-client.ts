@@ -22,8 +22,53 @@ export type SyntheticTextSource = Readonly<{
   rawText: string;
 }>;
 
+export type SyntheticTextSourceReference = Omit<SyntheticTextSource, 'rawText'>;
+
 const UUID4_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+
+function isSyntheticTextSourceReference(
+  value: unknown,
+  caseId: string,
+): value is SyntheticTextSourceReference {
+  if (typeof value !== 'object' || value === null) return false;
+  const source = value as SyntheticTextSourceReference;
+  return (
+    UUID4_PATTERN.test(source.sourceUnitId) &&
+    source.caseId === caseId &&
+    UUID4_PATTERN.test(source.documentVersionId) &&
+    Number.isSafeInteger(source.recordRevision) &&
+    source.recordRevision >= 1 &&
+    SHA256_PATTERN.test(source.documentSha256) &&
+    typeof source.extractionVersion === 'string' &&
+    source.extractionVersion.length <= 128 &&
+    /\S/.test(source.extractionVersion) &&
+    Number.isSafeInteger(source.pageNumber) &&
+    source.pageNumber >= 1
+  );
+}
+
+export async function listSyntheticTextSources(
+  caseId: string,
+): Promise<SyntheticTextSourceReference[]> {
+  const response = await fetch(`/api/v1/cases/${caseId}/text-sources`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('source_inventory_unavailable');
+  const payload = (await response.json()) as { sources?: unknown } | null;
+  const sources = payload?.sources;
+  if (
+    !Array.isArray(sources) ||
+    !sources.every(
+      (source) =>
+        isSyntheticTextSourceReference(source, caseId) && !Object.hasOwn(source, 'rawText'),
+    )
+  )
+    throw new Error('source_inventory_unavailable');
+  return sources;
+}
 
 export async function getSyntheticTextSource(
   caseId: string,
@@ -39,19 +84,8 @@ export async function getSyntheticTextSource(
   const payload = (await response.json()) as { source?: unknown } | null;
   const source = payload?.source as SyntheticTextSource | null | undefined;
   if (
-    !source ||
+    !isSyntheticTextSourceReference(source, caseId) ||
     source.sourceUnitId !== sourceUnitId ||
-    !UUID4_PATTERN.test(source.sourceUnitId) ||
-    source.caseId !== caseId ||
-    !UUID4_PATTERN.test(source.documentVersionId) ||
-    !Number.isSafeInteger(source.recordRevision) ||
-    source.recordRevision < 1 ||
-    !SHA256_PATTERN.test(source.documentSha256) ||
-    typeof source.extractionVersion !== 'string' ||
-    source.extractionVersion.length > 128 ||
-    !/\S/.test(source.extractionVersion) ||
-    !Number.isSafeInteger(source.pageNumber) ||
-    source.pageNumber < 1 ||
     typeof source.rawText !== 'string'
   )
     throw new Error('text_source_unavailable');

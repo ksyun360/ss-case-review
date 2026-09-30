@@ -6,6 +6,7 @@ import {
   getSyntheticTextSource,
   listSyntheticCases,
   listSyntheticOriginals,
+  listSyntheticTextSources,
   uploadSyntheticOriginal,
 } from '../src/case-client.ts';
 
@@ -101,6 +102,77 @@ test('loads and validates one case-scoped text source before browser display', a
     redirect: 'error',
   });
   expect(fetch).toHaveBeenCalledTimes(4 + invalidPayloads.length);
+});
+
+test('lists validated case-scoped text source metadata without accepting page text', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const source = {
+    sourceUnitId: '00000000-0000-4000-8000-000000000031',
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'x',
+    pageNumber: 1,
+  };
+  const boundarySource = {
+    ...source,
+    sourceUnitId: '00000000-0000-4000-8000-000000000032',
+    extractionVersion: 'x'.repeat(128),
+    pageNumber: 2,
+  };
+  const invalidPayloads = [
+    null,
+    {},
+    { sources: null },
+    { sources: [null] },
+    { sources: [source, { ...source, sourceUnitId: 'not-a-uuid' }] },
+    { sources: [{ ...source, sourceUnitId: 'not-a-uuid' }] },
+    { sources: [{ ...source, sourceUnitId: `x${source.sourceUnitId}` }] },
+    { sources: [{ ...source, sourceUnitId: `${source.sourceUnitId}x` }] },
+    { sources: [{ ...source, caseId: '00000000-0000-4000-8000-000000000099' }] },
+    { sources: [{ ...source, documentVersionId: 'not-a-uuid' }] },
+    { sources: [{ ...source, documentVersionId: `x${source.documentVersionId}` }] },
+    { sources: [{ ...source, documentVersionId: `${source.documentVersionId}x` }] },
+    { sources: [{ ...source, recordRevision: 0 }] },
+    { sources: [{ ...source, recordRevision: 1.5 }] },
+    { sources: [{ ...source, recordRevision: Number.MAX_SAFE_INTEGER + 1 }] },
+    { sources: [{ ...source, documentSha256: 'not-a-hash' }] },
+    { sources: [{ ...source, documentSha256: `x${source.documentSha256}` }] },
+    { sources: [{ ...source, documentSha256: `${source.documentSha256}x` }] },
+    { sources: [{ ...source, extractionVersion: '' }] },
+    { sources: [{ ...source, extractionVersion: '   ' }] },
+    { sources: [{ ...source, extractionVersion: null }] },
+    { sources: [{ ...source, extractionVersion: 'x'.repeat(129) }] },
+    { sources: [{ ...source, pageNumber: 0 }] },
+    { sources: [{ ...source, pageNumber: 1.5 }] },
+    { sources: [{ ...source, pageNumber: Number.MAX_SAFE_INTEGER + 1 }] },
+    { sources: [{ ...source, rawText: 'Unexpected page text' }] },
+  ];
+  const errorJson = vi.fn();
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ sources: [source, boundarySource] }),
+    })
+    .mockResolvedValueOnce({ ok: false, status: 404, json: errorJson });
+  for (const payload of invalidPayloads)
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => payload });
+  vi.stubGlobal('fetch', fetch);
+
+  expect(await listSyntheticTextSources(caseId)).toEqual([source, boundarySource]);
+  await expect(listSyntheticTextSources(caseId)).rejects.toThrow('source_inventory_unavailable');
+  expect(errorJson).not.toHaveBeenCalled();
+  for (let index = 0; index < invalidPayloads.length; index += 1)
+    await expect(listSyntheticTextSources(caseId)).rejects.toThrow('source_inventory_unavailable');
+  expect(fetch).toHaveBeenNthCalledWith(1, `/api/v1/cases/${caseId}/text-sources`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  expect(fetch).toHaveBeenCalledTimes(2 + invalidPayloads.length);
 });
 
 test('reads the guarded synthetic upload capability from the same-origin API', async () => {
