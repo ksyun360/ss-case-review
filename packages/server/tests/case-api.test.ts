@@ -60,6 +60,107 @@ afterAll(async () => {
   await database.close();
 });
 
+test('lists current text source metadata through a guarded member-scoped route', async () => {
+  const migration = await readFile(
+    new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),
+    'utf8',
+  );
+  await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  const source = {
+    sourceUnitId: '00000000-0000-4000-8000-000000000031',
+    caseId: '00000000-0000-4000-8000-000000000001',
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 1,
+    rawText: 'Synthetic source text excluded from inventory',
+  };
+  await createCase(database, {
+    caseId: source.caseId,
+    reviewerId,
+    label: 'Synthetic source inventory case',
+  });
+  await registerOriginalReference(database, reviewerId, {
+    caseId: source.caseId,
+    documentVersionId: source.documentVersionId,
+    sha256: source.documentSha256,
+    byteLength: 100,
+  });
+  await insertTextSourceForReviewer(database, reviewerId, source);
+
+  const response = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${source.caseId}/text-sources`,
+    headers: requestHeaders,
+  });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({
+    sources: [
+      {
+        sourceUnitId: source.sourceUnitId,
+        caseId: source.caseId,
+        documentVersionId: source.documentVersionId,
+        recordRevision: source.recordRevision,
+        documentSha256: source.documentSha256,
+        extractionVersion: source.extractionVersion,
+        pageNumber: source.pageNumber,
+      },
+    ],
+  });
+  expect(response.headers['cache-control']).toBe('no-store');
+
+  const emptyCaseId = '00000000-0000-4000-8000-000000000003';
+  await createCase(database, {
+    caseId: emptyCaseId,
+    reviewerId,
+    label: 'Synthetic empty source case',
+  });
+  const empty = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${emptyCaseId}/text-sources`,
+    headers: requestHeaders,
+  });
+  expect(empty.statusCode).toBe(200);
+  expect(empty.json()).toEqual({ sources: [] });
+
+  const hiddenCaseId = '00000000-0000-4000-8000-000000000004';
+  await createCase(database, {
+    caseId: hiddenCaseId,
+    reviewerId: otherReviewerId,
+    label: 'Synthetic hidden source case',
+  });
+  const hidden = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${hiddenCaseId}/text-sources`,
+    headers: requestHeaders,
+  });
+  expect(hidden.statusCode).toBe(404);
+  expect(hidden.json()).toEqual({ code: 'case_not_found' });
+
+  const query = vi.spyOn(database, 'query');
+  try {
+    const invalid = await api.inject({
+      method: 'GET',
+      url: '/api/v1/cases/invalid/text-sources',
+      headers: requestHeaders,
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json()).toEqual({ code: 'invalid_request' });
+    expect(query).not.toHaveBeenCalled();
+    query.mockRejectedValueOnce(new Error('Synthetic private inventory diagnostic'));
+    const unavailable = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${source.caseId}/text-sources`,
+      headers: requestHeaders,
+    });
+    expect(unavailable.statusCode).toBe(503);
+    expect(unavailable.json()).toEqual({ code: 'case_service_unavailable' });
+  } finally {
+    query.mockRestore();
+  }
+});
+
 test('opens stored page text through a guarded member-scoped source route', async () => {
   const migration = await readFile(
     new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),
