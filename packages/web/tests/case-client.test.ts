@@ -3,6 +3,7 @@ import {
   createSyntheticCase,
   getSyntheticUploadCapability,
   getSyntheticCase,
+  getSyntheticTextSource,
   listSyntheticCases,
   listSyntheticOriginals,
   uploadSyntheticOriginal,
@@ -21,6 +22,85 @@ test('requests one reviewer-scoped draft through the same-origin API', async () 
     cache: 'no-store',
     redirect: 'error',
   });
+});
+
+test('loads and validates one case-scoped text source before browser display', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const source = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'x'.repeat(128),
+    pageNumber: 1,
+    rawText: 'Synthetic source A😀B\nLiteral quotation',
+  };
+  const shortVersionSource = { ...source, extractionVersion: 'x' };
+  const errorJson = vi.fn();
+  const invalidPayloads = [
+    null,
+    {},
+    { source: null },
+    { source: { ...source, sourceUnitId: 'not-a-uuid' } },
+    {
+      source: { ...source, sourceUnitId: '00000000-0000-4000-8000-000000000032' },
+    },
+    { source: { ...source, sourceUnitId: `x${source.sourceUnitId}` } },
+    { source: { ...source, sourceUnitId: `${source.sourceUnitId}x` } },
+    { source: { ...source, caseId: '00000000-0000-4000-8000-000000000099' } },
+    { source: { ...source, documentVersionId: 'not-a-uuid' } },
+    { source: { ...source, documentVersionId: `x${source.documentVersionId}` } },
+    { source: { ...source, documentVersionId: `${source.documentVersionId}x` } },
+    { source: { ...source, recordRevision: 0 } },
+    { source: { ...source, recordRevision: 1.5 } },
+    { source: { ...source, recordRevision: Number.MAX_SAFE_INTEGER + 1 } },
+    { source: { ...source, documentSha256: 'not-a-hash' } },
+    { source: { ...source, documentSha256: `x${source.documentSha256}` } },
+    { source: { ...source, documentSha256: `${source.documentSha256}x` } },
+    { source: { ...source, extractionVersion: '' } },
+    { source: { ...source, extractionVersion: '   ' } },
+    { source: { ...source, extractionVersion: null } },
+    { source: { ...source, extractionVersion: 'x'.repeat(129) } },
+    { source: { ...source, pageNumber: 0 } },
+    { source: { ...source, pageNumber: 1.5 } },
+    { source: { ...source, pageNumber: Number.MAX_SAFE_INTEGER + 1 } },
+    { source: { ...source, rawText: null } },
+  ];
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ source }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ source: shortVersionSource }),
+    })
+    .mockResolvedValueOnce({ ok: false, status: 404, json: errorJson })
+    .mockResolvedValueOnce({ ok: false, status: 503, json: errorJson });
+  for (const payload of invalidPayloads)
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => payload });
+  vi.stubGlobal('fetch', fetch);
+
+  expect(await getSyntheticTextSource(caseId, sourceUnitId)).toEqual(source);
+  expect(await getSyntheticTextSource(caseId, sourceUnitId)).toEqual(shortVersionSource);
+  await expect(
+    getSyntheticTextSource(caseId, '00000000-0000-4000-8000-000000000032'),
+  ).resolves.toBeUndefined();
+  await expect(getSyntheticTextSource(caseId, sourceUnitId)).rejects.toThrow(
+    'text_source_unavailable',
+  );
+  expect(errorJson).not.toHaveBeenCalled();
+  for (let index = 0; index < invalidPayloads.length; index += 1)
+    await expect(getSyntheticTextSource(caseId, sourceUnitId)).rejects.toThrow(
+      'text_source_unavailable',
+    );
+  expect(fetch).toHaveBeenNthCalledWith(1, `/api/v1/cases/${caseId}/text-sources/${sourceUnitId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  expect(fetch).toHaveBeenCalledTimes(4 + invalidPayloads.length);
 });
 
 test('reads the guarded synthetic upload capability from the same-origin API', async () => {

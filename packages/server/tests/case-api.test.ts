@@ -535,7 +535,7 @@ test('rejects an unsupported synthetic original media type without an upload att
     const response = await api.inject({
       method: 'POST',
       url: `/api/v1/cases/${caseId}/synthetic-originals`,
-      headers: { ...requestHeaders, 'content-type': 'text/plain' },
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream; charset=utf-8' },
       payload: 'abc',
     });
     expect(response.statusCode).toBe(415);

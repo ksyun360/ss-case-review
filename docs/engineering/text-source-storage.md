@@ -1,6 +1,6 @@
 # Text-source persistence
 
-Status: Phase 4 includes text-source insertion, member-scoped retrieval, and a guarded source-read API, backed by a third ordered PostgreSQL migration. Extraction workers and browser source navigation do not call this repository yet. Use synthetic fixtures only.
+Status: Phase 4 includes text-source insertion, member-scoped retrieval, a guarded source-read API, and a strict browser client, backed by a third ordered PostgreSQL migration. Extraction workers and browser source navigation do not call this repository yet. Use synthetic fixtures only.
 
 ## Stored identity
 
@@ -22,6 +22,8 @@ Four PGlite regressions check exact synthetic text and source identity after ori
 
 The guarded development API exposes `GET /api/v1/cases/:caseId/text-sources/:sourceUnitId`. One Fastify regression connects registered original metadata, persisted source text, and an HTTP response with source provenance. The regression also checks no-store headers, absent sources, malformed UUIDs before database access, and fixed service-failure responses. A separate regression creates a real source for another reviewer, proves owner-scoped retrieval succeeds, and verifies that the configured development reviewer receives the same no-store 404 used for an absent source. The route uses the server-selected reviewer and the repository's membership filter. Browser navigation remains pending.
 
-Next work must add extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. Uploaded originals do not automatically create source rows; no case artifact currently uses this route.
+The browser client requests one known source unit with no-store semantics and validates exact case/source identity, UUIDs, safe positive revision and page values, a lowercase SHA-256 digest, a bounded nonblank extraction version, and raw text before returning the response. A 404 becomes an absent result; other failures return no server detail to the interface. No current screen supplies a source-unit ID or renders the returned text.
+
+Next work must add extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, source inventory, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. Uploaded originals do not automatically create source rows; no case artifact currently uses this route.
 
 Return to Phase 3 at the very end before pilot handoff. Keep private design/session files and credentials outside commits.
