@@ -5,6 +5,7 @@ import { createCase, registerOriginalReference } from '../src/cases.ts';
 import {
   claimDocumentProcessing,
   completeDocumentProcessing,
+  failDocumentProcessing,
   findDocumentProcessingForReviewer,
   reserveDocumentProcessing,
 } from '../src/document-processing-attempts.ts';
@@ -146,6 +147,75 @@ test('leases queued document processing once and safely recovers expired work', 
       now: new Date('2026-10-01T12:10:02Z'),
       leaseExpiresAt: new Date('2026-10-01T12:15:02Z'),
       leaseToken: firstToken,
+    }),
+  ).resolves.toBeUndefined();
+});
+
+test('records a fixed failure only from the worker that holds the current lease', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Synthetic failed processing case' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'b'.repeat(64),
+    byteLength: 512,
+  });
+  await reserveDocumentProcessing(database, {
+    caseId,
+    documentVersionId,
+    reviewerId,
+    extractionVersion,
+    maximumBytes: 1024,
+    maximumPages: 400,
+  });
+  const leaseToken = '00000000-0000-4000-8000-000000000241';
+  await claimDocumentProcessing(database, {
+    now: new Date('2026-10-01T13:00:00Z'),
+    leaseExpiresAt: new Date('2026-10-01T13:05:00Z'),
+    leaseToken,
+  });
+
+  await expect(
+    failDocumentProcessing(database, {
+      caseId,
+      documentVersionId,
+      extractionVersion,
+      leaseToken: '00000000-0000-4000-8000-000000000242',
+      failureCode: 'extraction_failed',
+    }),
+  ).resolves.toBeUndefined();
+  await expect(
+    failDocumentProcessing(database, {
+      caseId,
+      documentVersionId,
+      extractionVersion,
+      leaseToken,
+      failureCode: 'extraction_failed',
+    }),
+  ).resolves.toEqual({
+    caseId,
+    documentVersionId,
+    reviewerId,
+    extractionVersion,
+    maximumBytes: 1024,
+    maximumPages: 400,
+    state: 'failed',
+    attemptCount: 1,
+    failureCode: 'extraction_failed',
+  });
+  await expect(
+    findDocumentProcessingForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      documentVersionId,
+      extractionVersion,
+    ),
+  ).resolves.toMatchObject({ state: 'failed', failureCode: 'extraction_failed' });
+  await expect(
+    claimDocumentProcessing(database, {
+      now: new Date('2026-10-01T13:05:01Z'),
+      leaseExpiresAt: new Date('2026-10-01T13:10:01Z'),
+      leaseToken: '00000000-0000-4000-8000-000000000243',
     }),
   ).resolves.toBeUndefined();
 });

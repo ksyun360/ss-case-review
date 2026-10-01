@@ -15,6 +15,14 @@ export type DocumentProcessingStatus = Readonly<{
 export type DocumentProcessingClaim = DocumentProcessingStatus &
   Readonly<{ state: 'processing'; leaseToken: string }>;
 
+export type DocumentProcessingFailureCode =
+  | 'original_unavailable'
+  | 'unsupported_document_format'
+  | 'byte_budget_exceeded'
+  | 'page_budget_exceeded'
+  | 'extraction_failed'
+  | 'publication_rejected';
+
 type ProcessingIdentity = Readonly<{
   caseId: string;
   documentVersionId: string;
@@ -105,6 +113,32 @@ export async function completeDocumentProcessing(
       maximum_bytes::float8 AS "maximumBytes", maximum_pages AS "maximumPages",
       state, attempt_count AS "attemptCount", failure_code AS "failureCode"`,
     [input.caseId, input.documentVersionId, input.extractionVersion, input.leaseToken],
+  );
+  return result.rows[0];
+}
+
+export async function failDocumentProcessing(
+  client: SqlClient,
+  input: ProcessingIdentity &
+    Readonly<{ leaseToken: string; failureCode: DocumentProcessingFailureCode }>,
+): Promise<DocumentProcessingStatus | undefined> {
+  const result = await client.query<DocumentProcessingStatus>(
+    `UPDATE document_processing_attempts
+    SET state = 'failed', failure_code = $5, lease_token = NULL,
+      lease_expires_at = NULL, updated_at = now()
+    WHERE case_id = $1 AND document_version_id = $2 AND extraction_version = $3
+      AND state = 'processing' AND lease_token = $4
+    RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
+      reviewer_id AS "reviewerId", extraction_version AS "extractionVersion",
+      maximum_bytes::float8 AS "maximumBytes", maximum_pages AS "maximumPages",
+      state, attempt_count AS "attemptCount", failure_code AS "failureCode"`,
+    [
+      input.caseId,
+      input.documentVersionId,
+      input.extractionVersion,
+      input.leaseToken,
+      input.failureCode,
+    ],
   );
   return result.rows[0];
 }
