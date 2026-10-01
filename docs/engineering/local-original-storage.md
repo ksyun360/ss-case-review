@@ -46,7 +46,7 @@ The helper removes only the staging directory created for that attempt. A simula
 - Add directory synchronization, crash recovery, orphan cleanup, retention controls, and coordinated database/object-store recovery. File-data flushing alone does not establish power-loss durability or justify a durable-upload acknowledgment.
 - Add membership checks, API schemas, audit records, encryption configuration, format inspection, malware handling, and transactional upload finalization before connecting browser uploads or accepting court records.
 
-The [source-span validator](source-spans.md) remains a separate contract for extracted text. Later workers must derive source units from the preserved original and retain document hash, extraction version, and page/native-unit locators. No current artifact or source viewer uses this adapter.
+The [source-span validator](source-spans.md) remains a separate contract for extracted text. Later workers must derive source units from the preserved original and retain document hash, extraction version, and page/native-unit locators. The exact-text source workspace reads separately persisted text; no current worker derives those sources from this adapter, and no artifact uses the viewer.
 
 ## Verification
 

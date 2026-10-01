@@ -1,6 +1,6 @@
 # Text-source persistence
 
-Status: Phase 4 includes text-source insertion, member-scoped inventory and retrieval, guarded inventory and source-read APIs, and strict browser clients, backed by a third ordered PostgreSQL migration. Extraction workers and browser source navigation do not call this repository yet. Use synthetic fixtures only.
+Status: Phase 4 includes text-source insertion, member-scoped inventory and retrieval, guarded inventory and source-read APIs, strict browser clients, and an exact-text source workspace, backed by a third ordered PostgreSQL migration. Extraction workers do not publish to this repository yet. Use synthetic fixtures only.
 
 ## Stored identity
 
@@ -26,8 +26,10 @@ The repository inventory returns metadata only for a reviewer membership, a matc
 
 The guarded inventory API returns `{ sources }` after verifying access to the requested case. An accessible case without current sources receives an empty list; an unknown or inaccessible case receives the same 404 case response. The route validates the case UUID before SQL and inherits the API's no-store and fixed-error behavior.
 
-The browser inventory client uses no-store semantics, preserves the returned order, validates every identity and provenance field, and rejects any inventory row that includes raw page text. The direct-source client requests one known source unit and additionally validates exact requested-source identity and raw text before returning the response. A direct-source 404 becomes an absent result; other failures return no server detail to the interface. No current screen calls either client or renders source text.
+The browser inventory client uses no-store semantics, preserves the returned order, validates every identity and provenance field, and rejects any inventory row that includes raw page text. The direct-source client requests one known source unit and additionally validates exact requested-source identity and raw text before returning the response. A direct-source 404 becomes an absent result; other failures return no server detail to the interface.
 
-Next work must add extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and browser navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. Uploaded originals do not automatically create source rows; no case artifact currently uses this route.
+The case screen lists source document suffixes and physical page numbers, then retrieves exact text only after the reviewer selects a source. The screen displays extraction-version and SHA-256 provenance, preserves multiline text in a bounded reader, supports inventory and source retries, and reports a source that disappears after inventory. The screen does not render the original document, geometry, or a visual highlight.
+
+Next work must add extraction publication, stored page geometry and coverage gaps, canonical coordinate mapping, and original-document navigation. Background jobs must publish sources transactionally and preserve previous extraction versions. Uploaded originals do not automatically create source rows; no case artifact currently uses this route.
 
 Return to Phase 3 at the very end before pilot handoff. Keep private design/session files and credentials outside commits.

@@ -1,6 +1,6 @@
 # Synthetic development case API
 
-Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser lists, creates, and opens saved synthetic cases through the development proxy. An opt-in route accepts one synthetic original byte stream for a member case; startup enables the route only when the developer supplies a dedicated absolute storage root. The browser can register selected synthetic originals and list registered version IDs and byte counts on a case page. Source-linked review remains pending. Use synthetic fixtures only.
+Status: Phase 4 includes a tested Fastify API factory and a [runnable synthetic development server](development-server.md). The browser lists, creates, and opens saved synthetic cases through the development proxy. An opt-in route accepts one synthetic original byte stream for a member case; startup enables the route only when the developer supplies a dedicated absolute storage root. The browser can register selected synthetic originals, list registered version IDs and byte counts, and open persisted exact source text on a case page. Automatic processing and artifact-linked review remain pending. Use synthetic fixtures only.
 
 ## Construction and identity
 

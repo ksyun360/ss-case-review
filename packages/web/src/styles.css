@@ -599,6 +599,56 @@ a.primary-button:hover {
   margin-top: 8px;
 }
 
+.source-workspace {
+  margin-top: 24px;
+}
+
+.source-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 16px 0;
+  list-style: none;
+}
+
+.source-link {
+  min-height: 44px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--action);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.source-reader {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--divider);
+}
+
+.source-reader pre {
+  max-height: 32rem;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text);
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.source-hash {
+  overflow-wrap: anywhere;
+  color: var(--secondary);
+  font-size: 14px;
+}
+
 @media (width < 768px) {
   h1 {
     font-size: 24px;

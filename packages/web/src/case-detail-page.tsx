@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import {
+  getSyntheticTextSource,
   getSyntheticCase,
   listSyntheticOriginals,
+  listSyntheticTextSources,
   type CaseSummary,
   type SyntheticOriginalReceipt,
+  type SyntheticTextSource,
+  type SyntheticTextSourceReference,
 } from './case-client.ts';
 
 export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
@@ -40,10 +44,93 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
           ))}
         </ul>
       )}
-      <p>Sources have not been extracted yet.</p>
+      <p>Automatic source extraction is not connected yet.</p>
       <a className="button secondary-button" href="/cases">
         Back to saved cases
       </a>
+    </section>
+  );
+}
+
+export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
+  const [references, setReferences] = useState<SyntheticTextSourceReference[] | 'unavailable'>();
+  const [selected, setSelected] = useState<SyntheticTextSourceReference>();
+  const [source, setSource] = useState<SyntheticTextSource | 'unavailable' | 'missing'>();
+  const loadInventory = useCallback(() => {
+    setReferences(undefined);
+    setSelected(undefined);
+    void listSyntheticTextSources(caseId).then(setReferences, () => setReferences('unavailable'));
+  }, [caseId]);
+  useEffect(() => {
+    loadInventory();
+  }, [loadInventory]);
+
+  const openSource = useCallback(
+    (reference: SyntheticTextSourceReference) => {
+      setSelected(reference);
+      setSource(undefined);
+      void getSyntheticTextSource(caseId, reference.sourceUnitId).then(
+        (found) => setSource(found ?? 'missing'),
+        () => setSource('unavailable'),
+      );
+    },
+    [caseId],
+  );
+
+  return (
+    <section className="panel source-workspace" aria-live="polite">
+      <h2>Record sources</h2>
+      {references === 'unavailable' ? (
+        <>
+          <p>Source inventory unavailable.</p>
+          <button className="button secondary-button" type="button" onClick={loadInventory}>
+            Retry loading sources
+          </button>
+        </>
+      ) : references === undefined ? (
+        <p role="status">Loading record sources…</p>
+      ) : references.length === 0 ? (
+        <p>No extracted sources are available yet.</p>
+      ) : (
+        <ul className="source-list">
+          {references.map((reference) => (
+            <li key={reference.sourceUnitId}>
+              <button className="source-link" type="button" onClick={() => openSource(reference)}>
+                Open document {reference.documentVersionId.slice(-4)}, page {reference.pageNumber}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {selected ? (
+        <div className="source-reader">
+          {source === 'unavailable' ? (
+            <>
+              <p>Source text unavailable.</p>
+              <button
+                className="button secondary-button"
+                type="button"
+                onClick={() => openSource(selected)}
+              >
+                Retry opening source
+              </button>
+            </>
+          ) : source === 'missing' ? (
+            <p>The selected source is no longer available.</p>
+          ) : source === undefined ? (
+            <p role="status">Loading source page {selected.pageNumber}…</p>
+          ) : (
+            <article>
+              <h3>
+                Document {source.documentVersionId.slice(-4)}, page {source.pageNumber}
+              </h3>
+              <p>Extraction {source.extractionVersion}</p>
+              <p className="source-hash">SHA-256 {source.documentSha256}</p>
+              <pre>{source.rawText}</pre>
+            </article>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -88,6 +175,7 @@ export function CaseDetailPage() {
             <p className="lede">Record revision {record.recordRevision}</p>
           </div>
           <SyntheticOriginalInventory caseId={record.caseId} />
+          <SyntheticSourceWorkspace caseId={record.caseId} />
         </>
       ) : (
         <section className="panel empty-state" aria-live="polite">

@@ -82,7 +82,7 @@ test('creates and opens a synthetic draft at mobile width without uploading file
   await page.getByRole('link', { name: draft.label }).click();
   await expect(page.getByRole('heading', { name: draft.label })).toBeVisible();
   await expect(page.getByText('No registered originals yet.')).toBeVisible();
-  await expect(page.getByText('Sources have not been extracted yet.')).toBeVisible();
+  await expect(page.getByText('Automatic source extraction is not connected yet.')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
   const result = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
