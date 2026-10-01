@@ -1,6 +1,6 @@
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { expect, test, vi } from 'vitest';
-import { extractPdfPages, inspectPdf } from '../src/pdf.ts';
+import { extractPdfBytes, extractPdfPages, inspectPdf } from '../src/pdf.ts';
 
 function syntheticOnePagePdf(
   contents = ['BT /F1 12 Tf 72 720 Td (Synthetic hearing) Tj ET'],
@@ -249,4 +249,50 @@ test('enforces PDF inspection byte budgets before creating a parser task', async
     'pdf_inspection_failed',
   );
   expect(loadDocument).toHaveBeenCalledTimes(2);
+});
+
+test('loads bounded PDF bytes into extracted pages and always releases parser resources', async () => {
+  const bytes = syntheticOnePagePdf([
+    'BT /F1 12 Tf 72 720 Td (First source page) Tj ET',
+    'BT /F1 12 Tf 72 720 Td (Second source page) Tj ET',
+  ]);
+  const snapshot = new Uint8Array(bytes);
+  const destroyed: ReturnType<typeof vi.fn>[] = [];
+  const loadDocument: typeof getDocument = (source) => {
+    expect(source).toMatchObject({ stopAtErrors: true });
+    const task = getDocument(source);
+    destroyed.push(vi.spyOn(task, 'destroy'));
+    return task;
+  };
+
+  for (const maximumBytes of [0, -1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    await expect(extractPdfBytes(bytes, maximumBytes, 2, loadDocument)).rejects.toThrow(
+      'invalid_pdf_byte_budget',
+    );
+  }
+  expect(destroyed).toEqual([]);
+  await expect(extractPdfBytes(bytes, bytes.byteLength - 1, 2, loadDocument)).rejects.toThrow(
+    'pdf_byte_budget_exceeded',
+  );
+  expect(destroyed).toEqual([]);
+  await expect(extractPdfBytes(bytes, bytes.byteLength, 1, loadDocument)).rejects.toThrow(
+    'pdf_page_budget_exceeded',
+  );
+  await expect(extractPdfBytes(bytes, bytes.byteLength, 0, loadDocument)).rejects.toThrow(
+    'invalid_pdf_page_budget',
+  );
+  await expect(extractPdfBytes(new Uint8Array([0]), 1, 2, loadDocument)).rejects.toMatchObject({
+    message: 'pdf_extraction_failed',
+    cause: expect.any(Error),
+  });
+  await expect(
+    extractPdfBytes(new TextEncoder().encode('%PDF-malformed'), 100, 2, loadDocument),
+  ).rejects.toMatchObject({ message: 'pdf_extraction_failed', cause: expect.any(Error) });
+  await expect(extractPdfBytes(bytes, bytes.byteLength, 2, loadDocument)).resolves.toMatchObject([
+    { status: 'extracted', pageNumber: 1, rawText: 'First source page' },
+    { status: 'extracted', pageNumber: 2, rawText: 'Second source page' },
+  ]);
+  expect(bytes).toEqual(snapshot);
+  expect(destroyed).toHaveLength(5);
+  for (const destroy of destroyed) expect(destroy).toHaveBeenCalledOnce();
 });

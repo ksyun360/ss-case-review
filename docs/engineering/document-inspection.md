@@ -1,6 +1,6 @@
 # Internal document inspection
 
-Status: Phase 4 includes internal signature checks, a PDF parser, and native PDF text extraction. Upload routes and browser status do not call these modules yet. A registered original remains uninspected.
+Status: Phase 4 includes internal signature checks, a PDF parser, native PDF text extraction, and a bounded byte-to-pages adapter. Upload routes and browser status do not call these modules yet. A registered original remains uninspected.
 
 ## Signature checks
 
@@ -17,6 +17,8 @@ The implementation follows Mozilla's [Node loading example](https://github.com/m
 The inspection byte budget limits accepted parser input after the caller has allocated the supplied byte array; the budget does not limit transfer or initial allocation. The inspection function does not extract text, render pages, inspect attachments or actions, scan malware, or establish that every page is readable. The parser currently runs in-process without a time or memory budget. Network isolation and password-specific handling remain unqualified. Do not connect untrusted or court records to this function before adding those boundaries.
 
 ## Native PDF text extraction
+
+`extractPdfBytes` applies the same positive safe-integer byte budget before parser creation, loads a private copy with strict PDF.js parsing, delegates to the page-budgeted extractor, and always destroys the loading task. The adapter preserves `invalid_pdf_page_budget` and `pdf_page_budget_exceeded` so a worker can distinguish policy refusal from malformed content. Other loading or extraction failures become the fixed `pdf_extraction_failed` error. The adapter remains in-process and does not impose wall-clock, memory, or per-page text limits.
 
 `extractPdfPages` accepts a loaded PDF.js document and a required positive safe-integer `maximumPages` budget. The extractor rejects invalid budgets with `invalid_pdf_page_budget` and documents above the budget with `pdf_page_budget_exceeded`, before requesting any page. The extractor visits every physical page in order when the document fits the budget. The caller owns the document loading task and must destroy that task after use. The extractor calls each loaded page's `cleanup`, including when text extraction fails.
 

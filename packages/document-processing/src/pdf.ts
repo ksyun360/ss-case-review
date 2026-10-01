@@ -19,6 +19,35 @@ export type PdfPageResult =
   | PdfTextPage
   | Readonly<{ pageNumber: number; status: 'unavailable'; reason: 'page_extraction_failed' }>;
 
+export async function extractPdfBytes(
+  bytes: Uint8Array,
+  maximumBytes: number,
+  maximumPages: number,
+  loadDocument: typeof getDocument = getDocument,
+): Promise<PdfPageResult[]> {
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1) {
+    throw new Error('invalid_pdf_byte_budget');
+  }
+  if (bytes.byteLength > maximumBytes) {
+    throw new Error('pdf_byte_budget_exceeded');
+  }
+  const task = loadDocument({ data: new Uint8Array(bytes), stopAtErrors: true });
+  try {
+    const document = await task.promise;
+    return await extractPdfPages(document, maximumPages);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === 'invalid_pdf_page_budget' || error.message === 'pdf_page_budget_exceeded')
+    ) {
+      throw error;
+    }
+    throw new Error('pdf_extraction_failed', { cause: error });
+  } finally {
+    await task.destroy();
+  }
+}
+
 export async function extractPdfPages(
   document: PDFDocumentProxy,
   maximumPages: number,
