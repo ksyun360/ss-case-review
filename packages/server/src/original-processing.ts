@@ -7,6 +7,7 @@ import {
   insertTextSourcesForReviewer,
   type TextSourceUnit,
 } from '@record-review/case-repository/source-units';
+import { extractPdfBytes } from '@record-review/document-processing/pdf';
 import { detectDocumentSignature } from '@record-review/record-domain/document-signature';
 import { readOriginal } from '@record-review/record-storage/originals';
 
@@ -32,6 +33,15 @@ type ProcessingInput = Readonly<{
   ) => Promise<readonly (ExtractedPage | PageGap)[]>;
   createSourceUnitId: () => string;
 }>;
+
+type StoredProcessingInput = Omit<ProcessingInput, 'extractPages'>;
+
+export function processStoredPdfOriginalForReviewer(input: StoredProcessingInput) {
+  return processPdfOriginalForReviewer({
+    ...input,
+    extractPages: (bytes, maximumPages) => extractPdfBytes(bytes, input.maximumBytes, maximumPages),
+  });
+}
 
 export async function processPdfOriginalForReviewer(input: ProcessingInput) {
   const record = await findCaseForReviewer(input.database, input.reviewerId, input.caseId);
