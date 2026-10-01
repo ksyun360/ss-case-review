@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./cases": "./src/cases.ts",
+    "./document-processing-attempts": "./src/document-processing-attempts.ts",
     "./migrations": "./src/migrations.ts",
     "./upload-attempts": "./src/upload-attempts.ts",
     "./source-units": "./src/source-units.ts"

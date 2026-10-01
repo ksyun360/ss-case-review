@@ -241,6 +241,7 @@ test('migrates a native PostgreSQL database and round-trips case and original me
     { name: '202609230001_initial_case_metadata' },
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
+    { name: '202610010001_document_processing_attempts' },
   ]);
   expect((await client.query('SHOW server_version_num')).rows).toEqual([
     { server_version_num: '180006' },
@@ -304,7 +305,7 @@ test('rolls back partial schema changes and leaves a failed migration unapplied'
   ]);
   expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([]);
   await client.query('DROP TABLE original_references');
-  expect(await migrateCaseSchema(client)).toHaveLength(3);
+  expect(await migrateCaseSchema(client)).toHaveLength(4);
 });
 
 test('refuses a competing migration until the other connection releases the lock', async () => {
@@ -319,7 +320,7 @@ test('refuses a competing migration until the other connection releases the lock
   } finally {
     await blocker.end();
   }
-  expect(await migrateCaseSchema(client)).toHaveLength(3);
+  expect(await migrateCaseSchema(client)).toHaveLength(4);
 });
 
 test('rejects migration history that does not match the repository plan', async () => {
@@ -341,6 +342,7 @@ test('rejects migration history that does not match the repository plan', async 
     { name: '209901010001_unknown' },
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
+    { name: '202610010001_document_processing_attempts' },
   ]);
   expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
@@ -374,13 +376,14 @@ test('loads the migration SQL from the compiled package layout', async () => {
   const compiled = (await import(
     new URL('../../packages/case-repository/dist/migrations.js', import.meta.url).href
   )) as typeof import('../../packages/case-repository/src/migrations.ts');
-  expect(await compiled.migrateCaseSchema(client)).toHaveLength(3);
+  expect(await compiled.migrateCaseSchema(client)).toHaveLength(4);
   expect(
     (
       await client.query(`SELECT to_regclass('public.cases') AS cases,
       to_regclass('public.case_memberships') AS memberships,
       to_regclass('public.original_references') AS originals,
-      to_regclass('public.text_source_units') AS sources`)
+      to_regclass('public.text_source_units') AS sources,
+      to_regclass('public.document_processing_attempts') AS processing`)
     ).rows,
   ).toEqual([
     {
@@ -388,11 +391,13 @@ test('loads the migration SQL from the compiled package layout', async () => {
       memberships: 'case_memberships',
       originals: 'original_references',
       sources: 'text_source_units',
+      processing: 'document_processing_attempts',
     },
   ]);
   expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([
     { name: '202609230001_initial_case_metadata' },
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
+    { name: '202610010001_document_processing_attempts' },
   ]);
 });
