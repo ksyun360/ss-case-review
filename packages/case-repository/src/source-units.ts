@@ -93,3 +93,54 @@ export async function insertTextSourceForReviewer(
   );
   return result.rows[0];
 }
+
+export async function insertTextSourcesForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  sources: readonly TextSourceUnit[],
+): Promise<TextSourceUnit[]> {
+  const result = await client.query<TextSourceUnit>(
+    `WITH candidates AS (
+      SELECT
+        (entry.value->>'sourceUnitId')::uuid AS source_unit_id,
+        (entry.value->>'caseId')::uuid AS case_id,
+        (entry.value->>'documentVersionId')::uuid AS document_version_id,
+        (entry.value->>'recordRevision')::integer AS record_revision,
+        entry.value->>'documentSha256' AS document_sha256,
+        entry.value->>'extractionVersion' AS extraction_version,
+        (entry.value->>'pageNumber')::integer AS page_number,
+        entry.value->>'rawText' AS raw_text,
+        entry.ordinality
+      FROM jsonb_array_elements($1::jsonb) WITH ORDINALITY AS entry(value, ordinality)
+    ), authorized AS (
+      SELECT candidates.*
+      FROM candidates
+      JOIN case_memberships members ON members.case_id = candidates.case_id
+      JOIN original_references originals ON originals.case_id = candidates.case_id
+        AND originals.document_version_id = candidates.document_version_id
+      JOIN cases ON cases.case_id = candidates.case_id
+      WHERE members.reviewer_id = $2 AND originals.sha256 = candidates.document_sha256
+        AND cases.record_revision = candidates.record_revision
+    ), inserted AS (
+      INSERT INTO text_source_units (
+        source_unit_id, case_id, document_version_id, record_revision,
+        document_sha256, extraction_version, page_number, raw_text
+      )
+      SELECT source_unit_id, case_id, document_version_id, record_revision,
+        document_sha256, extraction_version, page_number, raw_text
+      FROM authorized
+      WHERE (SELECT count(*) FROM authorized) = (SELECT count(*) FROM candidates)
+      RETURNING source_unit_id, case_id, document_version_id, record_revision,
+        document_sha256, extraction_version, page_number, raw_text
+    )
+    SELECT inserted.source_unit_id AS "sourceUnitId", inserted.case_id AS "caseId",
+      inserted.document_version_id AS "documentVersionId",
+      inserted.record_revision AS "recordRevision", inserted.document_sha256 AS "documentSha256",
+      inserted.extraction_version AS "extractionVersion", inserted.page_number AS "pageNumber",
+      inserted.raw_text AS "rawText"
+    FROM inserted JOIN candidates USING (source_unit_id)
+    ORDER BY candidates.ordinality`,
+    [JSON.stringify(sources), reviewerId],
+  );
+  return result.rows;
+}

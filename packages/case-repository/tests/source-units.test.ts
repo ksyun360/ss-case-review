@@ -5,6 +5,7 @@ import { createCase, registerOriginalReference } from '../src/cases.ts';
 import { locateSourceSpan } from '../../record-domain/src/source-span.ts';
 import {
   findTextSourceForReviewer,
+  insertTextSourcesForReviewer,
   insertTextSourceForReviewer,
   listTextSourcesForReviewer,
 } from '../src/source-units.ts';
@@ -59,6 +60,37 @@ test('persists exact page text with original provenance for a case member', asyn
   ]);
   expect((await database.query('SELECT raw_text FROM text_source_units')).rows).toEqual([
     { raw_text: source.rawText },
+  ]);
+});
+
+test('publishes every extracted page atomically for a current case member', async () => {
+  const pageTwo = {
+    ...source,
+    sourceUnitId: '00000000-0000-4000-8000-000000000032',
+    pageNumber: 2,
+    rawText: 'Synthetic second page',
+  };
+  expect(
+    await insertTextSourcesForReviewer(database, reviewerId, [
+      source,
+      { ...pageTwo, documentSha256: 'b'.repeat(64) },
+    ]),
+  ).toEqual([]);
+  expect((await database.query('SELECT * FROM text_source_units')).rows).toEqual([]);
+
+  expect(await insertTextSourcesForReviewer(database, reviewerId, [source, pageTwo])).toEqual([
+    source,
+    pageTwo,
+  ]);
+  expect(
+    (
+      await database.query(
+        'SELECT page_number AS "pageNumber", raw_text AS "rawText" FROM text_source_units ORDER BY page_number',
+      )
+    ).rows,
+  ).toEqual([
+    { pageNumber: 1, rawText: source.rawText },
+    { pageNumber: 2, rawText: pageTwo.rawText },
   ]);
 });
 
