@@ -1,6 +1,6 @@
 # Document processing journal
 
-Status: Phase 4 includes a durable synthetic document-processing queue in PostgreSQL. The queue records one extraction version for a registered original, applies fixed byte and page ceilings, and tracks `queued`, `processing`, `published`, or `failed` states. No background worker invokes the queue yet.
+Status: Phase 4 includes a durable synthetic document-processing queue in PostgreSQL. The queue records one extraction version for a registered original, applies fixed byte and page ceilings, and tracks `queued`, `processing`, `published`, or `failed` states. A callable one-job worker claims and finalizes queue rows; server startup does not schedule or loop the worker yet.
 
 `reserveDocumentProcessing` inserts work only when the requesting reviewer currently belongs to the case and the registered original exists. A unique case, document-version, and extraction-version key prevents duplicate work. Duplicate reservations return no new row.
 
@@ -8,4 +8,4 @@ Status: Phase 4 includes a durable synthetic document-processing queue in Postgr
 
 `findDocumentProcessingForReviewer` returns status only through current case membership and a still-registered original. The status contract omits lease tokens and expiration timestamps. Two PGlite regressions cover unauthorized and duplicate reservation, exclusive claiming, expired-lease recovery, stale-token rejection, successful completion, fixed failure reporting, terminal non-reclaimability, and member-scoped status.
 
-The journal does not run extraction, persist page gaps or geometry, renew leases, enforce wall-clock or memory limits, or reconcile source publication with journal completion. A later worker must connect claims to the verified original-processing coordinator and contain parser work outside the API process. Keep real records out of this path until court IT approves identity, storage, parser isolation, and the model data path.
+The journal does not persist page gaps or geometry, renew leases, enforce wall-clock or memory limits, or make source publication and journal completion one database transaction. The callable worker connects claims to the verified original-processing coordinator but still runs parser work in the API process. Keep real records out of this path until court IT approves identity, storage, parser isolation, and the model data path.

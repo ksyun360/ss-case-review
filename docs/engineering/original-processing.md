@@ -1,6 +1,6 @@
 # Original processing coordinator
 
-Status: Phase 4 includes a synthetic-only server coordinator that reads an integrity-checked registered original, enforces an admission byte ceiling, confirms the PDF signature, extracts bounded pages through PDF.js, and publishes extracted page text through the atomic source repository operation. No API route, job runner, or durable processing state calls this coordinator yet.
+Status: Phase 4 includes a synthetic-only server coordinator that reads an integrity-checked registered original, enforces an admission byte ceiling, confirms the PDF signature, extracts bounded pages through PDF.js, and publishes extracted page text through the atomic source repository operation. A callable one-job worker invokes this coordinator from durable claims. No API route or continuously scheduled background loop invokes the worker yet.
 
 `processPdfOriginalForReviewer` resolves the server-selected reviewer's current case and registered original before reading private bytes. The storage adapter verifies the stored length and SHA-256 against trusted metadata. The coordinator refuses an original above the supplied byte ceiling and rejects a non-PDF signature before extraction.
 
