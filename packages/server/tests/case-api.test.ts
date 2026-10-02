@@ -502,6 +502,65 @@ test('accepts one synthetic original as streamed bytes for a member case', async
   }
 });
 
+test('returns member-scoped processing status for a registered original', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-processing-status-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000015';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Synthetic processing status case' });
+    const uploaded = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    const documentVersionId = uploaded.json<{ original: { documentVersionId: string } }>().original
+      .documentVersionId;
+    const response = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/document-processing/${documentVersionId}`,
+      headers: requestHeaders,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      processing: {
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'queued',
+        attemptCount: 0,
+        failureCode: null,
+      },
+    });
+
+    const hidden = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/00000000-0000-4000-8000-000000000099/document-processing/${documentVersionId}`,
+      headers: requestHeaders,
+    });
+    expect(hidden.statusCode).toBe(404);
+    expect(hidden.json()).toEqual({ code: 'processing_not_found' });
+
+    const query = vi.spyOn(database, 'query');
+    try {
+      for (const url of [
+        `/api/v1/cases/not-a-uuid/document-processing/${documentVersionId}`,
+        `/api/v1/cases/${caseId}/document-processing/not-a-uuid`,
+      ]) {
+        query.mockClear();
+        const malformed = await api.inject({ method: 'GET', url, headers: requestHeaders });
+        expect(malformed.statusCode).toBe(400);
+        expect(malformed.json()).toEqual({ code: 'invalid_request' });
+        expect(query).not.toHaveBeenCalled();
+      }
+    } finally {
+      query.mockRestore();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('downloads a member original as non-inline bytes after verifying its stored reference', async () => {
   const root = await mkdtemp(join(tmpdir(), 'record-review-api-download-test-'));
   const caseId = '00000000-0000-4000-8000-000000000013';

@@ -8,6 +8,7 @@ import {
   listOriginalReferencesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
+import { findDocumentProcessingForReviewer } from '@record-review/case-repository/document-processing-attempts';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { OriginalTooLargeError, readOriginal } from '@record-review/record-storage/originals';
@@ -139,6 +140,39 @@ export function createDevelopmentApi(
           identity.reviewerId,
           request.params.caseId,
         ),
+      };
+    },
+  );
+  api.get<{ Params: { caseId: string; documentVersionId: string } }>(
+    '/api/v1/cases/:caseId/document-processing/:documentVersionId',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            caseId: { type: 'string', format: 'uuid' },
+            documentVersionId: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const processing = await findDocumentProcessingForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+        request.params.documentVersionId,
+        syntheticPdfProcessing.extractionVersion,
+      );
+      if (!processing) return reply.code(404).send({ code: 'processing_not_found' });
+      return {
+        processing: {
+          documentVersionId: processing.documentVersionId,
+          extractionVersion: processing.extractionVersion,
+          state: processing.state,
+          attemptCount: processing.attemptCount,
+          failureCode: processing.failureCode,
+        },
       };
     },
   );
