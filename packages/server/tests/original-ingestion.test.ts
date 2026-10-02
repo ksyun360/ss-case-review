@@ -4,9 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { createCase, findOriginalReference } from '@record-review/case-repository/cases';
+import { findDocumentProcessingForReviewer } from '@record-review/case-repository/document-processing-attempts';
 import { readOriginal } from '@record-review/record-storage/originals';
 import { expect, test } from 'vitest';
-import { storeOriginalForReviewer } from '../src/original-ingestion.ts';
+import {
+  storeOriginalAndQueueForReviewer,
+  storeOriginalForReviewer,
+} from '../src/original-ingestion.ts';
 
 async function migrateForTest(database: PGlite) {
   for (const migration of [
@@ -298,6 +302,94 @@ test('marks a registration-error attempt failed after discarding its bytes', asy
     const caseDirectory = join(root, createHash('sha256').update(caseId).digest('hex'));
     expect(await readdir(caseDirectory)).toEqual([]);
     expect((await database.query('SELECT * FROM original_references')).rows).toEqual([]);
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);
+
+test('queues a registered original with fixed extraction budgets before returning its receipt', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-queued-ingestion-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000010';
+  const reviewerId = '00000000-0000-4000-8000-000000000011';
+  try {
+    await migrateForTest(database);
+    const processingSql = await readFile(
+      new URL(
+        '../../case-repository/migrations/202610010001_document_processing_attempts.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+    await database.exec(processingSql.replace(/-- Down Migration[\s\S]*$/, ''));
+    await createCase(database, { caseId, reviewerId, label: 'Queued upload case' });
+    async function* chunks() {
+      yield Buffer.from('%PDF-synthetic');
+    }
+    const original = await storeOriginalAndQueueForReviewer({
+      database,
+      reviewerId,
+      caseId,
+      root,
+      chunks: chunks(),
+      maximumBytes: 1024,
+      maximumPages: 800,
+      extractionVersion: 'pdfjs-native-v1',
+    });
+    if (!original) throw new Error('Expected a queued original');
+    await expect(
+      findDocumentProcessingForReviewer(
+        database,
+        reviewerId,
+        caseId,
+        original.documentVersionId,
+        'pdfjs-native-v1',
+      ),
+    ).resolves.toEqual({
+      caseId,
+      documentVersionId: original.documentVersionId,
+      reviewerId,
+      extractionVersion: 'pdfjs-native-v1',
+      maximumBytes: 1024,
+      maximumPages: 800,
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    });
+
+    await expect(
+      storeOriginalAndQueueForReviewer({
+        database,
+        reviewerId,
+        caseId: '00000000-0000-4000-8000-000000000099',
+        root,
+        chunks: chunks(),
+        maximumBytes: 1024,
+        maximumPages: 800,
+        extractionVersion: 'pdfjs-native-v1',
+      }),
+    ).resolves.toBeUndefined();
+
+    const failedQueueCaseId = '00000000-0000-4000-8000-000000000012';
+    await createCase(database, {
+      caseId: failedQueueCaseId,
+      reviewerId,
+      label: 'Failed queue case',
+    });
+    await expect(
+      storeOriginalAndQueueForReviewer({
+        database,
+        reviewerId,
+        caseId: failedQueueCaseId,
+        root,
+        chunks: chunks(),
+        maximumBytes: 1024,
+        maximumPages: 800,
+        extractionVersion: 'pdfjs-native-v1',
+        reserveProcessing: async () => undefined,
+      }),
+    ).rejects.toThrow('processing_reservation_failed');
   } finally {
     await database.close();
     await rm(root, { recursive: true, force: true });

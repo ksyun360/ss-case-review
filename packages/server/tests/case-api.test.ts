@@ -508,13 +508,20 @@ test('downloads a member original as non-inline bytes after verifying its stored
     });
     expect(missing.statusCode).toBe(404);
     expect(missing.json()).toEqual({ code: 'original_not_found' });
-    for (const url of [
-      `/api/v1/cases/not-a-uuid/synthetic-originals/${versionId}`,
-      `/api/v1/cases/${caseId}/synthetic-originals/not-a-uuid`,
-    ]) {
-      const malformed = await api.inject({ method: 'GET', url, headers: requestHeaders });
-      expect(malformed.statusCode).toBe(400);
-      expect(malformed.json()).toEqual({ code: 'invalid_request' });
+    const query = vi.spyOn(database, 'query');
+    try {
+      for (const url of [
+        `/api/v1/cases/not-a-uuid/synthetic-originals/${versionId}`,
+        `/api/v1/cases/${caseId}/synthetic-originals/not-a-uuid`,
+      ]) {
+        query.mockClear();
+        const malformed = await api.inject({ method: 'GET', url, headers: requestHeaders });
+        expect(malformed.statusCode).toBe(400);
+        expect(malformed.json()).toEqual({ code: 'invalid_request' });
+        expect(query).not.toHaveBeenCalled();
+      }
+    } finally {
+      query.mockRestore();
     }
     const read = vi.spyOn(originalStorage, 'readOriginal').mockResolvedValueOnce(undefined);
     try {
