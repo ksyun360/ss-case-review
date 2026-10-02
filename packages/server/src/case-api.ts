@@ -11,13 +11,18 @@ import {
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { OriginalTooLargeError, readOriginal } from '@record-review/record-storage/originals';
-import { storeOriginalForReviewer } from './original-ingestion.ts';
+import { storeOriginalAndQueueForReviewer } from './original-ingestion.ts';
 import {
   findTextSourceForReviewer,
   listTextSourcesForReviewer,
 } from '@record-review/case-repository/source-units';
 
 export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
+
+const syntheticPdfProcessing = {
+  maximumPages: 800,
+  extractionVersion: 'pdfjs-native-v1',
+} as const;
 
 export function createDevelopmentApi(
   environment: ServerEnvironment,
@@ -204,14 +209,16 @@ export function createDevelopmentApi(
       async (request, reply) => {
         if (request.headers['content-type'] !== 'application/octet-stream')
           return reply.code(415).send({ code: 'unsupported_media_type' });
-        const original = await storeOriginalForReviewer(
+        const original = await storeOriginalAndQueueForReviewer({
           database,
-          identity.reviewerId,
-          request.params.caseId,
-          originalStorage.root,
-          request.body,
-          originalStorage.maximumBytes,
-        );
+          reviewerId: identity.reviewerId,
+          caseId: request.params.caseId,
+          root: originalStorage.root,
+          chunks: request.body,
+          maximumBytes: originalStorage.maximumBytes,
+          maximumPages: syntheticPdfProcessing.maximumPages,
+          extractionVersion: syntheticPdfProcessing.extractionVersion,
+        });
         if (!original) return reply.code(404).send({ code: 'case_not_found' });
         return reply.code(201).send({ original });
       },

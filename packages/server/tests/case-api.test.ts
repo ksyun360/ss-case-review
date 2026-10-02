@@ -7,6 +7,7 @@ import {
   findOriginalReference,
   registerOriginalReference,
 } from '@record-review/case-repository/cases';
+import { findDocumentProcessingForReviewer } from '@record-review/case-repository/document-processing-attempts';
 import * as originalStorage from '@record-review/record-storage/originals';
 import {
   findTextSourceForReviewer,
@@ -51,6 +52,14 @@ beforeEach(async () => {
       'utf8',
     ),
   );
+  const processingMigration = await readFile(
+    new URL(
+      '../../case-repository/migrations/202610010001_document_processing_attempts.sql',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  await database.exec(processingMigration.replace(/-- Down Migration[\s\S]*$/, ''));
   api = createDevelopmentApi(environment, database);
 });
 afterEach(async () => {
@@ -458,6 +467,25 @@ test('accepts one synthetic original as streamed bytes for a member case', async
     expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
       { state: 'registered' },
     ]);
+    await expect(
+      findDocumentProcessingForReviewer(
+        database,
+        reviewerId,
+        caseId,
+        reference.documentVersionId,
+        'pdfjs-native-v1',
+      ),
+    ).resolves.toEqual({
+      caseId,
+      documentVersionId: reference.documentVersionId,
+      reviewerId,
+      extractionVersion: 'pdfjs-native-v1',
+      maximumBytes: 3,
+      maximumPages: 800,
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    });
     const malformed = await api.inject({
       method: 'POST',
       url: '/api/v1/cases/not-a-uuid/synthetic-originals',
