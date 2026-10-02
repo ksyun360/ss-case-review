@@ -1,6 +1,6 @@
 # Document processing journal
 
-Status: Phase 4 includes a durable synthetic document-processing queue in PostgreSQL. The upload route reserves one queue row before acknowledging each registered original. The queue records one extraction version for a registered original, applies fixed byte and page ceilings, and tracks `queued`, `processing`, `published`, or `failed` states. A callable one-job worker claims and finalizes queue rows; server startup does not schedule or loop the worker yet.
+Status: Phase 4 includes a durable synthetic document-processing queue in PostgreSQL. The upload route reserves one queue row before acknowledging each registered original. The queue records one extraction version for a registered original, applies fixed byte and page ceilings, and tracks `queued`, `processing`, `published`, or `failed` states. A callable one-job worker claims and finalizes queue rows, and a tested serial scheduler can repeat that worker without overlapping jobs. Server startup does not invoke the scheduler yet.
 
 `reserveDocumentProcessing` inserts work only when the requesting reviewer currently belongs to the case and the registered original exists. A unique case, document-version, and extraction-version key prevents duplicate work. Duplicate reservations return no new row.
 
