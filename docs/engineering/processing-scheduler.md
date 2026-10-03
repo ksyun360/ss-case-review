@@ -1,6 +1,6 @@
 # Document processing scheduler
 
-Status: Phase 4 includes a tested serial scheduler boundary for the durable one-job worker. Server startup does not invoke the scheduler yet.
+Status: Phase 4 includes a tested serial scheduler for the durable one-job worker. Guarded development startup invokes the scheduler only when the developer explicitly configures private original storage.
 
 `startDocumentProcessingScheduler` waits for a fixed interval, creates a fresh lease token and timestamp, and invokes at most one `runNextDocumentProcessing` call at a time. The scheduler calculates a fixed lease expiration from the attempt start. The scheduler waits for each worker promise to settle before scheduling another timer, which prevents parser overlap inside one server process.
 
@@ -8,4 +8,4 @@ An unexpected worker rejection does not terminate the loop. The durable processi
 
 The returned stop function clears the pending timer once and prevents an already captured callback from starting work or rescheduling. A deterministic test supplies clocks, identifiers, worker behavior, and timer primitives to verify serial execution, lease bounds, continued scheduling after failure, and idempotent shutdown.
 
-The scheduler still runs extraction in the API process. Production deployment requires a separately isolated worker with court-approved CPU, memory, wall-clock, parser, and malware controls. Startup integration and browser progress polling remain pending.
+Development startup begins scheduling only after migrations and loopback listener startup succeed. The API shutdown hook stops scheduling before closing the PostgreSQL pool. Metadata-only startup does not create a scheduler. The scheduler still runs extraction in the API process. Production deployment requires a separately isolated worker with court-approved CPU, memory, wall-clock, parser, and malware controls. Browser progress polling remains pending.

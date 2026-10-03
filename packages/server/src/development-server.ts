@@ -2,10 +2,13 @@ import type { ServerEnvironment } from '@record-review/server-config/gemini-deve
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { Pool } from 'pg';
 import process from 'node:process';
+import { randomUUID } from 'node:crypto';
 import { isAbsolute, parse, resolve } from 'node:path';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
+import { startDocumentProcessingScheduler } from './processing-scheduler.ts';
+import { runNextDocumentProcessing } from './processing-worker.ts';
 
 export async function startDevelopmentServer(environment: ServerEnvironment) {
   readDevelopmentIdentity(environment);
@@ -24,7 +27,9 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
   const api = originalStorage
     ? createDevelopmentApi(environment, database, originalStorage)
     : createDevelopmentApi(environment, database);
+  let stopProcessing: (() => void) | undefined;
   api.addHook('onClose', async () => {
+    stopProcessing?.();
     await database.end();
   });
   try {
@@ -35,6 +40,18 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
       client.release();
     }
     await api.listen({ host: '127.0.0.1', port: 5176 });
+    if (originalStorage)
+      stopProcessing = startDocumentProcessingScheduler({
+        database,
+        root: originalStorage.root,
+        intervalMilliseconds: 250,
+        leaseMilliseconds: 300_000,
+        now: () => new Date(),
+        createId: randomUUID,
+        schedule: (callback, delay) => setTimeout(callback, delay),
+        clear: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
+        runNext: runNextDocumentProcessing,
+      });
     return api;
   } catch {
     await api.close();

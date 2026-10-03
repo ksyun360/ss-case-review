@@ -9,10 +9,12 @@ import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { readDevelopmentDatabaseConfig } from '../src/development-database.ts';
 import { startDevelopmentServer } from '../src/development-server.ts';
+import { startDocumentProcessingScheduler } from '../src/processing-scheduler.ts';
 
 vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
+vi.mock('../src/processing-scheduler.ts', () => ({ startDocumentProcessingScheduler: vi.fn() }));
 
 test('handles an idle database error with a fixed diagnostic instead of exposing details', async () => {
   const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
@@ -80,6 +82,7 @@ const database = Object.assign(new EventEmitter(), {
   connect: vi.fn(),
   end: vi.fn(),
 });
+const stopProcessing = vi.fn();
 let api: ReturnType<typeof createDevelopmentApi>;
 
 beforeEach(() => {
@@ -94,6 +97,7 @@ beforeEach(() => {
   vi.spyOn(api, 'listen').mockImplementation(async () => 'http://127.0.0.1:5176');
   vi.mocked(createDevelopmentApi).mockReturnValue(api);
   vi.mocked(migrateCaseSchema).mockResolvedValue([]);
+  vi.mocked(startDocumentProcessingScheduler).mockReturnValue(stopProcessing);
 });
 
 afterEach(async () => {
@@ -119,6 +123,7 @@ test('migrates before listening and closes the pool with the development API', a
   expect(started === api).toBe(true);
   expect(Pool).toHaveBeenCalledExactlyOnceWith(readDevelopmentDatabaseConfig(environment));
   expect(createDevelopmentApi).toHaveBeenCalledExactlyOnceWith(environment, database);
+  expect(startDocumentProcessingScheduler).not.toHaveBeenCalled();
   expect(migrateCaseSchema).toHaveBeenCalledExactlyOnceWith(client);
   expect(api.listen).toHaveBeenCalledExactlyOnceWith({ host: '127.0.0.1', port: 5176 });
   expect(events).toEqual(['connect', 'migrate', 'release', 'listen']);
@@ -136,6 +141,33 @@ test('enables bounded synthetic original storage only for an explicit absolute r
     maximumBytes: 512 * 1024 * 1024,
   });
   expect(api.listen).toHaveBeenCalledExactlyOnceWith({ host: '127.0.0.1', port: 5176 });
+  expect(startDocumentProcessingScheduler).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      database,
+      root,
+      intervalMilliseconds: 250,
+      leaseMilliseconds: 300_000,
+    }),
+  );
+  const scheduler = vi.mocked(startDocumentProcessingScheduler).mock.calls[0]?.[0];
+  if (!scheduler) throw new Error('Expected scheduler configuration');
+  expect(scheduler.now()).toBeInstanceOf(Date);
+  expect(scheduler.createId()).toMatch(/^[a-f0-9-]{36}$/);
+  vi.useFakeTimers();
+  try {
+    const callback = vi.fn(async () => undefined);
+    const timer = scheduler.schedule(callback, 5);
+    expect(timer).toBeDefined();
+    scheduler.clear(timer);
+    await vi.advanceTimersByTimeAsync(5);
+    expect(callback).not.toHaveBeenCalled();
+  } finally {
+    vi.useRealTimers();
+  }
+  expect(stopProcessing).not.toHaveBeenCalled();
+  await api.close();
+  expect(stopProcessing).toHaveBeenCalledExactlyOnceWith();
+  expect(database.end).toHaveBeenCalledExactlyOnceWith();
   vi.mocked(createDevelopmentApi).mockClear();
   vi.mocked(api.listen).mockClear();
   await expect(
