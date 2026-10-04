@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import {
   createSyntheticCase,
+  getSyntheticDocumentProcessing,
   getSyntheticUploadCapability,
   getSyntheticCase,
   getSyntheticTextSource,
@@ -11,6 +12,88 @@ import {
 } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
+
+test('loads and validates one document processing status without trusting malformed responses', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  const processing = {
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'queued',
+    attemptCount: 0,
+    failureCode: null,
+  } as const;
+  const validStatuses = [
+    processing,
+    { ...processing, extractionVersion: 'x'.repeat(128), state: 'processing', attemptCount: 1 },
+    { ...processing, state: 'published', attemptCount: 1 },
+    ...[
+      'original_unavailable',
+      'unsupported_document_format',
+      'byte_budget_exceeded',
+      'page_budget_exceeded',
+      'extraction_failed',
+      'publication_rejected',
+    ].map((failureCode) => ({ ...processing, state: 'failed', attemptCount: 1, failureCode })),
+  ];
+  const invalidPayloads = [
+    null,
+    {},
+    { processing: null },
+    { processing: { ...processing, documentVersionId: 'not-a-uuid' } },
+    {
+      processing: {
+        ...processing,
+        documentVersionId: '00000000-0000-4000-8000-000000000022',
+      },
+    },
+    { processing: { ...processing, extractionVersion: '' } },
+    { processing: { ...processing, extractionVersion: null } },
+    { processing: { ...processing, extractionVersion: 'x'.repeat(129) } },
+    { processing: { ...processing, state: 'unknown' } },
+    { processing: { ...processing, attemptCount: -1 } },
+    { processing: { ...processing, attemptCount: 1.5 } },
+    { processing: { ...processing, failureCode: 'unknown_failure' } },
+  ];
+  const errorJson = vi.fn();
+  const fetch = vi.fn();
+  for (const validStatus of validStatuses)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ processing: validStatus }),
+    });
+  fetch
+    .mockResolvedValueOnce({ ok: false, status: 404, json: errorJson })
+    .mockResolvedValueOnce({ ok: false, status: 503, json: errorJson });
+  for (const payload of invalidPayloads)
+    fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => payload });
+  vi.stubGlobal('fetch', fetch);
+
+  for (const validStatus of validStatuses)
+    await expect(getSyntheticDocumentProcessing(caseId, documentVersionId)).resolves.toEqual(
+      validStatus,
+    );
+  await expect(getSyntheticDocumentProcessing(caseId, documentVersionId)).resolves.toBeUndefined();
+  await expect(getSyntheticDocumentProcessing(caseId, documentVersionId)).rejects.toThrow(
+    'document_processing_unavailable',
+  );
+  expect(errorJson).not.toHaveBeenCalled();
+  for (let index = 0; index < invalidPayloads.length; index += 1)
+    await expect(getSyntheticDocumentProcessing(caseId, documentVersionId)).rejects.toThrow(
+      'document_processing_unavailable',
+    );
+  expect(fetch).toHaveBeenNthCalledWith(
+    1,
+    `/api/v1/cases/${caseId}/document-processing/${documentVersionId}`,
+    {
+      headers: { 'x-record-review-client': 'synthetic-workspace' },
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
+  expect(fetch).toHaveBeenCalledTimes(validStatuses.length + 2 + invalidPayloads.length);
+});
 
 test('requests one reviewer-scoped draft through the same-origin API', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';

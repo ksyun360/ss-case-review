@@ -11,6 +11,21 @@ export type SyntheticOriginalReceipt = Readonly<{
   byteLength: number;
 }>;
 
+export type SyntheticDocumentProcessing = Readonly<{
+  documentVersionId: string;
+  extractionVersion: string;
+  state: 'queued' | 'processing' | 'published' | 'failed';
+  attemptCount: number;
+  failureCode:
+    | 'original_unavailable'
+    | 'unsupported_document_format'
+    | 'byte_budget_exceeded'
+    | 'page_budget_exceeded'
+    | 'extraction_failed'
+    | 'publication_rejected'
+    | null;
+}>;
+
 export type SyntheticTextSource = Readonly<{
   sourceUnitId: string;
   caseId: string;
@@ -26,6 +41,44 @@ export type SyntheticTextSourceReference = Omit<SyntheticTextSource, 'rawText'>;
 
 const UUID4_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
+const PROCESSING_STATES = new Set(['queued', 'processing', 'published', 'failed']);
+const PROCESSING_FAILURE_CODES = new Set([
+  'original_unavailable',
+  'unsupported_document_format',
+  'byte_budget_exceeded',
+  'page_budget_exceeded',
+  'extraction_failed',
+  'publication_rejected',
+]);
+
+export async function getSyntheticDocumentProcessing(
+  caseId: string,
+  documentVersionId: string,
+): Promise<SyntheticDocumentProcessing | undefined> {
+  const response = await fetch(`/api/v1/cases/${caseId}/document-processing/${documentVersionId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (response.status === 404) return undefined;
+  if (!response.ok) throw new Error('document_processing_unavailable');
+  const payload = (await response.json()) as { processing?: unknown } | null;
+  const processing = payload?.processing as SyntheticDocumentProcessing | null | undefined;
+  if (
+    !processing ||
+    processing.documentVersionId !== documentVersionId ||
+    !UUID4_PATTERN.test(processing.documentVersionId) ||
+    typeof processing.extractionVersion !== 'string' ||
+    !/\S/.test(processing.extractionVersion) ||
+    processing.extractionVersion.length > 128 ||
+    !PROCESSING_STATES.has(processing.state) ||
+    !Number.isSafeInteger(processing.attemptCount) ||
+    processing.attemptCount < 0 ||
+    (processing.failureCode !== null && !PROCESSING_FAILURE_CODES.has(processing.failureCode))
+  )
+    throw new Error('document_processing_unavailable');
+  return processing;
+}
 
 function isSyntheticTextSourceReference(
   value: unknown,
