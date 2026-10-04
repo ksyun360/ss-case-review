@@ -41,7 +41,7 @@ export function App() {
             ·{' '}
           </span>
           Use synthetic documents only. Local original registration requires a configured API;
-          processing and court sign-in are unavailable.
+          background PDF processing requires the same API. Court sign-in is unavailable.
         </p>
       </div>
       <Routes>

@@ -603,6 +603,30 @@ a.primary-button:hover {
   margin-top: 24px;
 }
 
+.original-list {
+  display: grid;
+  gap: 12px;
+  max-width: 48rem;
+  padding: 0;
+  margin: 20px auto;
+  text-align: left;
+  list-style: none;
+}
+
+.original-list li {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+}
+
+.processing-status {
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .source-list {
   display: grid;
   gap: 8px;

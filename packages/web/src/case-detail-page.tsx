@@ -1,30 +1,78 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import {
+  getSyntheticDocumentProcessing,
   getSyntheticTextSource,
   getSyntheticCase,
   listSyntheticOriginals,
   listSyntheticTextSources,
   type CaseSummary,
+  type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
   type SyntheticTextSource,
   type SyntheticTextSourceReference,
 } from './case-client.ts';
 
+const PROCESSING_LABELS = {
+  queued: 'Waiting to process',
+  processing: 'Extracting record text',
+  published: 'Source extraction complete',
+  failed: 'Extraction could not complete',
+} as const;
+
+export function SyntheticProcessingStatus({
+  caseId,
+  documentVersionId,
+}: {
+  caseId: string;
+  documentVersionId: string;
+}) {
+  const [processing, setProcessing] = useState<
+    SyntheticDocumentProcessing | null | 'unavailable'
+  >();
+  useEffect(() => {
+    setProcessing(undefined);
+    void getSyntheticDocumentProcessing(caseId, documentVersionId).then(
+      (found) => setProcessing(found ?? null),
+      () => setProcessing('unavailable'),
+    );
+  }, [caseId, documentVersionId]);
+
+  return (
+    <span className="processing-status">
+      {processing === undefined
+        ? 'Loading processing status…'
+        : processing === null
+          ? 'No processing record found'
+          : processing === 'unavailable'
+            ? 'Processing status unavailable'
+            : PROCESSING_LABELS[processing.state]}
+    </span>
+  );
+}
+
 export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
-  const [originals, setOriginals] = useState<SyntheticOriginalReceipt[] | 'unavailable'>();
+  const [inventory, setInventory] = useState<
+    | Readonly<{ caseId: string; status: 'available'; originals: SyntheticOriginalReceipt[] }>
+    | Readonly<{ caseId: string; status: 'unavailable' }>
+  >();
   const load = useCallback(() => {
-    setOriginals(undefined);
-    void listSyntheticOriginals(caseId).then(setOriginals, () => setOriginals('unavailable'));
+    setInventory(undefined);
+    void listSyntheticOriginals(caseId).then(
+      (originals) => setInventory({ caseId, status: 'available', originals }),
+      () => setInventory({ caseId, status: 'unavailable' }),
+    );
   }, [caseId]);
   useEffect(() => {
     load();
   }, [load]);
+  const current = inventory?.caseId === caseId ? inventory : undefined;
+  const originals = current?.status === 'available' ? current.originals : undefined;
 
   return (
     <section className="panel empty-state" aria-live="polite">
       <h2>Registered originals</h2>
-      {originals === 'unavailable' ? (
+      {current?.status === 'unavailable' ? (
         <>
           <p>Original inventory unavailable. The case record has not been confirmed.</p>
           <button className="button secondary-button" type="button" onClick={load}>
@@ -36,15 +84,19 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
       ) : originals.length === 0 ? (
         <p>No registered originals yet.</p>
       ) : (
-        <ul>
+        <ul className="original-list">
           {originals.map((original) => (
             <li key={original.documentVersionId}>
               <code>{original.documentVersionId}</code> <span>{original.byteLength} bytes</span>
+              <SyntheticProcessingStatus
+                caseId={caseId}
+                documentVersionId={original.documentVersionId}
+              />
             </li>
           ))}
         </ul>
       )}
-      <p>Automatic source extraction is not connected yet.</p>
+      <p>Processing status comes from the case-scoped background queue.</p>
       <a className="button secondary-button" href="/cases">
         Back to saved cases
       </a>

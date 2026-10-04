@@ -1,17 +1,23 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { Link, MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { App } from '../src/app.tsx';
-import { SyntheticOriginalInventory, SyntheticSourceWorkspace } from '../src/case-detail-page.tsx';
 import {
+  SyntheticOriginalInventory,
+  SyntheticProcessingStatus,
+  SyntheticSourceWorkspace,
+} from '../src/case-detail-page.tsx';
+import {
+  getSyntheticDocumentProcessing,
   getSyntheticTextSource,
   getSyntheticCase,
   listSyntheticOriginals,
   listSyntheticTextSources,
   type CaseSummary,
+  type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
   type SyntheticTextSource,
   type SyntheticTextSourceReference,
@@ -19,6 +25,7 @@ import {
 
 vi.mock('../src/case-client.ts', () => ({
   getSyntheticCase: vi.fn(),
+  getSyntheticDocumentProcessing: vi.fn(),
   getSyntheticTextSource: vi.fn(),
   listSyntheticOriginals: vi.fn(),
   listSyntheticTextSources: vi.fn(),
@@ -28,6 +35,7 @@ vi.mock('../src/case-client.ts', () => ({
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
   vi.mocked(listSyntheticTextSources).mockResolvedValue([]);
+  vi.mocked(getSyntheticDocumentProcessing).mockResolvedValue(undefined);
 });
 afterEach(() => {
   cleanup();
@@ -63,7 +71,9 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   expect(await screen.findByRole('heading', { name: 'Synthetic saved draft' })).toBeVisible();
   expect(screen.getByText('Record revision 1')).toBeVisible();
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
-  expect(screen.getByText('Automatic source extraction is not connected yet.')).toBeVisible();
+  expect(
+    screen.getByText('Processing status comes from the case-scoped background queue.'),
+  ).toBeVisible();
   expect(getSyntheticCase).toHaveBeenCalledExactlyOnceWith(caseId);
   await user.click(screen.getByRole('link', { name: 'Next synthetic draft' }));
   expect(await screen.findByRole('heading', { name: 'Second synthetic draft' })).toBeVisible();
@@ -96,25 +106,136 @@ test('explains when a saved synthetic case is not available to this reviewer', a
 
 test('lists registered synthetic originals on the saved case page', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
-  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  const documentVersionIds = [21, 22, 23, 24, 25, 26].map(
+    (suffix) => `00000000-0000-4000-8000-0000000000${suffix}`,
+  );
   vi.mocked(getSyntheticCase).mockResolvedValueOnce({
     caseId,
     label: 'Synthetic saved draft',
     recordRevision: 1,
   });
-  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce([
-    { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 12 },
-  ]);
+  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce(
+    documentVersionIds.map((documentVersionId, index) => ({
+      caseId,
+      documentVersionId,
+      sha256: 'a'.repeat(64),
+      byteLength: 12 + index,
+    })),
+  );
+  let resolveQueued!: (value: SyntheticDocumentProcessing) => void;
+  vi.mocked(getSyntheticDocumentProcessing).mockImplementationOnce(
+    () =>
+      new Promise<SyntheticDocumentProcessing>((resolve) => {
+        resolveQueued = resolve;
+      }),
+  );
+  for (const [index, state] of ['processing', 'published', 'failed'].entries())
+    vi.mocked(getSyntheticDocumentProcessing).mockResolvedValueOnce({
+      documentVersionId: documentVersionIds[index + 1] as string,
+      extractionVersion: 'pdfjs-native-v1',
+      state: state as 'queued' | 'processing' | 'published' | 'failed',
+      attemptCount: 1,
+      failureCode: state === 'failed' ? 'extraction_failed' : null,
+    });
+  vi.mocked(getSyntheticDocumentProcessing)
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error('synthetic status outage'));
   render(
     <MemoryRouter initialEntries={[`/cases/${caseId}`]}>
       <App />
     </MemoryRouter>,
   );
   expect(await screen.findByRole('heading', { name: 'Registered originals' })).toBeVisible();
-  expect(await screen.findByText(documentVersionId)).toBeVisible();
+  expect(await screen.findByText(documentVersionIds[0] as string)).toBeVisible();
   expect(screen.getByText('12 bytes')).toBeVisible();
-  expect(screen.getByText('Automatic source extraction is not connected yet.')).toBeVisible();
+  expect(screen.getAllByText('Loading processing status…')[0]).toBeVisible();
+  resolveQueued({
+    documentVersionId: documentVersionIds[0] as string,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'queued',
+    attemptCount: 0,
+    failureCode: null,
+  });
+  expect(await screen.findByText('Waiting to process')).toBeVisible();
+  expect(await screen.findByText('Extracting record text')).toBeVisible();
+  expect(await screen.findByText('Source extraction complete')).toBeVisible();
+  expect(await screen.findByText('Extraction could not complete')).toBeVisible();
+  expect(await screen.findByText('No processing record found')).toBeVisible();
+  expect(await screen.findByText('Processing status unavailable')).toBeVisible();
   expect(listSyntheticOriginals).toHaveBeenCalledExactlyOnceWith(caseId);
+  for (const [index, documentVersionId] of documentVersionIds.entries())
+    expect(getSyntheticDocumentProcessing).toHaveBeenNthCalledWith(
+      index + 1,
+      caseId,
+      documentVersionId,
+    );
+
+  cleanup();
+  vi.clearAllMocks();
+  const nextCaseId = '00000000-0000-4000-8000-000000000003';
+  const documentVersionId = documentVersionIds[0] as string;
+  vi.mocked(getSyntheticDocumentProcessing).mockResolvedValueOnce({
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'published',
+    attemptCount: 1,
+    failureCode: null,
+  });
+  let resolveNextStatus!: (value: SyntheticDocumentProcessing) => void;
+  vi.mocked(getSyntheticDocumentProcessing).mockImplementationOnce(
+    () =>
+      new Promise<SyntheticDocumentProcessing>((resolve) => {
+        resolveNextStatus = resolve;
+      }),
+  );
+  const status = render(
+    <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+  );
+  expect(await screen.findByText('Source extraction complete')).toBeVisible();
+  status.rerender(
+    <SyntheticProcessingStatus caseId={nextCaseId} documentVersionId={documentVersionId} />,
+  );
+  expect(screen.getByText('Loading processing status…')).toBeVisible();
+  resolveNextStatus({
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'queued',
+    attemptCount: 0,
+    failureCode: null,
+  });
+  expect(await screen.findByText('Waiting to process')).toBeVisible();
+  expect(getSyntheticDocumentProcessing).toHaveBeenNthCalledWith(2, nextCaseId, documentVersionId);
+
+  cleanup();
+  vi.clearAllMocks();
+  const original = {
+    caseId,
+    documentVersionId,
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+  };
+  let resolveStaleInventory!: (value: SyntheticOriginalReceipt[]) => void;
+  let resolveNextInventory!: (value: SyntheticOriginalReceipt[]) => void;
+  vi.mocked(listSyntheticOriginals)
+    .mockImplementationOnce(
+      () =>
+        new Promise<SyntheticOriginalReceipt[]>((resolve) => {
+          resolveStaleInventory = resolve;
+        }),
+    )
+    .mockImplementationOnce(
+      () =>
+        new Promise<SyntheticOriginalReceipt[]>((resolve) => {
+          resolveNextInventory = resolve;
+        }),
+    );
+  const inventory = render(<SyntheticOriginalInventory caseId={caseId} />);
+  inventory.rerender(<SyntheticOriginalInventory caseId={nextCaseId} />);
+  await act(async () => resolveStaleInventory([original]));
+  expect(screen.getByText('Loading registered originals…')).toBeVisible();
+  expect(screen.queryByText(documentVersionId)).not.toBeInTheDocument();
+  await act(async () => resolveNextInventory([]));
+  expect(await screen.findByText('No registered originals yet.')).toBeVisible();
 });
 
 test('retries source discovery and opens exact page text with its provenance', async () => {
