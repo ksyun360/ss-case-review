@@ -238,6 +238,132 @@ test('lists registered synthetic originals on the saved case page', async () => 
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
 });
 
+test('polls active document processing until a terminal status arrives', async () => {
+  vi.useFakeTimers();
+  try {
+    const caseId = '00000000-0000-4000-8000-000000000002';
+    const documentVersionId = '00000000-0000-4000-8000-000000000021';
+    vi.mocked(getSyntheticDocumentProcessing)
+      .mockResolvedValueOnce({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'queued',
+        attemptCount: 0,
+        failureCode: null,
+      })
+      .mockResolvedValueOnce({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'processing',
+        attemptCount: 1,
+        failureCode: null,
+      })
+      .mockResolvedValueOnce({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'published',
+        attemptCount: 1,
+        failureCode: null,
+      });
+
+    render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
+    await act(async () => undefined);
+    expect(screen.getByText('Waiting to process')).toBeVisible();
+
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(screen.getByText('Extracting record text')).toBeVisible();
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(screen.getByText('Source extraction complete')).toBeVisible();
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(getSyntheticDocumentProcessing).toHaveBeenCalledTimes(3);
+    expect(getSyntheticDocumentProcessing).toHaveBeenCalledWith(caseId, documentVersionId);
+
+    cleanup();
+    vi.mocked(getSyntheticDocumentProcessing).mockReset().mockResolvedValueOnce({
+      documentVersionId,
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    });
+    const queued = render(
+      <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+    );
+    await act(async () => undefined);
+    queued.unmount();
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(getSyntheticDocumentProcessing).toHaveBeenCalledTimes(1);
+
+    vi.mocked(getSyntheticDocumentProcessing).mockReset();
+    let resolveStale!: (value: SyntheticDocumentProcessing) => void;
+    vi.mocked(getSyntheticDocumentProcessing)
+      .mockImplementationOnce(
+        () =>
+          new Promise<SyntheticDocumentProcessing>((resolve) => {
+            resolveStale = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'published',
+        attemptCount: 1,
+        failureCode: null,
+      });
+    const status = render(
+      <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+    );
+    const nextCaseId = '00000000-0000-4000-8000-000000000003';
+    status.rerender(
+      <SyntheticProcessingStatus caseId={nextCaseId} documentVersionId={documentVersionId} />,
+    );
+    await act(async () => undefined);
+    expect(screen.getByText('Source extraction complete')).toBeVisible();
+    await act(async () =>
+      resolveStale({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'queued',
+        attemptCount: 0,
+        failureCode: null,
+      }),
+    );
+    expect(screen.getByText('Source extraction complete')).toBeVisible();
+    await act(async () => vi.advanceTimersByTimeAsync(2_000));
+    expect(getSyntheticDocumentProcessing).toHaveBeenCalledTimes(2);
+
+    status.unmount();
+    vi.mocked(getSyntheticDocumentProcessing).mockReset();
+    let rejectStale!: (reason: Error) => void;
+    vi.mocked(getSyntheticDocumentProcessing)
+      .mockImplementationOnce(
+        () =>
+          new Promise<SyntheticDocumentProcessing>((_resolve, reject) => {
+            rejectStale = reject;
+          }),
+      )
+      .mockResolvedValueOnce({
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'published',
+        attemptCount: 1,
+        failureCode: null,
+      });
+    const rejected = render(
+      <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+    );
+    rejected.rerender(
+      <SyntheticProcessingStatus caseId={nextCaseId} documentVersionId={documentVersionId} />,
+    );
+    await act(async () => undefined);
+    await act(async () => rejectStale(new Error('stale request failed')));
+    expect(screen.getByText('Source extraction complete')).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test('retries source discovery and opens exact page text with its provenance', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const sourceUnitId = '00000000-0000-4000-8000-000000000031';

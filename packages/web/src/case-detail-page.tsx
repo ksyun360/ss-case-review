@@ -19,6 +19,7 @@ const PROCESSING_LABELS = {
   published: 'Source extraction complete',
   failed: 'Extraction could not complete',
 } as const;
+const PROCESSING_POLL_MILLISECONDS = 2_000;
 
 export function SyntheticProcessingStatus({
   caseId,
@@ -31,11 +32,27 @@ export function SyntheticProcessingStatus({
     SyntheticDocumentProcessing | null | 'unavailable'
   >();
   useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setProcessing(undefined);
-    void getSyntheticDocumentProcessing(caseId, documentVersionId).then(
-      (found) => setProcessing(found ?? null),
-      () => setProcessing('unavailable'),
-    );
+    const load = () => {
+      void getSyntheticDocumentProcessing(caseId, documentVersionId).then(
+        (found) => {
+          if (!active) return;
+          setProcessing(found ?? null);
+          if (found?.state === 'queued' || found?.state === 'processing')
+            timer = setTimeout(load, PROCESSING_POLL_MILLISECONDS);
+        },
+        () => {
+          if (active) setProcessing('unavailable');
+        },
+      );
+    };
+    load();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [caseId, documentVersionId]);
 
   return (
