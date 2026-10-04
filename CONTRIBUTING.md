@@ -34,7 +34,7 @@ The pre-push hook permits destinations under `refs/heads/feature/` only and rech
 | `npm run dev:api`            | Start the synthetic loopback case API with an ignored environment file.                |
 | `npm run dev`                | Start the loopback-only development preview on port 5175.                              |
 | `npm run check:secrets`      | Scan eligible source files for credentials.                                            |
-| `npm run check:dependencies` | Reject high or critical dependency advisories.                                         |
+| `npm run check:dependencies` | Reject production advisories and unapproved high or critical development advisories.   |
 | `npm run check:licenses`     | Check dependency license declarations against the tooling inventory.                   |
 | `npm run verify:commit`      | Run the complete current commit gate.                                                  |
 
