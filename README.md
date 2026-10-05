@@ -18,7 +18,7 @@ Internal [document-inspection modules](docs/engineering/document-inspection.md) 
 
 Use synthetic documents only. Court sign-in, durable uploads, extraction, and case-review artifacts remain unimplemented. The preview does not support real court records or shared deployment.
 
-With Node.js 24.21.0 and installed dependencies, run `npm run dev` and open <http://127.0.0.1:5175/>. Read the [local preview guide](docs/engineering/local-preview.md) for setup, available routes, and limitations. Read [Contributing](CONTRIBUTING.md) for quality commands and the development workflow.
+With Node.js 24.21.0 and installed dependencies, run `npm run dev` and open <http://127.0.0.1:5175/>. Select **Open demo case** or open <http://127.0.0.1:5175/demo> to show the self-contained fictional review case. Read the [local preview guide](docs/engineering/local-preview.md) for setup, available routes, and limitations. Read [Contributing](CONTRIBUTING.md) for quality commands and the development workflow.
 
 The static design references contain fictional case information and illustrate later review features.
 

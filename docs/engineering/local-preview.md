@@ -13,7 +13,7 @@ npm exec -- playwright install chromium
 npm run dev
 ```
 
-Open <http://127.0.0.1:5175/>. The development server binds only to the loopback address and rejects an occupied port. Stop the server with Control-C. No environment secrets, database, model endpoint, or court credentials are required for document-selection preview. Synthetic draft creation and case navigation need the separate API and development PostgreSQL instance described below.
+Open <http://127.0.0.1:5175/>. The development server binds only to the loopback address and rejects an occupied port. Stop the server with Control-C. Select **Open demo case** on the home page or open <http://127.0.0.1:5175/demo> for a self-contained fictional review case. The demo case needs no environment secrets, database, model endpoint, or court credentials. Synthetic draft creation and case navigation need the separate API and development PostgreSQL instance described below.
 
 For a production-bundle check, run `npm run build` followed by `npm run preview`, then open <http://127.0.0.1:5185/>. The preview server also binds only to loopback. These commands do not deploy the application.
 
@@ -23,14 +23,15 @@ The [synthetic development API](development-server.md) has a separate `npm run d
 
 ## Available behavior
 
-| Route            | Current behavior                                                                                                       |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `/`              | Redirects to `/home`.                                                                                                  |
-| `/home`          | Presents starting actions and a static synthetic-document prompt.                                                      |
-| `/upload`        | Lists selected files and registers synthetic originals when the opt-in local route is available.                       |
-| `/cases`         | Lists and creates synthetic draft metadata when the local API runs; shows loading, empty, and retry states.            |
-| `/cases/:caseId` | Shows member-scoped case metadata and an explicit no-documents state; handles inaccessible cases and service failures. |
-| Unknown address  | Offers a recovery link to the workspace.                                                                               |
+| Route            | Current behavior                                                                                                        |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `/`              | Redirects to `/home`.                                                                                                   |
+| `/home`          | Presents starting actions and a static synthetic-document prompt.                                                       |
+| `/upload`        | Lists selected files and registers synthetic originals when the opt-in local route is available.                        |
+| `/cases`         | Lists and creates synthetic draft metadata when the local API runs; shows loading, empty, and retry states.             |
+| `/cases/:caseId` | Shows member-scoped case metadata and an explicit no-documents state; handles inaccessible cases and service failures.  |
+| `/demo`          | Shows a fictional source-labeled case with summary, medical chronology, procedural chronology, and five-step/RFC views. |
+| Unknown address  | Offers a recovery link to the workspace.                                                                                |
 
 Select synthetic PDF, DOC, DOCX, XLSX, TIF, or TIFF files through the labeled file chooser. The browser displays filename and size metadata before registration. Additional selections append to the list. A remove action targets one selected entry even when filenames match. Selecting a removed file again restores that entry. The preview preserves duplicate selections instead of assuming matching filenames identify matching documents. Registration sends the selected file bytes to the opt-in local API route.
 

@@ -6,6 +6,7 @@ import {
   getSyntheticCase,
   listSyntheticOriginals,
   listSyntheticTextSources,
+  verifySyntheticTextSpan,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
@@ -20,6 +21,17 @@ const PROCESSING_LABELS = {
   failed: 'Extraction could not complete',
 } as const;
 const PROCESSING_POLL_MILLISECONDS = 2_000;
+
+export function splitVerifiedSourceText(
+  rawText: string,
+  span: { start: number; end: number },
+): readonly [string, string, string] {
+  return [
+    rawText.slice(0, span.start),
+    rawText.slice(span.start, span.end),
+    rawText.slice(span.end),
+  ];
+}
 
 export function SyntheticProcessingStatus({
   caseId,
@@ -125,6 +137,10 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   const [references, setReferences] = useState<SyntheticTextSourceReference[] | 'unavailable'>();
   const [selected, setSelected] = useState<SyntheticTextSourceReference>();
   const [source, setSource] = useState<SyntheticTextSource | 'unavailable' | 'missing'>();
+  const [quote, setQuote] = useState<string>();
+  const [verifiedSpan, setVerifiedSpan] = useState<
+    { start: number; end: number; quote: string } | 'unavailable' | undefined
+  >();
   const loadInventory = useCallback(() => {
     setReferences(undefined);
     setSelected(undefined);
@@ -138,6 +154,8 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
     (reference: SyntheticTextSourceReference) => {
       setSelected(reference);
       setSource(undefined);
+      setQuote('');
+      setVerifiedSpan(undefined);
       void getSyntheticTextSource(caseId, reference.sourceUnitId).then(
         (found) => setSource(found ?? 'missing'),
         () => setSource('unavailable'),
@@ -145,6 +163,30 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
     },
     [caseId],
   );
+
+  const verifyQuote = useCallback(() => {
+    const verifiedSource = source as SyntheticTextSource;
+    const verifiedReference = selected as SyntheticTextSourceReference;
+    const citation = quote as string;
+    const start = verifiedSource.rawText.indexOf(citation);
+    if (start < 0) {
+      setVerifiedSpan('unavailable');
+      return;
+    }
+    void verifySyntheticTextSpan(caseId, verifiedReference.sourceUnitId, {
+      recordRevision: verifiedSource.recordRevision,
+      documentVersionId: verifiedSource.documentVersionId,
+      documentSha256: verifiedSource.documentSha256,
+      extractionVersion: verifiedSource.extractionVersion,
+      sourceUnitId: verifiedSource.sourceUnitId,
+      start,
+      end: start + citation.length,
+      quote: citation,
+    }).then(
+      (span) => setVerifiedSpan({ start: span.start, end: span.end, quote: span.quote }),
+      () => setVerifiedSpan('unavailable'),
+    );
+  }, [caseId, quote, selected, source]);
 
   return (
     <section className="panel source-workspace" aria-live="polite">
@@ -195,7 +237,52 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
               </h3>
               <p>Extraction {source.extractionVersion}</p>
               <p className="source-hash">SHA-256 {source.documentSha256}</p>
-              <pre>{source.rawText}</pre>
+              <label className="source-quote-label" htmlFor="source-quote">
+                Verify a quotation against this page
+              </label>
+              <textarea
+                id="source-quote"
+                value={quote}
+                onChange={(event) => {
+                  setQuote(event.target.value);
+                  setVerifiedSpan(undefined);
+                }}
+                rows={3}
+              />
+              <button
+                className="button secondary-button"
+                type="button"
+                onClick={verifyQuote}
+                disabled={!quote}
+              >
+                Verify and highlight
+              </button>
+              {verifiedSpan === 'unavailable' ? (
+                <p role="alert">The citation could not be verified against this page.</p>
+              ) : verifiedSpan ? (
+                <p role="status">Citation verified against the persisted source text.</p>
+              ) : null}
+              <pre>
+                {verifiedSpan && verifiedSpan !== 'unavailable' ? (
+                  <>
+                    {(() => {
+                      const [before, highlighted, after] = splitVerifiedSourceText(
+                        source.rawText,
+                        verifiedSpan,
+                      );
+                      return (
+                        <>
+                          {before}
+                          <mark>{highlighted}</mark>
+                          {after}
+                        </>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  source.rawText
+                )}
+              </pre>
             </article>
           )}
         </div>

@@ -31,6 +31,17 @@ export function HomePage() {
           <p className="card-note">Saved synthetic case metadata appears on the next page.</p>
         </article>
       </section>
+      <section className="panel demo-callout" aria-labelledby="demo-case-heading">
+        <p className="eyebrow">READY-TO-RUN DEMONSTRATION</p>
+        <h2 id="demo-case-heading">Open a fictional review case</h2>
+        <p>
+          Explore the summary, chronologies, and five-step/RFC review without starting the API or
+          loading a database.
+        </p>
+        <a className="button secondary-button" href="/demo">
+          Open demo case <span aria-hidden="true">→</span>
+        </a>
+      </section>
       <section className="recent-section" aria-labelledby="recent-heading">
         <div className="section-heading">
           <h2 id="recent-heading">Recent cases</h2>

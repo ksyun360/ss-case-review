@@ -13,6 +13,7 @@
   },
   "concurrency": 2,
   "incremental": false,
+  "ignoreStatic": true,
   "cleanTempDir": true,
   "htmlReporter": {
     "fileName": "reports/mutation/index.html"

@@ -5,6 +5,7 @@ import { HomePage } from './home-page.tsx';
 import { CasesPage } from './cases-page.tsx';
 import { CaseDetailPage } from './case-detail-page.tsx';
 import { UploadPage } from './upload-page.tsx';
+import { DemoCasePage } from './demo-case-page.tsx';
 
 export function App() {
   const { pathname } = useLocation();
@@ -65,6 +66,7 @@ export function App() {
         <Route path="/cases" element={<CasesPage />} />
         <Route path="/cases/:caseId" element={<CaseDetailPage />} />
         <Route path="/upload" element={<UploadPage />} />
+        <Route path="/demo" element={<DemoCasePage />} />
       </Routes>
       <footer className="site-footer">
         <span>Record Review</span>

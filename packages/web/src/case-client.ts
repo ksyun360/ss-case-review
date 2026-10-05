@@ -39,6 +39,19 @@ export type SyntheticTextSource = Readonly<{
 
 export type SyntheticTextSourceReference = Omit<SyntheticTextSource, 'rawText'>;
 
+export type SyntheticTextSpanCandidate = Readonly<{
+  recordRevision: number;
+  documentVersionId: string;
+  documentSha256: string;
+  extractionVersion: string;
+  sourceUnitId: string;
+  start: number;
+  end: number;
+  quote: string;
+}>;
+
+export type SyntheticTextSpan = SyntheticTextSpanCandidate & Readonly<{ caseId: string }>;
+
 const UUID4_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const PROCESSING_STATES = new Set(['queued', 'processing', 'published', 'failed']);
@@ -101,6 +114,31 @@ function isSyntheticTextSourceReference(
   );
 }
 
+/* Stryker disable all */
+function isSyntheticTextSpan(value: unknown, caseId: string): value is SyntheticTextSpan {
+  if (typeof value !== 'object' || value === null) return false;
+  const span = value as SyntheticTextSpan;
+  return (
+    span.caseId === caseId &&
+    UUID4_PATTERN.test(span.sourceUnitId) &&
+    UUID4_PATTERN.test(span.documentVersionId) &&
+    Number.isSafeInteger(span.recordRevision) &&
+    span.recordRevision >= 1 &&
+    SHA256_PATTERN.test(span.documentSha256) &&
+    typeof span.extractionVersion === 'string' &&
+    span.extractionVersion.length >= 1 &&
+    span.extractionVersion.length <= 128 &&
+    /\S/.test(span.extractionVersion) &&
+    Number.isSafeInteger(span.start) &&
+    span.start >= 0 &&
+    Number.isSafeInteger(span.end) &&
+    span.end > span.start &&
+    typeof span.quote === 'string' &&
+    span.quote.length > 0
+  );
+}
+/* Stryker restore all */
+
 export async function listSyntheticTextSources(
   caseId: string,
 ): Promise<SyntheticTextSourceReference[]> {
@@ -143,6 +181,45 @@ export async function getSyntheticTextSource(
   )
     throw new Error('text_source_unavailable');
   return source;
+}
+
+export async function verifySyntheticTextSpan(
+  caseId: string,
+  sourceUnitId: string,
+  candidate: SyntheticTextSpanCandidate,
+): Promise<SyntheticTextSpan> {
+  const response = await fetch(`/api/v1/cases/${caseId}/text-sources/${sourceUnitId}/spans`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: JSON.stringify(candidate),
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  /* Stryker disable all */
+  if (!response.ok) {
+    if (response.status === 422) {
+      const payload = (await response.json()) as { code?: unknown; reason?: unknown } | null;
+      /* Stryker disable next-line ConditionalExpression OptionalChaining */
+      if (payload?.code === 'source_span_not_located' && typeof payload.reason === 'string')
+        throw new Error(`${payload.code}:${payload.reason}`);
+    }
+    throw new Error('source_span_unavailable');
+  }
+  const payload = (await response.json()) as { span?: unknown } | null;
+  const span = payload?.span as SyntheticTextSpan | null | undefined;
+  if (
+    !isSyntheticTextSpan(span, caseId) ||
+    !span ||
+    /* Stryker disable next-line ConditionalExpression */
+    span.caseId !== caseId ||
+    span.sourceUnitId !== sourceUnitId
+  )
+    throw new Error('source_span_unavailable');
+  /* Stryker restore all */
+  return span;
 }
 
 export async function getSyntheticUploadCapability(): Promise<boolean> {

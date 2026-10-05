@@ -50,6 +50,18 @@ test('opens the /upload route directly', () => {
   expect(html).toContain('<h1>Prepare a case record</h1>');
 });
 
+test('opens the self-contained fictional demo case without API data', () => {
+  const html = renderToStaticMarkup(
+    <MemoryRouter initialEntries={['/demo']}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(html).toContain('Jordan Ellis — lumbar impairment appeal');
+  expect(html).toContain('Medical chronology');
+  expect(html).toContain('Five-step + RFC');
+  expect(html).toContain('fictional');
+});
+
 test('renders the shared navigation and preview notice around the home route', () => {
   expect(
     renderToStaticMarkup(

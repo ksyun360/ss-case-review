@@ -9,6 +9,7 @@ import {
   SyntheticOriginalInventory,
   SyntheticProcessingStatus,
   SyntheticSourceWorkspace,
+  splitVerifiedSourceText,
 } from '../src/case-detail-page.tsx';
 import {
   getSyntheticDocumentProcessing,
@@ -16,6 +17,7 @@ import {
   getSyntheticCase,
   listSyntheticOriginals,
   listSyntheticTextSources,
+  verifySyntheticTextSpan,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
@@ -31,11 +33,18 @@ vi.mock('../src/case-client.ts', () => ({
   listSyntheticTextSources: vi.fn(),
   listSyntheticCases: vi.fn(),
   createSyntheticCase: vi.fn(),
+  verifySyntheticTextSpan: vi.fn(),
 }));
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
   vi.mocked(listSyntheticTextSources).mockResolvedValue([]);
   vi.mocked(getSyntheticDocumentProcessing).mockResolvedValue(undefined);
+  vi.mocked(verifySyntheticTextSpan).mockImplementation(
+    async (_caseId, _sourceUnitId, candidate) => ({
+      caseId: _caseId,
+      ...candidate,
+    }),
+  );
 });
 afterEach(() => {
   cleanup();
@@ -427,13 +436,60 @@ test('retries source discovery and opens exact page text with its provenance', a
       (_content, element) => element?.tagName === 'PRE' && element.textContent === source.rawText,
     ),
   ).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Verify and highlight' })).toBeDisabled();
   expect(screen.getByText('Extraction synthetic-native-v1')).toBeVisible();
   expect(screen.getByText(`SHA-256 ${source.documentSha256}`)).toBeVisible();
+  await user.type(screen.getByLabelText('Verify a quotation against this page'), 'synthetic page');
+  await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'Citation verified against the persisted source text',
+  );
+  expect(screen.getByText('synthetic page', { selector: 'mark' })).toBeVisible();
+  expect(
+    screen.getByText('synthetic page', { selector: 'mark' }).previousSibling,
+  ).toHaveTextContent('Exact');
+  expect(screen.getByText('synthetic page', { selector: 'mark' }).nextSibling).toHaveTextContent(
+    'text with preserved spacing.',
+  );
+  expect(verifySyntheticTextSpan).toHaveBeenCalledWith(caseId, sourceUnitId, {
+    recordRevision: source.recordRevision,
+    documentVersionId: source.documentVersionId,
+    documentSha256: source.documentSha256,
+    extractionVersion: source.extractionVersion,
+    sourceUnitId,
+    start: source.rawText.indexOf('synthetic page'),
+    end: source.rawText.indexOf('synthetic page') + 'synthetic page'.length,
+    quote: 'synthetic page',
+  });
+  await user.clear(screen.getByLabelText('Verify a quotation against this page'));
+  expect(screen.queryByText('synthetic page', { selector: 'mark' })).not.toBeInTheDocument();
+  await user.type(screen.getByLabelText('Verify a quotation against this page'), 'Exact');
+  await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));
+  expect(screen.getByText('Exact', { selector: 'mark' })).toBeVisible();
+  await user.clear(screen.getByLabelText('Verify a quotation against this page'));
+  await user.type(screen.getByLabelText('Verify a quotation against this page'), 'not present');
+  await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'The citation could not be verified against this page',
+  );
+  vi.mocked(verifySyntheticTextSpan).mockRejectedValueOnce(new Error('source unavailable'));
+  await user.clear(screen.getByLabelText('Verify a quotation against this page'));
+  await user.type(screen.getByLabelText('Verify a quotation against this page'), 'Exact');
+  await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'The citation could not be verified against this page',
+  );
+  expect(
+    screen.getByText(
+      (_content, element) => element?.tagName === 'PRE' && element.textContent === source.rawText,
+    ),
+  ).toBeVisible();
   expect(listSyntheticTextSources).toHaveBeenCalledTimes(2);
   expect(getSyntheticTextSource).toHaveBeenNthCalledWith(1, caseId, sourceUnitId);
   expect(getSyntheticTextSource).toHaveBeenNthCalledWith(2, caseId, sourceUnitId);
   await user.click(screen.getByRole('button', { name: 'Open document 0021, page 7' }));
   expect(await screen.findByText('The selected source is no longer available.')).toBeVisible();
+  expect(screen.queryByText('synthetic page', { selector: 'mark' })).not.toBeInTheDocument();
   expect(getSyntheticTextSource).toHaveBeenNthCalledWith(3, caseId, sourceUnitId);
 
   cleanup();
@@ -468,6 +524,40 @@ test('retries source discovery and opens exact page text with its provenance', a
   workspace.rerender(<SyntheticSourceWorkspace caseId={emptyCaseId} />);
   expect(await screen.findByText('No extracted sources are available yet.')).toBeVisible();
   expect(listSyntheticTextSources).toHaveBeenNthCalledWith(3, emptyCaseId);
+});
+
+test('splits only the verified source range for highlighting', () => {
+  expect(splitVerifiedSourceText('before verified after', { start: 7, end: 15 })).toEqual([
+    'before ',
+    'verified',
+    ' after',
+  ]);
+});
+
+test('clears a prior highlight when reopening the same source', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 1,
+  };
+  const source: SyntheticTextSource = { ...reference, rawText: 'Exact source text.' };
+  vi.mocked(listSyntheticTextSources).mockResolvedValue([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValue(source);
+  const user = userEvent.setup();
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  await user.click(await screen.findByRole('button', { name: 'Open document 0021, page 1' }));
+  await user.type(await screen.findByLabelText('Verify a quotation against this page'), 'Exact');
+  await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));
+  expect(await screen.findByText('Exact', { selector: 'mark' })).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Open document 0021, page 1' }));
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 1' })).toBeVisible();
+  expect(screen.queryByText('Exact', { selector: 'mark' })).not.toBeInTheDocument();
 });
 
 test('retries a temporary case-detail failure without inventing case metadata', async () => {

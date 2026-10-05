@@ -5,6 +5,7 @@ import {
   getSyntheticUploadCapability,
   getSyntheticCase,
   getSyntheticTextSource,
+  verifySyntheticTextSpan,
   listSyntheticCases,
   listSyntheticOriginals,
   listSyntheticTextSources,
@@ -185,6 +186,100 @@ test('loads and validates one case-scoped text source before browser display', a
     redirect: 'error',
   });
   expect(fetch).toHaveBeenCalledTimes(4 + invalidPayloads.length);
+});
+
+test('verifies a source span through the guarded citation endpoint', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const candidate = {
+    recordRevision: 1,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'pdfjs-native-v1',
+    sourceUnitId,
+    start: 4,
+    end: 18,
+    quote: 'verified quotation',
+  };
+  const span = { caseId, ...candidate };
+  const invalidSpans = [
+    null,
+    'invalid',
+    { ...span, caseId: '00000000-0000-4000-8000-000000000099' },
+    { ...span, sourceUnitId: '00000000-0000-4000-8000-000000000032' },
+    { ...span, documentVersionId: 'not-a-uuid' },
+    { ...span, recordRevision: 0 },
+    { ...span, documentSha256: 'not-a-hash' },
+    { ...span, extractionVersion: '' },
+    { ...span, extractionVersion: ' '.repeat(129) },
+    { ...span, start: -1 },
+    { ...span, start: 1.5 },
+    { ...span, end: 4 },
+    { ...span, end: 18.5 },
+    { ...span, quote: '' },
+  ];
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ span }) })
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({ code: 'source_span_not_located', reason: 'quote_mismatch' }),
+    })
+    .mockResolvedValueOnce({ ok: false, status: 503 })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ span: null }) })
+    .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ span: {} }) })
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({ code: 'source_span_not_located', reason: 42 }),
+    })
+    .mockResolvedValueOnce({
+      ok: false,
+      status: 422,
+      json: async () => ({}),
+    });
+  for (const invalidSpan of invalidSpans)
+    fetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ span: invalidSpan }),
+    });
+  vi.stubGlobal('fetch', fetch);
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).resolves.toEqual(span);
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+    'source_span_not_located:quote_mismatch',
+  );
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+    'source_span_unavailable',
+  );
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+    'source_span_unavailable',
+  );
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+    'source_span_unavailable',
+  );
+  await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+    'source_span_unavailable',
+  );
+  for (let index = 0; index < invalidSpans.length; index += 1)
+    await expect(verifySyntheticTextSpan(caseId, sourceUnitId, candidate)).rejects.toThrow(
+      'source_span_unavailable',
+    );
+  expect(fetch).toHaveBeenNthCalledWith(
+    1,
+    `/api/v1/cases/${caseId}/text-sources/${sourceUnitId}/spans`,
+    {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-record-review-client': 'synthetic-workspace',
+      },
+      body: JSON.stringify(candidate),
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
 });
 
 test('lists validated case-scoped text source metadata without accepting page text', async () => {
