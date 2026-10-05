@@ -230,6 +230,181 @@ test('opens stored page text through a guarded member-scoped source route', asyn
   }
 });
 
+test('verifies a citation quote against the authorized persisted source', async () => {
+  const migration = await readFile(
+    new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),
+    'utf8',
+  );
+  await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  const source = {
+    sourceUnitId: '00000000-0000-4000-8000-000000000041',
+    caseId: '00000000-0000-4000-8000-000000000001',
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 1,
+    rawText: 'The claimant cannot return to past work.',
+  };
+  await createCase(database, { caseId: source.caseId, reviewerId, label: 'Citation case' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId: source.caseId,
+    documentVersionId: source.documentVersionId,
+    sha256: source.documentSha256,
+    byteLength: 100,
+  });
+  await insertTextSourceForReviewer(database, reviewerId, source);
+  const url = `/api/v1/cases/${source.caseId}/text-sources/${source.sourceUnitId}/spans`;
+  const quote = 'cannot return to past work';
+  const located = await api.inject({
+    method: 'POST',
+    url,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: {
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: source.sourceUnitId,
+      start: source.rawText.indexOf(quote),
+      end: source.rawText.indexOf(quote) + quote.length,
+      quote,
+    },
+  });
+  expect(located.statusCode).toBe(200);
+  expect(located.json()).toEqual({
+    span: {
+      caseId: source.caseId,
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: source.sourceUnitId,
+      start: source.rawText.indexOf(quote),
+      end: source.rawText.indexOf(quote) + quote.length,
+      quote,
+    },
+  });
+  const validPayload = {
+    recordRevision: source.recordRevision,
+    documentVersionId: source.documentVersionId,
+    documentSha256: source.documentSha256,
+    extractionVersion: source.extractionVersion,
+    sourceUnitId: source.sourceUnitId,
+    start: source.rawText.indexOf(quote),
+    end: source.rawText.indexOf(quote) + quote.length,
+    quote,
+  };
+  const invalidPayloads = [
+    ...Object.keys(validPayload).map((key) => {
+      return Object.fromEntries(
+        Object.entries(validPayload).filter(([field]) => field !== key),
+      ) as Record<string, unknown>;
+    }),
+    { ...validPayload, recordRevision: 0 },
+    { ...validPayload, documentVersionId: 'not-a-uuid' },
+    { ...validPayload, documentSha256: 'bad-hash' },
+    { ...validPayload, extractionVersion: '' },
+    { ...validPayload, extractionVersion: ' '.repeat(128) },
+    { ...validPayload, sourceUnitId: 'not-a-uuid' },
+    { ...validPayload, start: -1 },
+    { ...validPayload, end: 0 },
+    { ...validPayload, quote: '' },
+    { ...validPayload, extra: true },
+  ];
+  for (const payload of invalidPayloads) {
+    const invalid = await api.inject({
+      method: 'POST',
+      url,
+      headers: { ...requestHeaders, 'content-type': 'application/json' },
+      payload,
+    });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json()).toEqual({ code: 'invalid_request' });
+  }
+  const invalidParams = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/not-a-uuid/text-sources/${source.sourceUnitId}/spans`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: validPayload,
+  });
+  expect(invalidParams.statusCode).toBe(400);
+  expect(invalidParams.json()).toEqual({ code: 'invalid_request' });
+  const invalidSourceParams = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${source.caseId}/text-sources/not-a-uuid/spans`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: validPayload,
+  });
+  expect(invalidSourceParams.statusCode).toBe(400);
+  expect(invalidSourceParams.json()).toEqual({ code: 'invalid_request' });
+  const mismatch = await api.inject({
+    method: 'POST',
+    url,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: {
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: source.sourceUnitId,
+      start: 0,
+      end: 4,
+      quote: 'Wrong',
+    },
+  });
+  expect(mismatch.statusCode).toBe(422);
+  expect(mismatch.json()).toEqual({ code: 'source_span_not_located', reason: 'quote_mismatch' });
+  const bodyMismatch = await api.inject({
+    method: 'POST',
+    url,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: {
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: '00000000-0000-4000-8000-000000000042',
+      start: 0,
+      end: 4,
+      quote: 'The ',
+    },
+  });
+  expect(bodyMismatch.statusCode).toBe(422);
+  expect(bodyMismatch.json()).toEqual({
+    code: 'source_span_not_located',
+    reason: 'source_mismatch',
+  });
+  const pathBodyMismatch = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${source.caseId}/text-sources/00000000-0000-4000-8000-000000000042/spans`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: validPayload,
+  });
+  expect(pathBodyMismatch.statusCode).toBe(422);
+  expect(pathBodyMismatch.json()).toEqual({
+    code: 'source_span_not_located',
+    reason: 'source_mismatch',
+  });
+  const missing = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${source.caseId}/text-sources/00000000-0000-4000-8000-000000000042/spans`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: {
+      recordRevision: source.recordRevision,
+      documentVersionId: source.documentVersionId,
+      documentSha256: source.documentSha256,
+      extractionVersion: source.extractionVersion,
+      sourceUnitId: '00000000-0000-4000-8000-000000000042',
+      start: 0,
+      end: 4,
+      quote: 'The ',
+    },
+  });
+  expect(missing.statusCode).toBe(422);
+  expect(missing.json()).toEqual({ code: 'source_span_not_located', reason: 'source_unavailable' });
+});
+
 test('hides another reviewer text source through the guarded source route', async () => {
   const migration = await readFile(
     new URL('../../case-repository/migrations/202609280001_text_source_units.sql', import.meta.url),

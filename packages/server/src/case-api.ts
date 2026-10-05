@@ -17,6 +17,10 @@ import {
   findTextSourceForReviewer,
   listTextSourcesForReviewer,
 } from '@record-review/case-repository/source-units';
+import {
+  locateSourceSpan,
+  type SourceSpanCandidate,
+} from '@record-review/record-domain/source-span';
 
 export type SyntheticOriginalStorage = Readonly<{ root: string; maximumBytes: number }>;
 
@@ -103,6 +107,61 @@ export function createDevelopmentApi(
       );
       if (!source) return reply.code(404).send({ code: 'source_not_found' });
       return { source };
+    },
+  );
+  api.post<{
+    Params: { caseId: string; sourceUnitId: string };
+    Body: SourceSpanCandidate;
+  }>(
+    '/api/v1/cases/:caseId/text-sources/:sourceUnitId/spans',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            caseId: { type: 'string', format: 'uuid' },
+            sourceUnitId: { type: 'string', format: 'uuid' },
+          },
+        },
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: [
+            'recordRevision',
+            'documentVersionId',
+            'documentSha256',
+            'extractionVersion',
+            'sourceUnitId',
+            'start',
+            'end',
+            'quote',
+          ],
+          properties: {
+            recordRevision: { type: 'integer', minimum: 1 },
+            documentVersionId: { type: 'string', format: 'uuid' },
+            documentSha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
+            extractionVersion: { type: 'string', minLength: 1, maxLength: 128, pattern: '\\S' },
+            sourceUnitId: { type: 'string', format: 'uuid' },
+            start: { type: 'integer', minimum: 0 },
+            end: { type: 'integer', minimum: 1 },
+            quote: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      if (request.body.sourceUnitId !== request.params.sourceUnitId)
+        return reply.code(422).send({ code: 'source_span_not_located', reason: 'source_mismatch' });
+      const source = await findTextSourceForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+        request.params.sourceUnitId,
+      );
+      const result = locateSourceSpan(request.params.caseId, source, request.body);
+      if (result.status === 'not_located')
+        return reply.code(422).send({ code: 'source_span_not_located', reason: result.reason });
+      return { span: result.span };
     },
   );
   api.get<{ Params: { caseId: string } }>(
