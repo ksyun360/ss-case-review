@@ -8,12 +8,14 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from '../src/case-api.ts';
 import { readDevelopmentDatabaseConfig } from '../src/development-database.ts';
+import { recoverStaleOriginalUploads } from '../src/original-upload-recovery.ts';
 import { startDevelopmentServer } from '../src/development-server.ts';
 import { startDocumentProcessingScheduler } from '../src/processing-scheduler.ts';
 
 vi.mock('pg', () => ({ Pool: vi.fn() }));
 vi.mock('@record-review/case-repository/migrations', () => ({ migrateCaseSchema: vi.fn() }));
 vi.mock('../src/case-api.ts', () => ({ createDevelopmentApi: vi.fn() }));
+vi.mock('../src/original-upload-recovery.ts', () => ({ recoverStaleOriginalUploads: vi.fn() }));
 vi.mock('../src/processing-scheduler.ts', () => ({ startDocumentProcessingScheduler: vi.fn() }));
 
 test('handles an idle database error with a fixed diagnostic instead of exposing details', async () => {
@@ -97,6 +99,7 @@ beforeEach(() => {
   vi.spyOn(api, 'listen').mockImplementation(async () => 'http://127.0.0.1:5176');
   vi.mocked(createDevelopmentApi).mockReturnValue(api);
   vi.mocked(migrateCaseSchema).mockResolvedValue([]);
+  vi.mocked(recoverStaleOriginalUploads).mockResolvedValue(0);
   vi.mocked(startDocumentProcessingScheduler).mockReturnValue(stopProcessing);
 });
 
@@ -179,4 +182,37 @@ test('enables bounded synthetic original storage only for an explicit absolute r
     startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: '/' }),
   ).rejects.toThrow('development_original_root_invalid');
   expect(createDevelopmentApi).not.toHaveBeenCalled();
+});
+
+test('recovers stale synthetic uploads before accepting new requests', async () => {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date('2026-10-04T18:00:00Z'));
+    const events: string[] = [];
+    const root = join(tmpdir(), 'record-review-synthetic-originals');
+    vi.mocked(migrateCaseSchema).mockImplementation(async () => {
+      events.push('migrate');
+      return [];
+    });
+    vi.mocked(recoverStaleOriginalUploads).mockImplementation(async () => {
+      events.push('recover');
+      return 2;
+    });
+    vi.mocked(api.listen).mockImplementation(async () => {
+      events.push('listen');
+      return 'http://127.0.0.1:5176';
+    });
+
+    await startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root });
+
+    expect(recoverStaleOriginalUploads).toHaveBeenCalledExactlyOnceWith({
+      database,
+      root,
+      olderThan: new Date('2026-10-04T17:45:00Z'),
+      limit: 25,
+    });
+    expect(events).toEqual(['migrate', 'recover', 'listen']);
+  } finally {
+    vi.useRealTimers();
+  }
 });

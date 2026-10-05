@@ -7,8 +7,12 @@ import { isAbsolute, parse, resolve } from 'node:path';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
+import { recoverStaleOriginalUploads } from './original-upload-recovery.ts';
 import { startDocumentProcessingScheduler } from './processing-scheduler.ts';
 import { runNextDocumentProcessing } from './processing-worker.ts';
+
+const STALE_UPLOAD_AGE_MILLISECONDS = 15 * 60 * 1_000;
+const UPLOAD_RECOVERY_LIMIT = 25;
 
 export async function startDevelopmentServer(environment: ServerEnvironment) {
   readDevelopmentIdentity(environment);
@@ -39,6 +43,13 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
     } finally {
       client.release();
     }
+    if (originalStorage)
+      await recoverStaleOriginalUploads({
+        database,
+        root: originalStorage.root,
+        olderThan: new Date(Date.now() - STALE_UPLOAD_AGE_MILLISECONDS),
+        limit: UPLOAD_RECOVERY_LIMIT,
+      });
     await api.listen({ host: '127.0.0.1', port: 5176 });
     if (originalStorage)
       stopProcessing = startDocumentProcessingScheduler({
