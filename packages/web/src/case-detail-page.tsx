@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import {
   getSyntheticDocumentProcessing,
+  getSyntheticOriginal,
   getSyntheticTextSource,
   getSyntheticCase,
   listSyntheticOriginals,
@@ -85,6 +86,8 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
     | Readonly<{ caseId: string; status: 'available'; originals: SyntheticOriginalReceipt[] }>
     | Readonly<{ caseId: string; status: 'unavailable' }>
   >();
+  const [openingDocumentVersionId, setOpeningDocumentVersionId] = useState<string>();
+  const [openError, setOpenError] = useState(false);
   const load = useCallback(() => {
     setInventory(undefined);
     void listSyntheticOriginals(caseId).then(
@@ -97,6 +100,19 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
   }, [load]);
   const current = inventory?.caseId === caseId ? inventory : undefined;
   const originals = current?.status === 'available' ? current.originals : undefined;
+  const openOriginal = async (documentVersionId: string) => {
+    setOpeningDocumentVersionId(documentVersionId);
+    setOpenError(false);
+    try {
+      const blob = await getSyntheticOriginal(caseId, documentVersionId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      setOpenError(true);
+    } finally {
+      setOpeningDocumentVersionId(undefined);
+    }
+  };
 
   return (
     <section className="panel empty-state" aria-live="polite">
@@ -117,6 +133,16 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
           {originals.map((original) => (
             <li key={original.documentVersionId}>
               <code>{original.documentVersionId}</code> <span>{original.byteLength} bytes</span>
+              <button
+                className="source-link"
+                type="button"
+                onClick={() => void openOriginal(original.documentVersionId)}
+                disabled={openingDocumentVersionId === original.documentVersionId}
+              >
+                {openingDocumentVersionId === original.documentVersionId
+                  ? 'Opening original…'
+                  : 'Open original document'}
+              </button>
               <SyntheticProcessingStatus
                 caseId={caseId}
                 documentVersionId={original.documentVersionId}
@@ -125,6 +151,7 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
           ))}
         </ul>
       )}
+      {openError ? <p role="alert">Original document unavailable.</p> : null}
       <p>Processing status comes from the case-scoped background queue.</p>
       <a className="button secondary-button" href="/cases">
         Back to saved cases

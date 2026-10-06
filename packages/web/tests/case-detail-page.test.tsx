@@ -13,6 +13,7 @@ import {
 } from '../src/case-detail-page.tsx';
 import {
   getSyntheticDocumentProcessing,
+  getSyntheticOriginal,
   getSyntheticTextSource,
   getSyntheticCase,
   listSyntheticOriginals,
@@ -28,6 +29,7 @@ import {
 vi.mock('../src/case-client.ts', () => ({
   getSyntheticCase: vi.fn(),
   getSyntheticDocumentProcessing: vi.fn(),
+  getSyntheticOriginal: vi.fn(),
   getSyntheticTextSource: vi.fn(),
   listSyntheticOriginals: vi.fn(),
   listSyntheticTextSources: vi.fn(),
@@ -245,6 +247,76 @@ test('lists registered synthetic originals on the saved case page', async () => 
   expect(screen.queryByText(documentVersionId)).not.toBeInTheDocument();
   await act(async () => resolveNextInventory([]));
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
+});
+
+test('opens a registered original in a new document tab', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce([
+    { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 12 },
+  ]);
+  vi.mocked(getSyntheticOriginal).mockResolvedValueOnce(
+    new Blob(['synthetic pdf bytes'], { type: 'application/pdf' }),
+  );
+  const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:synthetic');
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  const user = userEvent.setup();
+  render(<SyntheticOriginalInventory caseId={caseId} />);
+
+  await user.click(await screen.findByRole('button', { name: 'Open original document' }));
+  expect(getSyntheticOriginal).toHaveBeenCalledExactlyOnceWith(caseId, documentVersionId);
+  expect(createObjectURL).toHaveBeenCalledExactlyOnceWith(expect.any(Blob));
+  expect(open).toHaveBeenCalledExactlyOnceWith('blob:synthetic', '_blank', 'noopener,noreferrer');
+  createObjectURL.mockRestore();
+  open.mockRestore();
+});
+
+test('reports an unavailable original without opening a tab', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce([
+    { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 12 },
+  ]);
+  vi.mocked(getSyntheticOriginal).mockRejectedValueOnce(new Error('original_unavailable'));
+  const open = vi.spyOn(window, 'open').mockReturnValue(null);
+  const user = userEvent.setup();
+  render(<SyntheticOriginalInventory caseId={caseId} />);
+
+  await user.click(await screen.findByRole('button', { name: 'Open original document' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Original document unavailable.');
+  expect(open).not.toHaveBeenCalled();
+  open.mockRestore();
+});
+
+test('shows opening progress and clears a previous original error after retry', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce([
+    { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 12 },
+  ]);
+  let resolveDocument!: (value: Blob) => void;
+  vi.mocked(getSyntheticOriginal)
+    .mockRejectedValueOnce(new Error('original_unavailable'))
+    .mockImplementationOnce(
+      () =>
+        new Promise<Blob>((resolve) => {
+          resolveDocument = resolve;
+        }),
+    );
+  const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:synthetic');
+  vi.spyOn(window, 'open').mockReturnValue(null);
+  const user = userEvent.setup();
+  render(<SyntheticOriginalInventory caseId={caseId} />);
+
+  const button = await screen.findByRole('button', { name: 'Open original document' });
+  await user.click(button);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Original document unavailable.');
+  await user.click(screen.getByRole('button', { name: 'Open original document' }));
+  expect(screen.getByRole('button', { name: 'Opening original…' })).toBeDisabled();
+  resolveDocument(new Blob(['retry bytes'], { type: 'application/pdf' }));
+  expect(await screen.findByRole('button', { name: 'Open original document' })).toBeEnabled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  createObjectURL.mockRestore();
 });
 
 test('polls active document processing until a terminal status arrives', async () => {
