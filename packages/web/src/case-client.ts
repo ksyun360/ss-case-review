@@ -307,6 +307,19 @@ export async function listSyntheticOriginals(caseId: string): Promise<SyntheticO
   return originals as SyntheticOriginalReceipt[];
 }
 
+export async function getSyntheticOriginal(
+  caseId: string,
+  documentVersionId: string,
+): Promise<Blob> {
+  const response = await fetch(`/api/v1/cases/${caseId}/synthetic-originals/${documentVersionId}`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('original_unavailable');
+  return response.blob();
+}
+
 export async function createSyntheticCase(label: string): Promise<CaseSummary> {
   const response = await fetch('/api/v1/cases', {
     method: 'POST',

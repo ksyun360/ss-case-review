@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import {
   createSyntheticCase,
   getSyntheticDocumentProcessing,
+  getSyntheticOriginal,
   getSyntheticUploadCapability,
   getSyntheticCase,
   getSyntheticTextSource,
@@ -351,6 +352,36 @@ test('lists validated case-scoped text source metadata without accepting page te
     redirect: 'error',
   });
   expect(fetch).toHaveBeenCalledTimes(2 + invalidPayloads.length);
+});
+
+test('opens one member-scoped synthetic original as a Blob', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  const document = new Blob(['synthetic pdf bytes'], { type: 'application/pdf' });
+  const fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, blob: async () => document });
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(getSyntheticOriginal(caseId, documentVersionId)).resolves.toBe(document);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(
+    `/api/v1/cases/${caseId}/synthetic-originals/${documentVersionId}`,
+    {
+      headers: { 'x-record-review-client': 'synthetic-workspace' },
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
+});
+
+test('rejects an unavailable synthetic original without reading its error body', async () => {
+  const json = vi.fn();
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json }));
+  await expect(
+    getSyntheticOriginal(
+      '00000000-0000-4000-8000-000000000002',
+      '00000000-0000-4000-8000-000000000021',
+    ),
+  ).rejects.toThrow('original_unavailable');
+  expect(json).not.toHaveBeenCalled();
 });
 
 test('reads the guarded synthetic upload capability from the same-origin API', async () => {
