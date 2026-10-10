@@ -1,6 +1,6 @@
 # Gemini development configuration
 
-Status: The server-config package validates settings for future server-side Gemini Developer API integration. The browser preview does not load the root `.env`, invoke this validator, or call Gemini. No worker bootstrap, Gemini client, connectivity check, or credential validation against Google exists yet.
+Status: The server-config package validates server-side Gemini Developer API settings, and the server package now contains a bounded text-generation client with normalized provider failures. The browser preview does not load the root `.env`, invoke this validator, or call Gemini. Worker bootstrap, live connectivity checks, and credential validation against Google remain pending.
 
 ## Local settings
 
@@ -41,6 +41,6 @@ The helper trims surrounding model-ID whitespace. The helper checks credential w
 
 ## Remaining integration
 
-Add tested server startup, provider-client construction, bounded requests, normalized refusals and failures, and source validation before connecting document processing. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
+Connect the tested Gemini client to server startup and document processing, add normalized safety refusals and empty-response handling, and validate generated artifacts against source records before display. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
 
 Phase 4 remains active. Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. The configuration helper does not change those gates.

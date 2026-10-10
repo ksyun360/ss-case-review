@@ -34,7 +34,7 @@ The current browser preview supports synthetic case-metadata feedback, opt-in sy
 - [x] Let the source workspace verify a quotation and highlight the returned span.
 - [ ] Complete recoverable document uploads, inspection, extraction/OCR, and background progress; the current browser only registers synthetic originals with local per-file progress.
 - [ ] Persist source maps and provide original-page rendering with validated highlights and artifact links; the current browser opens the member-scoped original in a new document tab.
-- [ ] Integrate Gemini with bounded requests, refusal handling, and validated output contracts.
+- [ ] Connect the bounded Gemini client to document processing, add safety and empty-response handling, and validate generated outputs against source records.
 - [ ] Build the summary, medical chronology, procedural chronology, and five-step/RFC comparison.
 - [ ] Add source-backed corrections, revision history, filtering, and approved reference lookups.
 - [ ] Complete application integration tests and development/deployment documentation before Phase 5 qualification.
