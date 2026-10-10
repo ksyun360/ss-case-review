@@ -41,6 +41,6 @@ The helper trims surrounding model-ID whitespace. The helper checks credential w
 
 ## Remaining integration
 
-Connect the tested Gemini client to server startup and document processing, add normalized safety refusals and empty-response handling, and validate generated artifacts against source records before display. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
+Connect the tested Gemini client to server startup and document processing, and validate generated artifacts against source records before display. The client now normalizes provider failures, safety blocks, and empty or malformed responses. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
 
 Phase 4 remains active. Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. The configuration helper does not change those gates.
