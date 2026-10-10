@@ -49,3 +49,37 @@ test('normalizes a Gemini provider failure without exposing its response body', 
   ).resolves.toEqual({ status: 'refused', code: 'provider_error' });
   expect(json).not.toHaveBeenCalled();
 });
+
+test('normalizes an empty Gemini candidate into a safe refusal', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ candidates: [{ content: { parts: [{ text: '   ' }] } }] }),
+  });
+  const config = { modelId: 'gemini-2.5-flash', getApiKey: () => 'synthetic-key' };
+
+  await expect(
+    generateGeminiText(
+      config,
+      { prompt: 'Use only the supplied record.', maxOutputTokens: 128 },
+      fetch,
+    ),
+  ).resolves.toEqual({ status: 'refused', code: 'empty_response' });
+});
+
+test('normalizes a malformed Gemini text part into a safe refusal', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ candidates: [{ content: { parts: [{ text: null }] } }] }),
+  });
+  const config = { modelId: 'gemini-2.5-flash', getApiKey: () => 'synthetic-key' };
+
+  await expect(
+    generateGeminiText(
+      config,
+      { prompt: 'Use only the supplied record.', maxOutputTokens: 128 },
+      fetch,
+    ),
+  ).resolves.toEqual({ status: 'refused', code: 'empty_response' });
+});

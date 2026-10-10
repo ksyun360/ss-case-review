@@ -8,7 +8,7 @@ type GeminiResponse = Readonly<{
 
 export type GeminiTextResult =
   | Readonly<{ status: 'generated'; text: string }>
-  | Readonly<{ status: 'refused'; code: 'provider_error' }>;
+  | Readonly<{ status: 'refused'; code: 'provider_error' | 'empty_response' }>;
 
 export async function generateGeminiText(
   config: GeminiConfig,
@@ -28,5 +28,7 @@ export async function generateGeminiText(
   if (!response.ok) return { status: 'refused', code: 'provider_error' };
   const payload = (await response.json()) as GeminiResponse;
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text as string;
+  if (typeof text !== 'string' || text.trim() === '')
+    return { status: 'refused', code: 'empty_response' };
   return { status: 'generated', text };
 }
