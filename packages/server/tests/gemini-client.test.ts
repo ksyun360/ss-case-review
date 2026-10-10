@@ -34,3 +34,18 @@ test('sends a bounded synthetic prompt to the configured Gemini model', async ()
     },
   );
 });
+
+test('normalizes a Gemini provider failure without exposing its response body', async () => {
+  const json = vi.fn();
+  const fetch = vi.fn().mockResolvedValue({ ok: false, status: 429, json });
+  const config = { modelId: 'gemini-2.5-flash', getApiKey: () => 'synthetic-key' };
+
+  await expect(
+    generateGeminiText(
+      config,
+      { prompt: 'Use only the supplied record.', maxOutputTokens: 128 },
+      fetch,
+    ),
+  ).resolves.toEqual({ status: 'refused', code: 'provider_error' });
+  expect(json).not.toHaveBeenCalled();
+});
