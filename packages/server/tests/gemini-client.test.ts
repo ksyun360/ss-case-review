@@ -83,3 +83,20 @@ test('normalizes a malformed Gemini text part into a safe refusal', async () => 
     ),
   ).resolves.toEqual({ status: 'refused', code: 'empty_response' });
 });
+
+test('normalizes a Gemini safety block into a fixed refusal', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ promptFeedback: { blockReason: 'SAFETY' } }),
+  });
+  const config = { modelId: 'gemini-2.5-flash', getApiKey: () => 'synthetic-key' };
+
+  await expect(
+    generateGeminiText(
+      config,
+      { prompt: 'Use only the supplied record.', maxOutputTokens: 128 },
+      fetch,
+    ),
+  ).resolves.toEqual({ status: 'refused', code: 'safety_refusal' });
+});

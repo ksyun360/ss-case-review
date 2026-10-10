@@ -1,6 +1,7 @@
 type GeminiConfig = Readonly<{ modelId: string; getApiKey: () => string }>;
 type GeminiRequest = Readonly<{ prompt: string; maxOutputTokens: number }>;
 type GeminiResponse = Readonly<{
+  promptFeedback?: Readonly<{ blockReason?: unknown }>;
   candidates?: ReadonlyArray<
     Readonly<{ content?: Readonly<{ parts?: ReadonlyArray<Readonly<{ text?: unknown }>> }> }>
   >;
@@ -8,7 +9,10 @@ type GeminiResponse = Readonly<{
 
 export type GeminiTextResult =
   | Readonly<{ status: 'generated'; text: string }>
-  | Readonly<{ status: 'refused'; code: 'provider_error' | 'empty_response' }>;
+  | Readonly<{
+      status: 'refused';
+      code: 'provider_error' | 'empty_response' | 'safety_refusal';
+    }>;
 
 export async function generateGeminiText(
   config: GeminiConfig,
@@ -27,6 +31,8 @@ export async function generateGeminiText(
   });
   if (!response.ok) return { status: 'refused', code: 'provider_error' };
   const payload = (await response.json()) as GeminiResponse;
+  if (payload.promptFeedback?.blockReason === 'SAFETY')
+    return { status: 'refused', code: 'safety_refusal' };
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text as string;
   if (typeof text !== 'string' || text.trim() === '')
     return { status: 'refused', code: 'empty_response' };
