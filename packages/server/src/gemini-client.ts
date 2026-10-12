@@ -14,6 +14,25 @@ export type GeminiTextResult =
       code: 'provider_error' | 'empty_response' | 'safety_refusal';
     }>;
 
+export type GeminiGeneratorResult =
+  | Readonly<{
+      status: 'configured';
+      generate: (request: GeminiRequest) => Promise<GeminiTextResult>;
+    }>
+  | Readonly<{ status: 'configuration_error'; code: string }>;
+
+export function createGeminiTextGenerator(
+  environment: ServerEnvironment,
+  fetchImplementation: typeof fetch = fetch,
+): GeminiGeneratorResult {
+  const configuration = readGeminiDevelopmentConfig(environment);
+  if (configuration.status === 'configuration_error') return configuration;
+  return {
+    status: 'configured',
+    generate: (request) => generateGeminiText(configuration.config, request, fetchImplementation),
+  };
+}
+
 export async function generateGeminiText(
   config: GeminiConfig,
   request: GeminiRequest,
@@ -38,3 +57,7 @@ export async function generateGeminiText(
     return { status: 'refused', code: 'empty_response' };
   return { status: 'generated', text };
 }
+import {
+  readGeminiDevelopmentConfig,
+  type ServerEnvironment,
+} from '@record-review/server-config/gemini-development';

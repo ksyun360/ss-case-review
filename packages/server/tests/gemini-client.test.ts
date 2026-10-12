@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { generateGeminiText } from '../src/gemini-client.ts';
+import { createGeminiTextGenerator, generateGeminiText } from '../src/gemini-client.ts';
 
 test('sends a bounded synthetic prompt to the configured Gemini model', async () => {
   const fetch = vi.fn().mockResolvedValue({
@@ -33,6 +33,44 @@ test('sends a bounded synthetic prompt to the configured Gemini model', async ()
       signal: expect.any(AbortSignal),
     },
   );
+});
+
+test('constructs a Gemini generator only from validated synthetic development settings', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ candidates: [{ content: { parts: [{ text: 'Configured answer.' }] } }] }),
+  });
+  const result = createGeminiTextGenerator(
+    {
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      MODEL_PROVIDER: 'gemini',
+      GEMINI_TRANSPORT: 'developer-api',
+      GEMINI_MODEL_ID: 'gemini-2.5-flash',
+      GEMINI_API_KEY: 'synthetic-key',
+    },
+    fetch,
+  );
+
+  expect(result.status).toBe('configured');
+  if (result.status === 'configured')
+    await expect(
+      result.generate({ prompt: 'Bounded prompt.', maxOutputTokens: 64 }),
+    ).resolves.toEqual({ status: 'generated', text: 'Configured answer.' });
+});
+
+test('rejects a generator when the configured provider is not Gemini', () => {
+  expect(
+    createGeminiTextGenerator({
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      MODEL_PROVIDER: 'unsupported',
+      GEMINI_TRANSPORT: 'developer-api',
+      GEMINI_MODEL_ID: 'gemini-2.5-flash',
+      GEMINI_API_KEY: 'synthetic-key',
+    }),
+  ).toEqual({ status: 'configuration_error', code: 'unsupported_provider' });
 });
 
 test('normalizes a Gemini provider failure without exposing its response body', async () => {
