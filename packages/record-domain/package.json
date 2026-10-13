@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./document-signature": "./src/document-signature.ts",
-    "./source-span": "./src/source-span.ts"
+    "./source-span": "./src/source-span.ts",
+    "./source-grounded-output": "./src/source-grounded-output.ts"
   }
 }
