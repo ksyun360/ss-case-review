@@ -40,6 +40,56 @@ const DEMO_PDF_DATA_URL = `data:application/pdf,${encodeURIComponent(
   `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF`,
 )}`;
 
+type DemoSourceExcerpt = Readonly<{
+  page: number;
+  totalPages: number;
+  context: string;
+  highlight: string;
+}>;
+
+function sourceExcerpt(label: string): DemoSourceExcerpt {
+  if (label.startsWith('Plaintiff brief'))
+    return {
+      page: 9,
+      totalPages: 18,
+      context:
+        'Plaintiff argues that the treatment record supports greater limitations than the ALJ included in the RFC.',
+      highlight: 'The ALJ failed to explain why the longitudinal treatment record was discounted.',
+    };
+  if (label.startsWith('Commissioner brief'))
+    return {
+      page: 14,
+      totalPages: 21,
+      context:
+        'The Commissioner responds that the ALJ addressed the objective findings and the claimant’s reported activities.',
+      highlight: 'The ALJ reasonably evaluated the longitudinal record and identified other work.',
+    };
+  if (label.startsWith('Hearing transcript'))
+    return {
+      page: 72,
+      totalPages: 86,
+      context:
+        'The vocational expert answered the ALJ’s hypothetical based on the stated residual functional capacity.',
+      highlight: 'Three sedentary occupations remain available under the hypothetical limitations.',
+    };
+  if (label.startsWith('Demo source'))
+    return {
+      page: Number.parseInt(label.match(/page (\d+)/)?.[1] ?? '1', 10),
+      totalPages: 84,
+      context:
+        'The medical and procedural record supplies the source detail used by the review workspace.',
+      highlight: 'The record entry is shown beside the source location for verification.',
+    };
+  return {
+    page: 6,
+    totalPages: 84,
+    context:
+      'The administrative law judge considered the claimant’s lumbar degenerative disc disease, treatment history, reported activities, and opinion evidence.',
+    highlight:
+      'The residual functional capacity permits sedentary work with occasional postural activities.',
+  };
+}
+
 function SourceLink({ children, onOpen }: { children: ReactNode; onOpen?: () => void }) {
   return (
     <button className="source-link demo-source-link" type="button" onClick={onOpen}>
@@ -51,6 +101,7 @@ function SourceLink({ children, onOpen }: { children: ReactNode; onOpen?: () => 
 export function DemoCasePage() {
   const [tab, setTab] = useState<Tab>('Summary');
   const [source, setSource] = useState('ALJ decision · page 6');
+  const excerpt = sourceExcerpt(source);
   const openSource = (label: string) => setSource(label);
   return (
     <main id="main-content" className="page demo-case-page" tabIndex={-1}>
@@ -225,16 +276,12 @@ export function DemoCasePage() {
           >
             <p className="pdf-masthead">UNITED STATES DISTRICT COURT · WESTERN DISTRICT OF TEXAS</p>
             <p className="pdf-caption">ELLIS v. COMMISSIONER OF SOCIAL SECURITY</p>
-            <p className="pdf-page-number">Page 6 of 84</p>
-            <p>Record review excerpt</p>
-            <p>
-              The administrative law judge considered the claimant’s lumbar degenerative disc
-              disease, treatment history, reported activities, and opinion evidence.
+            <p className="pdf-page-number">
+              Page {excerpt.page} of {excerpt.totalPages}
             </p>
-            <mark>
-              The residual functional capacity permits sedentary work with occasional postural
-              activities.
-            </mark>
+            <p>Record review excerpt</p>
+            <p>{excerpt.context}</p>
+            <mark>{excerpt.highlight}</mark>
             <p>
               This highlighted text represents the verified citation location. The production viewer
               will open the uploaded PDF page and preserve the source reference.

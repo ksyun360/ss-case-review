@@ -14,8 +14,14 @@ test('lets a reviewer move through every fictional demo view', async () => {
   expect(screen.getByRole('heading', { name: 'Case summary' })).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Open Plaintiff’s brief · page 9' }));
   expect(screen.getByRole('heading', { name: 'Plaintiff brief · page 9' })).toBeVisible();
+  expect(
+    screen.getByText(
+      /the ALJ failed to explain why the longitudinal treatment record was discounted/i,
+    ),
+  ).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Open Commissioner’s brief · page 14' }));
   expect(screen.getByRole('heading', { name: 'Commissioner brief · page 14' })).toBeVisible();
+  expect(screen.getByText(/the ALJ reasonably evaluated the longitudinal record/i)).toBeVisible();
   await user.click(screen.getByRole('button', { name: 'Open ALJ decision · page 6' }));
   expect(screen.getByRole('document', { name: /fictional PDF preview/i })).toBeVisible();
   expect(
