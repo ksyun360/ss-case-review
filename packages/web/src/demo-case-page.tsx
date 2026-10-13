@@ -36,6 +36,10 @@ const procedural = [
   ['2022-02-11', 'Appeals Council denied review', 'Demo source · page 5'],
 ];
 
+const DEMO_PDF_DATA_URL = `data:application/pdf,${encodeURIComponent(
+  `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF`,
+)}`;
+
 function SourceLink({ children, onOpen }: { children: ReactNode; onOpen?: () => void }) {
   return (
     <button className="source-link demo-source-link" type="button" onClick={onOpen}>
@@ -75,6 +79,31 @@ export function DemoCasePage() {
           {tab === 'Summary' ? (
             <section className="panel demo-panel" aria-labelledby="demo-summary-heading">
               <h2 id="demo-summary-heading">Case summary</h2>
+              <div className="demo-profile" aria-labelledby="demo-profile-heading">
+                <h3 id="demo-profile-heading">Case profile</h3>
+                <dl>
+                  <div>
+                    <dt>Alleged onset date</dt>
+                    <dd>January 14, 2019</dd>
+                  </div>
+                  <div>
+                    <dt>Date last insured</dt>
+                    <dd>December 31, 2024</dd>
+                  </div>
+                  <div>
+                    <dt>Claim type</dt>
+                    <dd>Title II disability insurance benefits</dd>
+                  </div>
+                  <div>
+                    <dt>Representation</dt>
+                    <dd>Jordan Ellis, represented by Morgan Patel</dd>
+                  </div>
+                  <div>
+                    <dt>Current posture</dt>
+                    <dd>Appeals Council denial reviewed on civil complaint</dd>
+                  </div>
+                </dl>
+              </div>
               <p>
                 <strong>Issue:</strong> Whether the Commissioner applied the RFC assessment and
                 vocational evidence consistently with the record.
@@ -180,6 +209,13 @@ export function DemoCasePage() {
               onClick={() => setSource('ALJ decision · page 6')}
             >
               Reset
+            </button>
+            <button
+              className="source-link"
+              type="button"
+              onClick={() => window.open(DEMO_PDF_DATA_URL, '_blank', 'noopener,noreferrer')}
+            >
+              Open PDF in new tab
             </button>
           </div>
           <div

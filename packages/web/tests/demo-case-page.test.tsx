@@ -47,3 +47,14 @@ test('lets a reviewer move through every fictional demo view', async () => {
   );
   expect(screen.getByRole('heading', { name: 'Hearing transcript · page 72' })).toBeVisible();
 });
+
+test('shows representative case metadata beside the source-linked review', () => {
+  render(<DemoCasePage />);
+
+  expect(screen.getByRole('heading', { name: 'Case profile' })).toBeVisible();
+  expect(screen.getByText('Alleged onset date')).toBeVisible();
+  expect(screen.getByText('January 14, 2019')).toBeVisible();
+  expect(screen.getByText('Date last insured')).toBeVisible();
+  expect(screen.getByText('December 31, 2024')).toBeVisible();
+  expect(screen.getByRole('button', { name: 'Open PDF in new tab' })).toBeVisible();
+});

@@ -685,6 +685,37 @@ a.primary-button:hover {
   margin-top: 24px;
 }
 
+.demo-profile {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--divider);
+  border-radius: 8px;
+  background: var(--background);
+}
+
+.demo-profile h3 {
+  margin-bottom: 12px;
+}
+
+.demo-profile dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  margin: 0;
+}
+
+.demo-profile dt {
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.demo-profile dd {
+  margin: 4px 0 0;
+}
+
 .demo-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(19rem, 26rem);
@@ -872,6 +903,10 @@ a.primary-button:hover {
   }
 
   .demo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-profile dl {
     grid-template-columns: 1fr;
   }
 
