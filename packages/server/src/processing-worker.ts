@@ -1,4 +1,5 @@
 import type { SqlClient } from '@record-review/case-repository/cases';
+import type { TextSourceUnit } from '@record-review/case-repository/source-units';
 import {
   claimDocumentProcessing,
   completeDocumentProcessing,
@@ -6,12 +7,16 @@ import {
   type DocumentProcessingFailureCode,
 } from '@record-review/case-repository/document-processing-attempts';
 import { processStoredPdfOriginalForReviewer } from './original-processing.ts';
+import type { ValidatedClaimsResult } from './source-grounded-generation.ts';
+
+type ClaimGenerator = (sources: readonly TextSourceUnit[]) => Promise<ValidatedClaimsResult>;
 
 type ProcessingResult =
   | Readonly<{
       status: 'published';
       sourceUnitIds: string[];
       gaps: ReadonlyArray<Readonly<{ pageNumber: number; reason: 'page_extraction_failed' }>>;
+      claims?: ValidatedClaimsResult;
     }>
   | Readonly<{ status: 'original_unavailable' | 'publication_rejected' }>;
 
@@ -26,6 +31,7 @@ type OriginalProcessor = (
     maximumPages: number;
     extractionVersion: string;
     createSourceUnitId: () => string;
+    generateClaims?: ClaimGenerator;
   }>,
 ) => Promise<ProcessingResult>;
 
@@ -37,6 +43,7 @@ type WorkerInput = Readonly<{
   leaseToken: string;
   createSourceUnitId: () => string;
   processOriginal?: OriginalProcessor;
+  generateClaims?: ClaimGenerator;
 }>;
 
 type WorkerOutcome =
@@ -44,6 +51,7 @@ type WorkerOutcome =
       status: 'published';
       sourceUnitIds: string[];
       gaps: Extract<ProcessingResult, { status: 'published' }>['gaps'];
+      claims?: ValidatedClaimsResult;
     }>
   | Readonly<{ status: 'failed'; failureCode: DocumentProcessingFailureCode }>;
 
@@ -76,6 +84,7 @@ export async function runNextDocumentProcessing(input: WorkerInput) {
       maximumPages: claim.maximumPages,
       extractionVersion: claim.extractionVersion,
       createSourceUnitId: input.createSourceUnitId,
+      ...(input.generateClaims ? { generateClaims: input.generateClaims } : {}),
     });
     outcome =
       result.status === 'published'
@@ -83,6 +92,7 @@ export async function runNextDocumentProcessing(input: WorkerInput) {
             status: 'published',
             sourceUnitIds: result.sourceUnitIds,
             gaps: result.gaps,
+            ...(result.claims ? { claims: result.claims } : {}),
           }
         : { status: 'failed', failureCode: result.status };
   } catch (error) {

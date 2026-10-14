@@ -105,6 +105,8 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
       .fn<() => string>()
       .mockReturnValueOnce(sourceIds[0] as string)
       .mockReturnValueOnce(sourceIds[1] as string);
+    const generatedClaims = { status: 'validated' as const, claims: [] };
+    const generateClaims = vi.fn().mockResolvedValue(generatedClaims);
 
     await expect(
       processPdfOriginalForReviewer({
@@ -152,16 +154,22 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
         ...unavailableInput,
         extractPages,
         createSourceUnitId,
+        generateClaims,
       }),
     ).resolves.toEqual({
       status: 'published',
       sourceUnitIds: sourceIds,
       gaps: [{ pageNumber: 2, reason: 'page_extraction_failed' }],
+      claims: generatedClaims,
     });
     expect(extractPages).toHaveBeenCalledOnce();
     expect(unavailableInput.extractPages).not.toHaveBeenCalled();
     expect(rejectedExtraction).toHaveBeenCalledOnce();
     expect(createSourceUnitId).toHaveBeenCalledTimes(2);
+    expect(generateClaims).toHaveBeenCalledExactlyOnceWith([
+      expect.objectContaining({ sourceUnitId: sourceIds[0], rawText: 'First exact page' }),
+      expect.objectContaining({ sourceUnitId: sourceIds[1], rawText: 'Third exact page' }),
+    ]);
     expect(await listTextSourcesForReviewer(database, reviewerId, caseId)).toEqual([
       {
         sourceUnitId: sourceIds[0],

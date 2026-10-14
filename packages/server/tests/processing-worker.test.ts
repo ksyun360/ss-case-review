@@ -104,6 +104,36 @@ test('runs one leased processing job to a durable safe terminal state', async ()
     ),
   ).resolves.toMatchObject({ state: 'published', failureCode: null });
 
+  const claimsVersion = await reserve('32');
+  const claims = { status: 'validated' as const, claims: [] };
+  const generateClaims = vi.fn();
+  processOriginal.mockResolvedValueOnce({
+    status: 'published',
+    sourceUnitIds: ['00000000-0000-4000-8000-000000000332'],
+    gaps: [],
+    claims,
+  });
+  await expect(runNextDocumentProcessing({ ...common, generateClaims })).resolves.toEqual({
+    status: 'published',
+    caseId,
+    documentVersionId: claimsVersion,
+    sourceUnitIds: ['00000000-0000-4000-8000-000000000332'],
+    gaps: [],
+    claims,
+  });
+  expect(processOriginal).toHaveBeenLastCalledWith({
+    database,
+    reviewerId,
+    caseId,
+    documentVersionId: claimsVersion,
+    root: common.root,
+    maximumBytes: 1024,
+    maximumPages: 400,
+    extractionVersion,
+    createSourceUnitId: common.createSourceUnitId,
+    generateClaims,
+  });
+
   const unavailableVersion = await reserve('22');
   processOriginal.mockResolvedValueOnce({ status: 'original_unavailable' });
   await expect(runNextDocumentProcessing(common)).resolves.toEqual({
