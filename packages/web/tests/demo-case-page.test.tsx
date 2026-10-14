@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { DemoCasePage } from '../src/demo-case-page.tsx';
 
 afterEach(() => cleanup());
@@ -33,6 +33,14 @@ test('lets a reviewer move through every fictional demo view', async () => {
   await user.click(screen.getByRole('button', { name: 'Medical chronology' }));
   expect(screen.getByRole('heading', { name: 'Medical chronology' })).toBeVisible();
   expect(screen.getByText('Hill Country Imaging')).toBeVisible();
+  const medicalFilter = screen.getByRole('searchbox', { name: 'Filter medical chronology' });
+  await user.type(medicalFilter, 'MRI');
+  expect(screen.getByText('Hill Country Imaging')).toBeVisible();
+  expect(screen.queryByText('Dr. Maya Chen, primary care')).not.toBeInTheDocument();
+  await user.clear(medicalFilter);
+  await user.type(medicalFilter, 'no matching entry');
+  expect(screen.getByText('No matching chronology entries.')).toBeVisible();
+  await user.clear(medicalFilter);
   await user.click(screen.getByRole('button', { name: 'Demo source · page 28' }));
   expect(screen.getByRole('heading', { name: 'Demo source · page 28' })).toBeVisible();
 
@@ -54,7 +62,9 @@ test('lets a reviewer move through every fictional demo view', async () => {
   expect(screen.getByRole('heading', { name: 'Hearing transcript · page 72' })).toBeVisible();
 });
 
-test('shows representative case metadata beside the source-linked review', () => {
+test('shows representative case metadata beside the source-linked review', async () => {
+  const user = userEvent.setup();
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   render(<DemoCasePage />);
 
   expect(screen.getByRole('heading', { name: 'Case profile' })).toBeVisible();
@@ -63,4 +73,11 @@ test('shows representative case metadata beside the source-linked review', () =>
   expect(screen.getByText('Date last insured')).toBeVisible();
   expect(screen.getByText('December 31, 2024')).toBeVisible();
   expect(screen.getByRole('button', { name: 'Open PDF in new tab' })).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Open PDF in new tab' }));
+  expect(open).toHaveBeenCalledWith(
+    expect.stringContaining('data:application/pdf'),
+    '_blank',
+    'noopener,noreferrer',
+  );
+  open.mockRestore();
 });

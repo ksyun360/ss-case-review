@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 
 /* Stryker disable all */
 
@@ -74,7 +74,7 @@ function sourceExcerpt(label: string): DemoSourceExcerpt {
     };
   if (label.startsWith('Demo source'))
     return {
-      page: Number.parseInt(label.match(/page (\d+)/)?.[1] ?? '1', 10),
+      page: Number.parseInt(label.slice(label.lastIndexOf('page ') + 5), 10),
       totalPages: 84,
       context:
         'The medical and procedural record supplies the source detail used by the review workspace.',
@@ -194,6 +194,7 @@ export function DemoCasePage() {
             </section>
           ) : tab === 'Medical chronology' ? (
             <ChronologyTable
+              key="medical"
               title="Medical chronology"
               headers={['Date', 'Provider', 'Reason for visit', 'Prescription', 'Record']}
               rows={medical}
@@ -201,6 +202,7 @@ export function DemoCasePage() {
             />
           ) : tab === 'Procedural chronology' ? (
             <ChronologyTable
+              key="procedural"
               title="Procedural chronology"
               headers={['Date', 'Event', 'Record']}
               rows={procedural}
@@ -307,9 +309,24 @@ function ChronologyTable({
   important?: boolean;
   onOpen: (label: string) => void;
 }) {
+  const [filter, setFilter] = useState('');
+  const filteredRows = useMemo(() => {
+    const normalized = filter.trim().toLocaleLowerCase();
+    if (!normalized) return rows;
+    return rows.filter((row) => row.join(' ').toLocaleLowerCase().includes(normalized));
+  }, [filter, rows]);
   return (
     <section className="panel demo-panel" aria-labelledby={`${title}-heading`}>
       <h2 id={`${title}-heading`}>{title}</h2>
+      <label className="chronology-filter" htmlFor={`${title}-filter`}>
+        Filter {title.toLocaleLowerCase()}
+        <input
+          id={`${title}-filter`}
+          type="search"
+          value={filter}
+          onChange={(event) => setFilter(event.target.value)}
+        />
+      </label>
       <div className="table-scroll">
         <table>
           <thead>
@@ -322,7 +339,7 @@ function ChronologyTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {filteredRows.map((row) => (
               <tr className={important ? 'important-event' : undefined} key={row.join('-')}>
                 {row.map((cell, index) => (
                   <td key={`${cell}-${index}`}>
@@ -338,6 +355,7 @@ function ChronologyTable({
           </tbody>
         </table>
       </div>
+      {filteredRows.length === 0 ? <p role="status">No matching chronology entries.</p> : null}
     </section>
   );
 }
