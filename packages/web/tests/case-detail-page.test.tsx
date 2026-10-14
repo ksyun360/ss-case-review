@@ -267,6 +267,8 @@ test('opens a registered original in a new document tab', async () => {
   expect(getSyntheticOriginal).toHaveBeenCalledExactlyOnceWith(caseId, documentVersionId);
   expect(createObjectURL).toHaveBeenCalledExactlyOnceWith(expect.any(Blob));
   expect(open).toHaveBeenCalledExactlyOnceWith('blob:synthetic', '_blank', 'noopener,noreferrer');
+  expect(await screen.findByTitle('Original PDF viewer')).toHaveAttribute('src', 'blob:synthetic');
+  expect(screen.getByText('Document 0021 is open beside the record.')).toBeVisible();
   createObjectURL.mockRestore();
   open.mockRestore();
 });

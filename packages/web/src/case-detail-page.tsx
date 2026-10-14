@@ -88,6 +88,9 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
   >();
   const [openingDocumentVersionId, setOpeningDocumentVersionId] = useState<string>();
   const [openError, setOpenError] = useState(false);
+  const [openedOriginal, setOpenedOriginal] = useState<
+    Readonly<{ documentVersionId: string; url: string }> | undefined
+  >();
   const load = useCallback(() => {
     setInventory(undefined);
     void listSyntheticOriginals(caseId).then(
@@ -106,6 +109,7 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
     try {
       const blob = await getSyntheticOriginal(caseId, documentVersionId);
       const url = URL.createObjectURL(blob);
+      setOpenedOriginal({ documentVersionId, url });
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch {
       setOpenError(true);
@@ -152,6 +156,13 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
         </ul>
       )}
       {openError ? <p role="alert">Original document unavailable.</p> : null}
+      {openedOriginal ? (
+        <section className="original-viewer" aria-label="Original PDF viewer">
+          <h3>Original document</h3>
+          <p>Document {openedOriginal.documentVersionId.slice(-4)} is open beside the record.</p>
+          <iframe title="Original PDF viewer" src={openedOriginal.url} loading="lazy" />
+        </section>
+      ) : null}
       <p>Processing status comes from the case-scoped background queue.</p>
       <a className="button secondary-button" href="/cases">
         Back to saved cases

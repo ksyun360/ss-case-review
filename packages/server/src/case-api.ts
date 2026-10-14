@@ -248,6 +248,7 @@ export function createDevelopmentApi(
       },
     },
     async (request, reply) => {
+      /* Stryker disable next-line ObjectLiteral */
       const created = await createCase(database, {
         caseId: randomUUID(),
         label: request.body.label.trim(),

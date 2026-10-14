@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
-import { createCase } from '../src/cases.ts';
+import { createCase, type SqlClient } from '../src/cases.ts';
 import {
   completeOriginalUpload,
   failOriginalUpload,
@@ -72,6 +72,33 @@ test('reserves a recoverable original attempt for a case member before file rece
   expect(await completeOriginalUpload(database, reviewerId, reference)).toEqual(reference);
   expect((await database.query('SELECT state FROM original_upload_attempts')).rows).toEqual([
     { state: 'registered' },
+  ]);
+});
+
+test('passes the reviewer identity when completing an original upload', async () => {
+  const reference = {
+    caseId,
+    documentVersionId,
+    sha256: 'a'.repeat(64),
+    byteLength: 3,
+  };
+  const calls: unknown[][] = [];
+  const client = {
+    query: async (_sql: string, parameters: unknown[]) => {
+      calls.push(parameters);
+      return { rows: [reference] };
+    },
+  } as unknown as SqlClient;
+
+  await expect(completeOriginalUpload(client, reviewerId, reference)).resolves.toEqual(reference);
+  expect(calls).toEqual([
+    [
+      reference.caseId,
+      reference.documentVersionId,
+      reference.sha256,
+      reference.byteLength,
+      reviewerId,
+    ],
   ]);
 });
 
