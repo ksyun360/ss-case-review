@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
-import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
+import { afterAll, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createCase, registerOriginalReference } from '../src/cases.ts';
 import {
   claimDocumentProcessing,
@@ -122,6 +122,28 @@ test('leases queued document processing once and safely recovers expired work', 
     failureCode: null,
     claims: { status: 'validated', claims: [] },
   });
+  const query = vi.spyOn(database, 'query');
+  const noClaimsVersion = '00000000-0000-4000-8000-000000000222';
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId: noClaimsVersion,
+    sha256: 'c'.repeat(64),
+    byteLength: 128,
+  });
+  await reserveDocumentProcessing(database, { ...input, documentVersionId: noClaimsVersion });
+  await claimDocumentProcessing(database, {
+    now: new Date('2026-10-01T12:11:00Z'),
+    leaseExpiresAt: new Date('2026-10-01T12:16:00Z'),
+    leaseToken: firstToken,
+  });
+  await completeDocumentProcessing(database, {
+    caseId,
+    documentVersionId: noClaimsVersion,
+    extractionVersion,
+    leaseToken: firstToken,
+  });
+  expect(query.mock.calls.at(-1)?.[1]?.at(-1)).toBe(null);
+  query.mockRestore();
   await expect(
     findDocumentProcessingForReviewer(
       database,

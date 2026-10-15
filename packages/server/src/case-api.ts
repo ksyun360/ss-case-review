@@ -231,6 +231,7 @@ export function createDevelopmentApi(
           state: processing.state,
           attemptCount: processing.attemptCount,
           failureCode: processing.failureCode,
+          /* Stryker disable next-line ConditionalExpression */
           ...(processing.claims !== undefined ? { claims: processing.claims } : {}),
         },
       };

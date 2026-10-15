@@ -718,6 +718,7 @@ test('returns member-scoped processing status for a registered original', async 
         failureCode: null,
       },
     });
+    expect(Object.hasOwn(response.json().processing, 'claims')).toBe(false);
 
     await database.query(
       `UPDATE document_processing_attempts
