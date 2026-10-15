@@ -60,6 +60,17 @@ beforeEach(async () => {
     'utf8',
   );
   await database.exec(processingMigration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610150001_processing_claims.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   api = createDevelopmentApi(environment, database);
 });
 afterEach(async () => {
@@ -705,6 +716,29 @@ test('returns member-scoped processing status for a registered original', async 
         state: 'queued',
         attemptCount: 0,
         failureCode: null,
+      },
+    });
+
+    await database.query(
+      `UPDATE document_processing_attempts
+       SET state = 'published', claims_json = $1::jsonb
+       WHERE case_id = $2 AND document_version_id = $3`,
+      [JSON.stringify({ status: 'validated', claims: [] }), caseId, documentVersionId],
+    );
+    const published = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/document-processing/${documentVersionId}`,
+      headers: requestHeaders,
+    });
+    expect(published.statusCode).toBe(200);
+    expect(published.json()).toEqual({
+      processing: {
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'published',
+        attemptCount: 0,
+        failureCode: null,
+        claims: { status: 'validated', claims: [] },
       },
     });
 

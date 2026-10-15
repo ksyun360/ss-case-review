@@ -323,6 +323,17 @@ test('queues a registered original with fixed extraction budgets before returnin
       'utf8',
     );
     await database.exec(processingSql.replace(/-- Down Migration[\s\S]*$/, ''));
+    await database.exec(
+      (
+        await readFile(
+          new URL(
+            '../../case-repository/migrations/202610150001_processing_claims.sql',
+            import.meta.url,
+          ),
+          'utf8',
+        )
+      ).replace(/-- Down Migration[\s\S]*$/, ''),
+    );
     await createCase(database, { caseId, reviewerId, label: 'Queued upload case' });
     async function* chunks() {
       yield Buffer.from('%PDF-synthetic');

@@ -10,6 +10,7 @@ export type DocumentProcessingStatus = Readonly<{
   state: 'queued' | 'processing' | 'published' | 'failed';
   attemptCount: number;
   failureCode: string | null;
+  claims?: unknown;
 }>;
 
 export type DocumentProcessingClaim = DocumentProcessingStatus &
@@ -29,11 +30,18 @@ type ProcessingIdentity = Readonly<{
   extractionVersion: string;
 }>;
 
+type ProcessingRow = DocumentProcessingStatus & Readonly<{ claims: unknown | null }>;
+
+function withoutEmptyClaims(row: ProcessingRow): DocumentProcessingStatus {
+  const { claims, ...status } = row;
+  return claims === null ? status : { ...status, claims };
+}
+
 export async function reserveDocumentProcessing(
   client: SqlClient,
   input: Omit<DocumentProcessingStatus, 'state' | 'attemptCount' | 'failureCode'>,
 ): Promise<DocumentProcessingStatus | undefined> {
-  const result = await client.query<DocumentProcessingStatus>(
+  const result = await client.query<ProcessingRow>(
     `INSERT INTO document_processing_attempts (
       case_id, document_version_id, reviewer_id, extraction_version,
       maximum_bytes, maximum_pages
@@ -47,7 +55,8 @@ export async function reserveDocumentProcessing(
     RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
       reviewer_id AS "reviewerId", extraction_version AS "extractionVersion",
       maximum_bytes::float8 AS "maximumBytes", maximum_pages AS "maximumPages",
-      state, attempt_count AS "attemptCount", failure_code AS "failureCode"`,
+      state, attempt_count AS "attemptCount", failure_code AS "failureCode",
+      NULL::jsonb AS claims`,
     [
       input.caseId,
       input.documentVersionId,
@@ -57,14 +66,14 @@ export async function reserveDocumentProcessing(
       input.maximumPages,
     ],
   );
-  return result.rows[0];
+  return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }
 
 export async function claimDocumentProcessing(
   client: SqlClient,
   input: Readonly<{ now: Date; leaseExpiresAt: Date; leaseToken: string }>,
 ): Promise<DocumentProcessingClaim | undefined> {
-  const result = await client.query<DocumentProcessingClaim>(
+  const result = await client.query<ProcessingRow & Readonly<{ leaseToken: string }>>(
     `WITH candidate AS (
       SELECT attempts.case_id, attempts.document_version_id, attempts.extraction_version
       FROM document_processing_attempts AS attempts
@@ -93,28 +102,39 @@ export async function claimDocumentProcessing(
       attempts.maximum_bytes::float8 AS "maximumBytes",
       attempts.maximum_pages AS "maximumPages", attempts.state,
       attempts.attempt_count AS "attemptCount", attempts.failure_code AS "failureCode",
+      NULL::jsonb AS claims,
       attempts.lease_token AS "leaseToken"`,
     [input.now, input.leaseToken, input.leaseExpiresAt],
   );
-  return result.rows[0];
+  return result.rows[0]
+    ? (withoutEmptyClaims(result.rows[0]) as DocumentProcessingClaim)
+    : undefined;
 }
 
 export async function completeDocumentProcessing(
   client: SqlClient,
-  input: ProcessingIdentity & Readonly<{ leaseToken: string }>,
+  input: ProcessingIdentity & Readonly<{ leaseToken: string; claims?: unknown }>,
 ): Promise<DocumentProcessingStatus | undefined> {
-  const result = await client.query<DocumentProcessingStatus>(
+  const result = await client.query<ProcessingRow>(
     `UPDATE document_processing_attempts
-    SET state = 'published', lease_token = NULL, lease_expires_at = NULL, updated_at = now()
+    SET state = 'published', lease_token = NULL, lease_expires_at = NULL,
+      claims_json = $5::jsonb, updated_at = now()
     WHERE case_id = $1 AND document_version_id = $2 AND extraction_version = $3
       AND state = 'processing' AND lease_token = $4
     RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
       reviewer_id AS "reviewerId", extraction_version AS "extractionVersion",
       maximum_bytes::float8 AS "maximumBytes", maximum_pages AS "maximumPages",
-      state, attempt_count AS "attemptCount", failure_code AS "failureCode"`,
-    [input.caseId, input.documentVersionId, input.extractionVersion, input.leaseToken],
+      state, attempt_count AS "attemptCount", failure_code AS "failureCode",
+      claims_json AS claims`,
+    [
+      input.caseId,
+      input.documentVersionId,
+      input.extractionVersion,
+      input.leaseToken,
+      input.claims === undefined ? null : JSON.stringify(input.claims),
+    ],
   );
-  return result.rows[0];
+  return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }
 
 export async function failDocumentProcessing(
@@ -122,7 +142,7 @@ export async function failDocumentProcessing(
   input: ProcessingIdentity &
     Readonly<{ leaseToken: string; failureCode: DocumentProcessingFailureCode }>,
 ): Promise<DocumentProcessingStatus | undefined> {
-  const result = await client.query<DocumentProcessingStatus>(
+  const result = await client.query<ProcessingRow>(
     `UPDATE document_processing_attempts
     SET state = 'failed', failure_code = $5, lease_token = NULL,
       lease_expires_at = NULL, updated_at = now()
@@ -131,7 +151,8 @@ export async function failDocumentProcessing(
     RETURNING case_id AS "caseId", document_version_id AS "documentVersionId",
       reviewer_id AS "reviewerId", extraction_version AS "extractionVersion",
       maximum_bytes::float8 AS "maximumBytes", maximum_pages AS "maximumPages",
-      state, attempt_count AS "attemptCount", failure_code AS "failureCode"`,
+      state, attempt_count AS "attemptCount", failure_code AS "failureCode",
+      NULL::jsonb AS claims`,
     [
       input.caseId,
       input.documentVersionId,
@@ -140,7 +161,7 @@ export async function failDocumentProcessing(
       input.failureCode,
     ],
   );
-  return result.rows[0];
+  return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }
 
 export async function findDocumentProcessingForReviewer(
@@ -150,14 +171,15 @@ export async function findDocumentProcessingForReviewer(
   documentVersionId: string,
   extractionVersion: string,
 ): Promise<DocumentProcessingStatus | undefined> {
-  const result = await client.query<DocumentProcessingStatus>(
+  const result = await client.query<ProcessingRow>(
     `SELECT attempts.case_id AS "caseId",
       attempts.document_version_id AS "documentVersionId",
       attempts.reviewer_id AS "reviewerId",
       attempts.extraction_version AS "extractionVersion",
       attempts.maximum_bytes::float8 AS "maximumBytes",
       attempts.maximum_pages AS "maximumPages", attempts.state,
-      attempts.attempt_count AS "attemptCount", attempts.failure_code AS "failureCode"
+      attempts.attempt_count AS "attemptCount", attempts.failure_code AS "failureCode",
+      attempts.claims_json AS claims
     FROM document_processing_attempts AS attempts
     JOIN case_memberships AS members ON members.case_id = attempts.case_id
       AND members.reviewer_id = $1
@@ -167,5 +189,5 @@ export async function findDocumentProcessingForReviewer(
       AND attempts.extraction_version = $4`,
     [reviewerId, caseId, documentVersionId, extractionVersion],
   );
-  return result.rows[0];
+  return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }

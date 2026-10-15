@@ -23,6 +23,7 @@ beforeEach(async () => {
   for (const migration of [
     '202609230001_initial_case_metadata.sql',
     '202610010001_document_processing_attempts.sql',
+    '202610150001_processing_claims.sql',
   ]) {
     const sql = await readFile(
       new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
@@ -133,6 +134,15 @@ test('runs one leased processing job to a durable safe terminal state', async ()
     createSourceUnitId: common.createSourceUnitId,
     generateClaims,
   });
+  await expect(
+    findDocumentProcessingForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      claimsVersion,
+      extractionVersion,
+    ),
+  ).resolves.toMatchObject({ state: 'published', claims });
 
   const unavailableVersion = await reserve('22');
   processOriginal.mockResolvedValueOnce({ status: 'original_unavailable' });

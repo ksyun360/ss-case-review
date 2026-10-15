@@ -110,7 +110,10 @@ export async function runNextDocumentProcessing(input: WorkerInput) {
   };
   const finalized =
     outcome.status === 'published'
-      ? await completeDocumentProcessing(input.database, identity)
+      ? await completeDocumentProcessing(input.database, {
+          ...identity,
+          ...(outcome.claims ? { claims: outcome.claims } : {}),
+        })
       : await failDocumentProcessing(input.database, {
           ...identity,
           failureCode: outcome.failureCode,

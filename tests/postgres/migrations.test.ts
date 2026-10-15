@@ -242,6 +242,7 @@ test('migrates a native PostgreSQL database and round-trips case and original me
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
+    { name: '202610150001_processing_claims' },
   ]);
   expect((await client.query('SHOW server_version_num')).rows).toEqual([
     { server_version_num: '180006' },
@@ -343,6 +344,7 @@ test('rejects migration history that does not match the repository plan', async 
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
+    { name: '202610150001_processing_claims' },
   ]);
   expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
@@ -399,5 +401,6 @@ test('loads the migration SQL from the compiled package layout', async () => {
     { name: '202609230002_original_upload_attempts' },
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
+    { name: '202610150001_processing_claims' },
   ]);
 });

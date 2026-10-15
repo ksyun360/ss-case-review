@@ -26,6 +26,7 @@ beforeEach(async () => {
   for (const migration of [
     '202609230001_initial_case_metadata.sql',
     '202610010001_document_processing_attempts.sql',
+    '202610150001_processing_claims.sql',
   ]) {
     const sql = await readFile(new URL(`../migrations/${migration}`, import.meta.url), 'utf8');
     await database.exec(sql.replace(/-- Down Migration[\s\S]*$/, ''));
@@ -112,12 +113,14 @@ test('leases queued document processing once and safely recovers expired work', 
       documentVersionId,
       extractionVersion,
       leaseToken: secondToken,
+      claims: { status: 'validated', claims: [] },
     }),
   ).resolves.toEqual({
     ...input,
     state: 'published',
     attemptCount: 2,
     failureCode: null,
+    claims: { status: 'validated', claims: [] },
   });
   await expect(
     findDocumentProcessingForReviewer(
@@ -132,6 +135,7 @@ test('leases queued document processing once and safely recovers expired work', 
     state: 'published',
     attemptCount: 2,
     failureCode: null,
+    claims: { status: 'validated', claims: [] },
   });
   await expect(
     findDocumentProcessingForReviewer(
