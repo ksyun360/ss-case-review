@@ -30,6 +30,7 @@ test('verifies a generated claim only when its quotation matches the authorized 
   expect(validateGeneratedClaim('case-a', [source], claim)).toEqual({
     status: 'verified',
     claimId: 'claim-a',
+    text: claim.text,
     source: { caseId: 'case-a', ...claim.source },
   });
 });
@@ -53,6 +54,7 @@ test('flags a claim for investigation when the quotation cannot be matched', () 
   expect(validateGeneratedClaim('case-a', [source], claim)).toEqual({
     status: 'unverified',
     claimId: 'claim-unmatched',
+    text: claim.text,
     message: "The review system couldn't find this evidence in the authorized case record.",
     reason: 'quote_mismatch',
   });

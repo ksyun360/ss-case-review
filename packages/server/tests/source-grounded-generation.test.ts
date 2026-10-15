@@ -50,6 +50,7 @@ test('parses Gemini claims and validates every citation against authorized sourc
       {
         status: 'verified',
         claimId: 'claim-a',
+        text: 'The RFC includes six hours of sitting.',
         source: {
           caseId: 'case-a',
           recordRevision: 1,

@@ -10,11 +10,13 @@ export type GeneratedClaimValidation =
   | Readonly<{
       status: 'verified';
       claimId: string;
+      text: string;
       source: Extract<ReturnType<typeof locateSourceSpan>, { status: 'located' }>['span'];
     }>
   | Readonly<{
       status: 'unverified';
       claimId: string;
+      text: string;
       message: "The review system couldn't find this evidence in the authorized case record.";
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
     }>;
@@ -32,10 +34,11 @@ export function validateGeneratedClaim(
   const source = sources.find((candidate) => candidate.sourceUnitId === claim.source.sourceUnitId);
   const result = locateSourceSpan(caseId, source, claim.source);
   if (result.status === 'located')
-    return { status: 'verified', claimId: claim.claimId, source: result.span };
+    return { status: 'verified', claimId: claim.claimId, text: claim.text, source: result.span };
   return {
     status: 'unverified',
     claimId: claim.claimId,
+    text: claim.text,
     message: "The review system couldn't find this evidence in the authorized case record.",
     reason: result.reason,
   };
