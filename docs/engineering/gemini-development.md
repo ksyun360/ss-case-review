@@ -1,6 +1,6 @@
 # Gemini development configuration
 
-Status: The server-config package validates server-side Gemini Developer API settings, and the server package contains a bounded text-generation client with normalized provider failures. A source-grounded generation service now accepts only a strict JSON claim envelope and validates every returned citation against authorized extracted source units. The PDF processing coordinator and worker can invoke that validator before publishing extracted sources and propagate its validated result through the processing outcome. The browser preview does not load the root `.env`, invoke this validator, or call Gemini. Worker bootstrap from live environment settings, live connectivity checks, and credential validation against Google remain pending.
+Status: The server-config package validates server-side Gemini Developer API settings, and the server package contains a bounded text-generation client with normalized provider failures. A source-grounded generation service now accepts only a strict JSON claim envelope and validates every returned citation against authorized extracted source units. The PDF processing coordinator and worker invoke that validator before publishing extracted sources when guarded startup receives a configured Gemini profile, then propagate the validated, refused, or invalid result through the processing outcome. The browser preview does not load the root `.env`, invoke this validator, or call Gemini. Live provider connectivity, credential validation against Google, artifact persistence, and browser artifact views remain pending.
 
 ## Local settings
 
@@ -17,13 +17,13 @@ Keep `GEMINI_API_KEY` in the repository-root `.env`. Git ignores `.env` and `.en
 
 Do not use a `VITE_` prefix for credentials, import server configuration into the web workspace, or pass secrets to browser code. Keep real keys out of chat, screenshots, fixtures, logs, and shared documentation. Tests supply synthetic values directly and need no real key.
 
-The helper reads only `GEMINI_API_KEY`; the helper never substitutes `GOOGLE_API_KEY`. The future Gemini adapter must pass the selected credential explicitly rather than rely on SDK environment discovery. The helper rejects other provider or transport values. The current helper does not implement Vertex authentication or the separate local-provider path.
+The helper reads only `GEMINI_API_KEY`; the helper never substitutes `GOOGLE_API_KEY`. The server startup creates a claim generator only after the development configuration helper returns `configured`, and the generator passes the selected credential explicitly rather than relying on SDK environment discovery. The helper rejects other provider or transport values. The current helper does not implement Vertex authentication or the separate local-provider path.
 
 ## Validator contract
 
 `readGeminiDevelopmentConfig(environment)` accepts a server-owned map of environment-variable names to strings or undefined values. The helper neither reads files nor mutates process state. The future server bootstrap must load approved settings and call the helper before constructing a provider client. The configuration helper makes no network request.
 
-The helper returns either `configured` with a config object or `configuration_error` with a fixed diagnostic code. Configuration errors contain no supplied values. Checks run in this order: provider, runtime environment, data classification, transport, model, and credential.
+The helper returns either `configured` with a config object or `configuration_error` with a fixed diagnostic code. Configuration errors contain no supplied values. Checks run in this order: provider, runtime environment, data classification, transport, model, and credential. Guarded startup omits the claim-generator callback when any check fails, so extraction can continue without an external model call.
 
 | Diagnostic code         | Operator action                                                                                          |
 | ----------------------- | -------------------------------------------------------------------------------------------------------- |
@@ -41,6 +41,6 @@ The helper trims surrounding model-ID whitespace. The helper checks credential w
 
 ## Remaining integration
 
-Connect the tested Gemini client to guarded server startup and supply a review task from the approved document-processing workflow. The processing coordinator now accepts an injected claim generator and passes extracted source units to it before source publication; the worker propagates the resulting `validated`, refusal, or `invalid_output` status without exposing unverified claims. The service does not yet persist generated artifacts or expose them through the browser. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
+Guarded startup now connects the tested Gemini client to the approved document-processing workflow and supplies a fixed source-grounded review task. The processing coordinator accepts an injected claim generator and passes the case ID plus extracted source units to it before source publication; the worker propagates the resulting `validated`, refusal, or `invalid_output` status without exposing unverified claims. The service does not yet persist generated artifacts or expose them through the browser. Keep real court records blocked until court IT approves identity, storage, endpoint, and data handling. Qualification must measure accuracy, completeness, latency, and cost on an approved workload.
 
 Phase 4 remains active. Return to Phase 3 at the very end, before pilot handoff, to finish hosted CI and repository protections. The configuration helper does not change those gates.
