@@ -9,7 +9,10 @@ import {
 import { processStoredPdfOriginalForReviewer } from './original-processing.ts';
 import type { ValidatedClaimsResult } from './source-grounded-generation.ts';
 
-type ClaimGenerator = (sources: readonly TextSourceUnit[]) => Promise<ValidatedClaimsResult>;
+export type ClaimGenerator = (
+  caseId: string,
+  sources: readonly TextSourceUnit[],
+) => Promise<ValidatedClaimsResult>;
 
 type ProcessingResult =
   | Readonly<{

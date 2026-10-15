@@ -92,3 +92,31 @@ test('schedules document processing serially and stops cleanly', async () => {
   stop();
   expect(clear).toHaveBeenCalledTimes(1);
 });
+
+test('forwards the configured claim generator to each leased job', async () => {
+  const scheduled: Array<() => Promise<void>> = [];
+  const generateClaims = vi.fn(async () => ({
+    status: 'refused' as const,
+    code: 'empty_response' as const,
+  }));
+  const runNext = vi.fn(async () => ({ status: 'idle' as const }));
+  const stop = startDocumentProcessingScheduler({
+    database: { query: vi.fn() },
+    root: '/synthetic/private/originals',
+    intervalMilliseconds: 250,
+    leaseMilliseconds: 300_000,
+    now: () => new Date('2026-10-02T12:00:00.000Z'),
+    createId: () => '00000000-0000-4000-8000-000000000001',
+    schedule: (callback) => {
+      scheduled.push(callback);
+      return scheduled.length;
+    },
+    clear: vi.fn(),
+    runNext,
+    generateClaims,
+  });
+
+  await scheduled[0]?.();
+  expect(runNext).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ generateClaims }));
+  stop();
+});

@@ -166,7 +166,7 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
     expect(unavailableInput.extractPages).not.toHaveBeenCalled();
     expect(rejectedExtraction).toHaveBeenCalledOnce();
     expect(createSourceUnitId).toHaveBeenCalledTimes(2);
-    expect(generateClaims).toHaveBeenCalledExactlyOnceWith([
+    expect(generateClaims).toHaveBeenCalledExactlyOnceWith(caseId, [
       expect.objectContaining({ sourceUnitId: sourceIds[0], rawText: 'First exact page' }),
       expect.objectContaining({ sourceUnitId: sourceIds[1], rawText: 'Third exact page' }),
     ]);

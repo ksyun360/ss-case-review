@@ -5,14 +5,19 @@ import process from 'node:process';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, parse, resolve } from 'node:path';
 import { migrateCaseSchema } from '@record-review/case-repository/migrations';
+import type { TextSourceUnit } from '@record-review/case-repository/source-units';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
+import { createGeminiTextGenerator } from './gemini-client.ts';
 import { recoverStaleOriginalUploads } from './original-upload-recovery.ts';
 import { startDocumentProcessingScheduler } from './processing-scheduler.ts';
 import { runNextDocumentProcessing } from './processing-worker.ts';
+import { generateValidatedClaims } from './source-grounded-generation.ts';
 
 const STALE_UPLOAD_AGE_MILLISECONDS = 15 * 60 * 1_000;
 const UPLOAD_RECOVERY_LIMIT = 25;
+const CLAIM_GENERATION_TASK =
+  'Extract only review claims explicitly supported by the supplied synthetic Social Security case record.';
 
 export async function startDevelopmentServer(environment: ServerEnvironment) {
   readDevelopmentIdentity(environment);
@@ -51,7 +56,8 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
         limit: UPLOAD_RECOVERY_LIMIT,
       });
     await api.listen({ host: '127.0.0.1', port: 5176 });
-    if (originalStorage)
+    if (originalStorage) {
+      const generateClaims = createClaimGenerator(environment);
       stopProcessing = startDocumentProcessingScheduler({
         database,
         root: originalStorage.root,
@@ -62,10 +68,19 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
         schedule: (callback, delay) => setTimeout(callback, delay),
         clear: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
         runNext: runNextDocumentProcessing,
+        ...(generateClaims ? { generateClaims } : {}),
       });
+    }
     return api;
   } catch {
     await api.close();
     throw new Error('development_server_start_failed');
   }
+}
+
+function createClaimGenerator(environment: ServerEnvironment) {
+  const generator = createGeminiTextGenerator(environment);
+  if (generator.status !== 'configured') return undefined;
+  return (caseId: string, sources: readonly TextSourceUnit[]) =>
+    generateValidatedClaims(generator.generate, CLAIM_GENERATION_TASK, caseId, sources);
 }

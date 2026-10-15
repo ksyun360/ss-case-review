@@ -184,6 +184,42 @@ test('enables bounded synthetic original storage only for an explicit absolute r
   expect(createDevelopmentApi).not.toHaveBeenCalled();
 });
 
+test('wires the configured Gemini generator into original processing', async () => {
+  const root = join(tmpdir(), 'record-review-synthetic-originals');
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '[]' }] } }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+  );
+  vi.stubGlobal('fetch', fetch);
+  await startDevelopmentServer({
+    ...environment,
+    DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root,
+    MODEL_PROVIDER: 'gemini',
+    GEMINI_TRANSPORT: 'developer-api',
+    GEMINI_MODEL_ID: 'gemini-2.5-flash',
+    GEMINI_API_KEY: 'synthetic-key',
+  });
+
+  const scheduler = vi.mocked(startDocumentProcessingScheduler).mock.calls[0]?.[0];
+  expect(scheduler?.generateClaims).toEqual(expect.any(Function));
+  await expect(scheduler?.generateClaims?.('synthetic-case', [])).resolves.toEqual({
+    status: 'validated',
+    claims: [],
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  vi.unstubAllGlobals();
+});
+
+test('leaves claim generation disabled when Gemini is not configured', async () => {
+  const root = join(tmpdir(), 'record-review-synthetic-originals');
+  await startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root });
+  const scheduler = vi.mocked(startDocumentProcessingScheduler).mock.calls[0]?.[0];
+  expect(scheduler?.generateClaims).toBeUndefined();
+});
+
 test('recovers stale synthetic uploads before accepting new requests', async () => {
   vi.useFakeTimers();
   try {

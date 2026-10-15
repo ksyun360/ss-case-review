@@ -33,7 +33,10 @@ type ProcessingInput = Readonly<{
     maximumPages: number,
   ) => Promise<readonly (ExtractedPage | PageGap)[]>;
   createSourceUnitId: () => string;
-  generateClaims?: (sources: readonly TextSourceUnit[]) => Promise<ValidatedClaimsResult>;
+  generateClaims?: (
+    caseId: string,
+    sources: readonly TextSourceUnit[],
+  ) => Promise<ValidatedClaimsResult>;
 }>;
 
 type StoredProcessingInput = Omit<ProcessingInput, 'extractPages'>;
@@ -71,7 +74,9 @@ export async function processPdfOriginalForReviewer(input: ProcessingInput) {
       pageNumber: page.pageNumber,
       rawText: page.rawText,
     }));
-  const claims = input.generateClaims ? await input.generateClaims(sources) : undefined;
+  const claims = input.generateClaims
+    ? await input.generateClaims(input.caseId, sources)
+    : undefined;
   const published = await insertTextSourcesForReviewer(input.database, input.reviewerId, sources);
   if (published.length !== sources.length) return { status: 'publication_rejected' as const };
   return {

@@ -1,5 +1,5 @@
 import type { SqlClient } from '@record-review/case-repository/cases';
-import { runNextDocumentProcessing } from './processing-worker.ts';
+import { runNextDocumentProcessing, type ClaimGenerator } from './processing-worker.ts';
 
 type SchedulerInput = Readonly<{
   database: SqlClient;
@@ -11,6 +11,7 @@ type SchedulerInput = Readonly<{
   schedule: (callback: () => Promise<void>, delay: number) => unknown;
   clear: (timer: unknown) => void;
   runNext: typeof runNextDocumentProcessing;
+  generateClaims?: ClaimGenerator;
 }>;
 
 export function startDocumentProcessingScheduler(input: SchedulerInput): () => void {
@@ -28,6 +29,7 @@ export function startDocumentProcessingScheduler(input: SchedulerInput): () => v
         leaseExpiresAt: new Date(startedAt.getTime() + input.leaseMilliseconds),
         leaseToken: input.createId(),
         createSourceUnitId: input.createId,
+        ...(input.generateClaims ? { generateClaims: input.generateClaims } : {}),
       });
     } catch {
       // The durable lease permits a later retry after an unexpected worker failure.
