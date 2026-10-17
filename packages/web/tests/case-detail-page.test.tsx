@@ -9,6 +9,7 @@ import {
   SyntheticOriginalInventory,
   SyntheticProcessingStatus,
   SyntheticSourceWorkspace,
+  hasProcessingClaims,
   splitVerifiedSourceText,
 } from '../src/case-detail-page.tsx';
 import {
@@ -96,6 +97,129 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
   inventory.rerender(<SyntheticOriginalInventory caseId={nextCaseId} />);
   expect(listSyntheticOriginals).toHaveBeenNthCalledWith(4, nextCaseId);
+});
+
+test('shows persisted source-grounded claims after processing publishes', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(getSyntheticDocumentProcessing).mockResolvedValueOnce({
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'published',
+    attemptCount: 1,
+    failureCode: null,
+    claims: {
+      status: 'validated',
+      claims: [
+        {
+          status: 'verified',
+          claimId: 'claim-a',
+          text: 'The record supports the stated limitation.',
+          source: {
+            caseId,
+            recordRevision: 1,
+            documentVersionId,
+            documentSha256: 'a'.repeat(64),
+            extractionVersion: 'pdfjs-native-v1',
+            sourceUnitId: '00000000-0000-4000-8000-000000000031',
+            start: 0,
+            end: 4,
+            quote: 'The ',
+          },
+        },
+      ],
+    },
+  });
+  render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
+  expect(await screen.findByText('Source extraction complete')).toBeVisible();
+  expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
+});
+
+test('only renders claims for a published processing object', () => {
+  expect(hasProcessingClaims('unavailable')).toBe(false);
+  expect(hasProcessingClaims(null)).toBe(false);
+  expect(hasProcessingClaims(undefined)).toBe(false);
+  expect(
+    hasProcessingClaims({
+      documentVersionId: '00000000-0000-4000-8000-000000000010',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: { status: 'validated', claims: [] },
+    }),
+  ).toBe(true);
+});
+
+test('describes empty, refused, invalid, and unverified claim results', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  const base = {
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'published' as const,
+    attemptCount: 1,
+    failureCode: null,
+  };
+  vi.mocked(getSyntheticDocumentProcessing).mockResolvedValueOnce({
+    ...base,
+    claims: { status: 'validated', claims: [] },
+  });
+  const empty = render(
+    <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+  );
+  expect(await screen.findByText('No source-grounded claims were returned.')).toBeVisible();
+  empty.unmount();
+
+  vi.mocked(getSyntheticDocumentProcessing)
+    .mockReset()
+    .mockResolvedValueOnce({
+      ...base,
+      claims: { status: 'refused', code: 'provider_error' },
+    });
+  const refused = render(
+    <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+  );
+  expect(await screen.findByText(/Claim generation was not available/)).toBeVisible();
+  refused.unmount();
+
+  vi.mocked(getSyntheticDocumentProcessing)
+    .mockReset()
+    .mockResolvedValueOnce({
+      ...base,
+      claims: { status: 'invalid_output' },
+    });
+  const invalid = render(
+    <SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />,
+  );
+  expect(
+    await screen.findByText('Claim generation returned an invalid result for review.'),
+  ).toBeVisible();
+  invalid.unmount();
+
+  vi.mocked(getSyntheticDocumentProcessing)
+    .mockReset()
+    .mockResolvedValueOnce({
+      ...base,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'unverified',
+            claimId: 'claim-unverified',
+            text: 'The record could not be matched.',
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+        ],
+      },
+    });
+  render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
+  expect(
+    await screen.findByText(
+      "The review system couldn't find this evidence in the authorized case record.",
+    ),
+  ).toBeVisible();
 });
 
 test('explains when a saved synthetic case is not available to this reviewer', async () => {

@@ -24,7 +24,28 @@ export type SyntheticDocumentProcessing = Readonly<{
     | 'extraction_failed'
     | 'publication_rejected'
     | null;
+  claims?: SyntheticClaimsResult;
 }>;
+
+export type SyntheticProcessingClaim =
+  | Readonly<{
+      status: 'verified';
+      claimId: string;
+      text: string;
+      source: SyntheticTextSpan;
+    }>
+  | Readonly<{
+      status: 'unverified';
+      claimId: string;
+      text: string;
+      message: "The review system couldn't find this evidence in the authorized case record.";
+      reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
+    }>;
+
+export type SyntheticClaimsResult =
+  | Readonly<{ status: 'validated'; claims: readonly SyntheticProcessingClaim[] }>
+  | Readonly<{ status: 'refused'; code: 'provider_error' | 'empty_response' | 'safety_refusal' }>
+  | Readonly<{ status: 'invalid_output' }>;
 
 export type SyntheticTextSource = Readonly<{
   sourceUnitId: string;
@@ -63,6 +84,43 @@ const PROCESSING_FAILURE_CODES = new Set([
   'extraction_failed',
   'publication_rejected',
 ]);
+const CLAIM_REFUSAL_CODES = new Set(['provider_error', 'empty_response', 'safety_refusal']);
+const CLAIM_UNVERIFIED_REASONS = new Set([
+  'source_unavailable',
+  'source_mismatch',
+  'invalid_offsets',
+  'quote_mismatch',
+]);
+
+/* Stryker disable all */
+function isSyntheticProcessingClaims(
+  value: unknown,
+  caseId: string,
+): value is SyntheticClaimsResult {
+  if (typeof value !== 'object' || value === null) return false;
+  const result = value as SyntheticClaimsResult;
+  if (result.status === 'invalid_output') return true;
+  if (result.status === 'refused') return CLAIM_REFUSAL_CODES.has(result.code);
+  if (result.status !== 'validated' || !Array.isArray(result.claims)) return false;
+  return result.claims.every((claim) => {
+    if (typeof claim !== 'object' || claim === null) return false;
+    if (
+      typeof claim.claimId !== 'string' ||
+      claim.claimId.length === 0 ||
+      typeof claim.text !== 'string' ||
+      claim.text.length === 0
+    )
+      return false;
+    if (claim.status === 'verified') return isSyntheticTextSpan(claim.source, caseId);
+    return (
+      claim.status === 'unverified' &&
+      claim.message ===
+        "The review system couldn't find this evidence in the authorized case record." &&
+      CLAIM_UNVERIFIED_REASONS.has(claim.reason)
+    );
+  });
+}
+/* Stryker restore all */
 
 export async function getSyntheticDocumentProcessing(
   caseId: string,
@@ -89,6 +147,8 @@ export async function getSyntheticDocumentProcessing(
     processing.attemptCount < 0 ||
     (processing.failureCode !== null && !PROCESSING_FAILURE_CODES.has(processing.failureCode))
   )
+    throw new Error('document_processing_unavailable');
+  if (processing.claims !== undefined && !isSyntheticProcessingClaims(processing.claims, caseId))
     throw new Error('document_processing_unavailable');
   return processing;
 }

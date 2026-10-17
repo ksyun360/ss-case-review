@@ -29,6 +29,51 @@ test('loads and validates one document processing status without trusting malfor
     processing,
     { ...processing, extractionVersion: 'x'.repeat(128), state: 'processing', attemptCount: 1 },
     { ...processing, state: 'published', attemptCount: 1 },
+    {
+      ...processing,
+      state: 'published',
+      attemptCount: 1,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'verified',
+            claimId: 'claim-a',
+            text: 'The record supports the stated limitation.',
+            source: {
+              caseId,
+              recordRevision: 1,
+              documentVersionId,
+              documentSha256: 'a'.repeat(64),
+              extractionVersion: 'pdfjs-native-v1',
+              sourceUnitId: '00000000-0000-4000-8000-000000000031',
+              start: 0,
+              end: 4,
+              quote: 'The ',
+            },
+          },
+        ],
+      },
+    },
+    { ...processing, state: 'published', claims: { status: 'validated', claims: [] } },
+    { ...processing, state: 'published', claims: { status: 'refused', code: 'provider_error' } },
+    { ...processing, state: 'published', claims: { status: 'invalid_output' } },
+    {
+      ...processing,
+      state: 'published',
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'unverified',
+            claimId: 'claim-unverified',
+            text: 'The record could not be matched.',
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+        ],
+      },
+    },
     ...[
       'original_unavailable',
       'unsupported_document_format',
@@ -53,9 +98,14 @@ test('loads and validates one document processing status without trusting malfor
     { processing: { ...processing, extractionVersion: null } },
     { processing: { ...processing, extractionVersion: 'x'.repeat(129) } },
     { processing: { ...processing, state: 'unknown' } },
+    {
+      processing: { ...processing, claims: { status: 'validated', claims: [{ claimId: 'bad' }] } },
+    },
     { processing: { ...processing, attemptCount: -1 } },
     { processing: { ...processing, attemptCount: 1.5 } },
     { processing: { ...processing, failureCode: 'unknown_failure' } },
+    { processing: { ...processing, claims: null } },
+    { processing: { ...processing, claims: { status: 'refused', code: 'unknown' } } },
   ];
   const errorJson = vi.fn();
   const fetch = vi.fn();

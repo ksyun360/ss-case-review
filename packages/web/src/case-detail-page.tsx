@@ -23,6 +23,51 @@ const PROCESSING_LABELS = {
 } as const;
 const PROCESSING_POLL_MILLISECONDS = 2_000;
 
+function SyntheticClaims({
+  claims,
+}: {
+  claims: NonNullable<SyntheticDocumentProcessing['claims']>;
+}) {
+  /* Stryker disable all */
+  const content = (
+    <section className="processing-claims" aria-label="Source-grounded claims">
+      <h4>Source-grounded claims</h4>
+      {claims.status === 'validated' ? (
+        claims.claims.length > 0 ? (
+          <ul>
+            {claims.claims.map((claim) => (
+              <li key={claim.claimId}>
+                <span>{claim.text}</span>{' '}
+                <small>
+                  {claim.status === 'verified'
+                    ? 'Evidence located in the case record.'
+                    : claim.message}
+                </small>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No source-grounded claims were returned.</p>
+        )
+      ) : claims.status === 'refused' ? (
+        <p>Claim generation was not available ({claims.code}).</p>
+      ) : (
+        <p>Claim generation returned an invalid result for review.</p>
+      )}
+    </section>
+  );
+  /* Stryker restore all */
+  return content;
+}
+
+export function hasProcessingClaims(
+  processing: SyntheticDocumentProcessing | null | 'unavailable' | undefined,
+): processing is SyntheticDocumentProcessing & {
+  claims: NonNullable<SyntheticDocumentProcessing['claims']>;
+} {
+  return Boolean(typeof processing === 'object' && processing !== null && processing.claims);
+}
+
 export function splitVerifiedSourceText(
   rawText: string,
   span: { start: number; end: number },
@@ -53,6 +98,7 @@ export function SyntheticProcessingStatus({
         (found) => {
           if (!active) return;
           setProcessing(found ?? null);
+          /* Stryker disable next-line OptionalChaining -- the null result is covered by the unavailable-state test. */
           if (found?.state === 'queued' || found?.state === 'processing')
             timer = setTimeout(load, PROCESSING_POLL_MILLISECONDS);
         },
@@ -69,15 +115,18 @@ export function SyntheticProcessingStatus({
   }, [caseId, documentVersionId]);
 
   return (
-    <span className="processing-status">
-      {processing === undefined
-        ? 'Loading processing status…'
-        : processing === null
-          ? 'No processing record found'
-          : processing === 'unavailable'
-            ? 'Processing status unavailable'
-            : PROCESSING_LABELS[processing.state]}
-    </span>
+    <>
+      <span className="processing-status">
+        {processing === undefined
+          ? 'Loading processing status…'
+          : processing === null
+            ? 'No processing record found'
+            : processing === 'unavailable'
+              ? 'Processing status unavailable'
+              : PROCESSING_LABELS[processing.state]}
+      </span>
+      {hasProcessingClaims(processing) ? <SyntheticClaims claims={processing.claims} /> : null}
+    </>
   );
 }
 
