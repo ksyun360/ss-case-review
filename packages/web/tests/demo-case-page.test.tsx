@@ -81,3 +81,21 @@ test('shows representative case metadata beside the source-linked review', async
   );
   open.mockRestore();
 });
+
+test('records a local correction suggestion without replacing the source value', async () => {
+  const user = userEvent.setup();
+  render(<DemoCasePage />);
+
+  await user.click(screen.getByRole('button', { name: 'Medical chronology' }));
+  await user.click(screen.getByRole('button', { name: 'Suggest correction for 2020-08-03' }));
+  expect(screen.getByRole('textbox', { name: 'Correction suggestion' })).toBeVisible();
+  await user.type(
+    screen.getByRole('textbox', { name: 'Correction suggestion' }),
+    'Confirm the imaging date against the report header.',
+  );
+  await user.click(screen.getByRole('button', { name: 'Save correction suggestion' }));
+
+  expect(screen.getByText('Correction suggestion recorded locally for review.')).toBeVisible();
+  expect(screen.getByText('Confirm the imaging date against the report header.')).toBeVisible();
+  expect(screen.getByText('Hill Country Imaging')).toBeVisible();
+});

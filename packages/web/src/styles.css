@@ -898,6 +898,33 @@ a.primary-button:hover {
   letter-spacing: 0.04em;
 }
 
+.correction-form {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  margin-top: 10px;
+}
+
+.correction-form label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.correction-form textarea {
+  min-height: 4rem;
+  padding: 8px;
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  font: inherit;
+}
+
+.correction-note {
+  max-width: 240px;
+  margin-top: 10px;
+  color: var(--secondary);
+  font-size: 13px;
+}
+
 .important-event td:first-child,
 .important-event td:nth-child(2) {
   font-weight: 700;

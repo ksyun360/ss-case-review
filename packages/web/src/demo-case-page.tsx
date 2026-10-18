@@ -310,6 +310,9 @@ function ChronologyTable({
   onOpen: (label: string) => void;
 }) {
   const [filter, setFilter] = useState('');
+  const [correctionFor, setCorrectionFor] = useState<string>();
+  const [correction, setCorrection] = useState('');
+  const [savedCorrections, setSavedCorrections] = useState<Record<string, string>>({});
   const filteredRows = useMemo(() => {
     const normalized = filter.trim().toLocaleLowerCase();
     if (!normalized) return rows;
@@ -336,22 +339,70 @@ function ChronologyTable({
                   {header}
                 </th>
               ))}
+              <th scope="col">Review action</th>
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((row) => (
-              <tr className={important ? 'important-event' : undefined} key={row.join('-')}>
-                {row.map((cell, index) => (
-                  <td key={`${cell}-${index}`}>
-                    {index === row.length - 1 ? (
-                      <SourceLink onOpen={() => onOpen(cell)}>{cell}</SourceLink>
-                    ) : (
-                      cell
-                    )}
+            {filteredRows.map((row) => {
+              const rowKey = row[0] ?? 'unknown-entry';
+              return (
+                <tr className={important ? 'important-event' : undefined} key={row.join('-')}>
+                  {row.map((cell, index) => (
+                    <td key={`${cell}-${index}`}>
+                      {index === row.length - 1 ? (
+                        <SourceLink onOpen={() => onOpen(cell)}>{cell}</SourceLink>
+                      ) : (
+                        cell
+                      )}
+                    </td>
+                  ))}
+                  <td>
+                    <button
+                      className="source-link"
+                      type="button"
+                      onClick={() => {
+                        setCorrectionFor(rowKey);
+                        setCorrection(savedCorrections[rowKey] ?? '');
+                      }}
+                    >
+                      Suggest correction for {row[0]}
+                    </button>
+                    {correctionFor === rowKey ? (
+                      <div className="correction-form">
+                        <label htmlFor={`${title}-${rowKey}-correction`}>
+                          Correction suggestion
+                        </label>
+                        <textarea
+                          id={`${title}-${rowKey}-correction`}
+                          value={correction}
+                          onChange={(event) => setCorrection(event.target.value)}
+                          rows={2}
+                        />
+                        <button
+                          className="button secondary-button"
+                          type="button"
+                          onClick={() => {
+                            const trimmed = correction.trim();
+                            if (!trimmed) return;
+                            setSavedCorrections((current) => ({ ...current, [rowKey]: trimmed }));
+                            setCorrectionFor(undefined);
+                          }}
+                          disabled={!correction.trim()}
+                        >
+                          Save correction suggestion
+                        </button>
+                      </div>
+                    ) : null}
+                    {savedCorrections[rowKey] ? (
+                      <p className="correction-note" role="status">
+                        Correction suggestion recorded locally for review.{' '}
+                        <span>{savedCorrections[rowKey]}</span>
+                      </p>
+                    ) : null}
                   </td>
-                ))}
-              </tr>
-            ))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
