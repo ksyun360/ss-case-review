@@ -43,6 +43,11 @@ function SyntheticClaims({
                     ? 'Evidence located in the case record.'
                     : claim.message}
                 </small>
+                {claim.status === 'verified' ? (
+                  <a className="source-link" href={`#source-${claim.source.sourceUnitId}`}>
+                    Open cited source
+                  </a>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -66,6 +71,10 @@ export function hasProcessingClaims(
   claims: NonNullable<SyntheticDocumentProcessing['claims']>;
 } {
   return Boolean(typeof processing === 'object' && processing !== null && processing.claims);
+}
+
+export function sourceUnitIdFromHash(hash: string): string | undefined {
+  return hash.startsWith('#source-') ? hash.slice('#source-'.length) : undefined;
 }
 
 export function splitVerifiedSourceText(
@@ -250,6 +259,12 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
     },
     [caseId],
   );
+  useEffect(() => {
+    if (!references || references === 'unavailable') return;
+    const sourceUnitId = sourceUnitIdFromHash(window.location.hash);
+    const reference = references.find((candidate) => candidate.sourceUnitId === sourceUnitId);
+    if (reference) openSource(reference);
+  }, [openSource, references]);
 
   const verifyQuote = useCallback(() => {
     const verifiedSource = source as SyntheticTextSource;
@@ -292,7 +307,7 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
       ) : (
         <ul className="source-list">
           {references.map((reference) => (
-            <li key={reference.sourceUnitId}>
+            <li id={`source-${reference.sourceUnitId}`} key={reference.sourceUnitId}>
               <button className="source-link" type="button" onClick={() => openSource(reference)}>
                 Open document {reference.documentVersionId.slice(-4)}, page {reference.pageNumber}
               </button>

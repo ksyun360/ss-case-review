@@ -10,6 +10,7 @@ import {
   SyntheticProcessingStatus,
   SyntheticSourceWorkspace,
   hasProcessingClaims,
+  sourceUnitIdFromHash,
   splitVerifiedSourceText,
 } from '../src/case-detail-page.tsx';
 import {
@@ -133,6 +134,10 @@ test('shows persisted source-grounded claims after processing publishes', async 
   render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
   expect(await screen.findByText('Source extraction complete')).toBeVisible();
   expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
+    'href',
+    '#source-00000000-0000-4000-8000-000000000031',
+  );
 });
 
 test('only renders claims for a published processing object', () => {
@@ -722,6 +727,35 @@ test('retries source discovery and opens exact page text with its provenance', a
   workspace.rerender(<SyntheticSourceWorkspace caseId={emptyCaseId} />);
   expect(await screen.findByText('No extracted sources are available yet.')).toBeVisible();
   expect(listSyntheticTextSources).toHaveBeenNthCalledWith(3, emptyCaseId);
+});
+
+test('opens a source targeted by a persisted claim link', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 7,
+  };
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({
+    ...reference,
+    rawText: 'Claim source text.',
+  });
+  window.history.replaceState({}, '', `#source-${sourceUnitId}`);
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  expect(getSyntheticTextSource).toHaveBeenCalledWith(caseId, sourceUnitId);
+  expect(sourceUnitIdFromHash(`#source-${sourceUnitId}`)).toBe(sourceUnitId);
+  expect(sourceUnitIdFromHash('#other')).toBeUndefined();
+  expect(
+    screen.getByRole('button', { name: 'Open document 0021, page 7' }).closest('li'),
+  ).toHaveAttribute('id', `source-${sourceUnitId}`);
+  window.history.replaceState({}, '', '/');
 });
 
 test('splits only the verified source range for highlighting', () => {
