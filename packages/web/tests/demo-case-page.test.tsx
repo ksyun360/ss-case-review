@@ -49,6 +49,25 @@ test('lets a reviewer move through every fictional demo view', async () => {
   expect(screen.getByText('ALJ decision issued')).toBeVisible();
   expect(screen.getAllByRole('row', { name: /ALJ/ }).length).toBeGreaterThan(0);
 
+  const milestone = screen.getByRole('button', {
+    name: 'Toggle milestone emphasis for 2021-09-02',
+  });
+  await user.click(milestone);
+  expect(screen.getByRole('row', { name: /2021-09-02 ALJ decision issued/ })).not.toHaveClass(
+    'important-event',
+  );
+  await user.click(milestone);
+  expect(screen.getByRole('row', { name: /2021-09-02 ALJ decision issued/ })).toHaveClass(
+    'important-event',
+  );
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Event group for 2021-09-02' }),
+    'appeals',
+  );
+  expect(screen.getByRole('row', { name: /2021-09-02 ALJ decision issued/ })).toHaveClass(
+    'event-group-appeals',
+  );
+
   await user.click(screen.getByRole('button', { name: 'Five-step + RFC' }));
   expect(screen.getByRole('heading', { name: 'Five-step review and RFC' })).toBeVisible();
   expect(

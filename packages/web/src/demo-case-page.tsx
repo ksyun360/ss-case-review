@@ -358,6 +358,10 @@ function ChronologyTable({
   const [correctionFor, setCorrectionFor] = useState<string>();
   const [correction, setCorrection] = useState('');
   const [savedCorrections, setSavedCorrections] = useState<Record<string, string>>({});
+  const [emphasizedRows, setEmphasizedRows] = useState<Set<string>>(
+    () => new Set(important ? rows.map((row) => row[0] ?? 'unknown-entry') : []),
+  );
+  const [eventGroups, setEventGroups] = useState<Record<string, string>>({});
   const filteredRows = useMemo(() => {
     const normalized = filter.trim().toLocaleLowerCase();
     if (!normalized) return rows;
@@ -391,7 +395,12 @@ function ChronologyTable({
             {filteredRows.map((row) => {
               const rowKey = row[0] ?? 'unknown-entry';
               return (
-                <tr className={important ? 'important-event' : undefined} key={row.join('-')}>
+                <tr
+                  className={`${important && emphasizedRows.has(rowKey) ? 'important-event' : ''} ${
+                    eventGroups[rowKey] ? `event-group-${eventGroups[rowKey]}` : ''
+                  }`.trim()}
+                  key={row.join('-')}
+                >
                   {row.map((cell, index) => (
                     <td key={`${cell}-${index}`}>
                       {index === row.length - 1 ? (
@@ -402,6 +411,40 @@ function ChronologyTable({
                     </td>
                   ))}
                   <td>
+                    {important ? (
+                      <div className="presentation-controls">
+                        <button
+                          className="source-link"
+                          type="button"
+                          onClick={() =>
+                            setEmphasizedRows((current) => {
+                              const next = new Set(current);
+                              if (next.has(rowKey)) next.delete(rowKey);
+                              else next.add(rowKey);
+                              return next;
+                            })
+                          }
+                        >
+                          Toggle milestone emphasis for {rowKey}
+                        </button>
+                        <label htmlFor={`${title}-${rowKey}-group`}>Event group for {rowKey}</label>
+                        <select
+                          id={`${title}-${rowKey}-group`}
+                          value={eventGroups[rowKey] ?? ''}
+                          onChange={(event) =>
+                            setEventGroups((current) => ({
+                              ...current,
+                              [rowKey]: event.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">No group</option>
+                          <option value="application">Application</option>
+                          <option value="medical">Medical</option>
+                          <option value="appeals">Appeals</option>
+                        </select>
+                      </div>
+                    ) : null}
                     <button
                       className="source-link"
                       type="button"

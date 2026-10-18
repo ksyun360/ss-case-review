@@ -944,6 +944,38 @@ a.primary-button:hover {
   font-weight: 700;
 }
 
+.event-group-application {
+  border-left: 4px solid #8a5a00;
+}
+
+.event-group-medical {
+  border-left: 4px solid #1b6e8a;
+}
+
+.event-group-appeals {
+  border-left: 4px solid #6d4a8d;
+}
+
+.presentation-controls {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.presentation-controls label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.presentation-controls select {
+  min-height: 2rem;
+  padding: 4px 8px;
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  background: var(--surface);
+  font: inherit;
+}
+
 .review-step + .review-step {
   margin-top: 12px;
 }
