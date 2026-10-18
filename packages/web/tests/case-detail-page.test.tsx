@@ -136,7 +136,7 @@ test('shows persisted source-grounded claims after processing publishes', async 
   expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
   expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
     'href',
-    '#source-00000000-0000-4000-8000-000000000031',
+    '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',
   );
 });
 
@@ -746,15 +746,72 @@ test('opens a source targeted by a persisted claim link', async () => {
     ...reference,
     rawText: 'Claim source text.',
   });
-  window.history.replaceState({}, '', `#source-${sourceUnitId}`);
+  window.history.replaceState({}, '', `#source=${sourceUnitId}&start=0&end=5`);
   render(<SyntheticSourceWorkspace caseId={caseId} />);
   expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
   expect(getSyntheticTextSource).toHaveBeenCalledWith(caseId, sourceUnitId);
-  expect(sourceUnitIdFromHash(`#source-${sourceUnitId}`)).toBe(sourceUnitId);
+  expect(sourceUnitIdFromHash(`#source=${sourceUnitId}&start=0&end=5`)).toBe(sourceUnitId);
   expect(sourceUnitIdFromHash('#other')).toBeUndefined();
+  expect(screen.getByRole('mark')).toHaveTextContent(/^Claim$/);
   expect(
     screen.getByRole('button', { name: 'Open document 0021, page 7' }).closest('li'),
   ).toHaveAttribute('id', `source-${sourceUnitId}`);
+  window.history.replaceState({}, '', '/');
+});
+
+test('does not highlight a cited span outside the persisted source page', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 7,
+  };
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({ ...reference, rawText: 'Short text.' });
+  window.history.replaceState({}, '', `#source=${sourceUnitId}&start=-1&end=5`);
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  expect(screen.queryByRole('mark')).not.toBeInTheDocument();
+  cleanup();
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({ ...reference, rawText: 'Short text.' });
+  window.history.replaceState({}, '', `#source=${sourceUnitId}&start=0&end=999`);
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  expect(screen.queryByRole('mark')).not.toBeInTheDocument();
+  cleanup();
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({ ...reference, rawText: 'Short text.' });
+  window.history.replaceState({}, '', `#source=${sourceUnitId}&start=5&end=5`);
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  expect(screen.queryByRole('mark')).not.toBeInTheDocument();
+  window.history.replaceState({}, '', '/');
+});
+
+test('accepts a cited span that ends at the source boundary', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 7,
+  };
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({ ...reference, rawText: 'Boundary.' });
+  window.history.replaceState({}, '', `#source=${sourceUnitId}&start=0&end=9`);
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  expect(screen.getByRole('mark')).toHaveTextContent('Boundary.');
   window.history.replaceState({}, '', '/');
 });
 

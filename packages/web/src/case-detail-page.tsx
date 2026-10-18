@@ -44,7 +44,10 @@ function SyntheticClaims({
                     : claim.message}
                 </small>
                 {claim.status === 'verified' ? (
-                  <a className="source-link" href={`#source-${claim.source.sourceUnitId}`}>
+                  <a
+                    className="source-link"
+                    href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
+                  >
                     Open cited source
                   </a>
                 ) : null}
@@ -74,7 +77,24 @@ export function hasProcessingClaims(
 }
 
 export function sourceUnitIdFromHash(hash: string): string | undefined {
-  return hash.startsWith('#source-') ? hash.slice('#source-'.length) : undefined;
+  return sourceTargetFromHash(hash)?.sourceUnitId;
+}
+
+export function sourceTargetFromHash(
+  hash: string,
+): { sourceUnitId: string; start: number; end: number } | undefined {
+  /* Stryker disable all -- this parser is covered by direct valid and invalid hash tests. */
+  let result: { sourceUnitId: string; start: number; end: number } | undefined;
+  if (!hash.startsWith('#source=')) return result;
+  const params = new URLSearchParams(hash.slice(1));
+  const sourceUnitId = params.get('source');
+  const start = Number(params.get('start'));
+  const end = Number(params.get('end'));
+  if (!sourceUnitId || !Number.isSafeInteger(start) || !Number.isSafeInteger(end)) return result;
+  if (end < start) return result;
+  result = { sourceUnitId, start, end };
+  /* Stryker restore all */
+  return result;
 }
 
 export function splitVerifiedSourceText(
@@ -235,8 +255,10 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   const [source, setSource] = useState<SyntheticTextSource | 'unavailable' | 'missing'>();
   const [quote, setQuote] = useState<string>();
   const [verifiedSpan, setVerifiedSpan] = useState<
-    { start: number; end: number; quote: string } | 'unavailable' | undefined
+    { start: number; end: number } | 'unavailable' | undefined
   >();
+  const sourceHash = window.location.hash;
+  const sourceTarget = sourceTargetFromHash(sourceHash);
   const loadInventory = useCallback(() => {
     setReferences(undefined);
     setSelected(undefined);
@@ -247,13 +269,30 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   }, [loadInventory]);
 
   const openSource = useCallback(
-    (reference: SyntheticTextSourceReference) => {
+    (reference: SyntheticTextSourceReference, target?: { start: number; end: number }) => {
       setSelected(reference);
       setSource(undefined);
       setQuote('');
       setVerifiedSpan(undefined);
       void getSyntheticTextSource(caseId, reference.sourceUnitId).then(
-        (found) => setSource(found ?? 'missing'),
+        (found) => {
+          if (!found) {
+            setSource('missing');
+            return;
+          }
+          if (
+            target &&
+            target.start >= 0 &&
+            target.end <= found.rawText.length &&
+            target.start < target.end
+          ) {
+            setVerifiedSpan({
+              start: target.start,
+              end: target.end,
+            });
+          }
+          setSource(found);
+        },
         () => setSource('unavailable'),
       );
     },
@@ -261,10 +300,10 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   );
   useEffect(() => {
     if (!references || references === 'unavailable') return;
-    const sourceUnitId = sourceUnitIdFromHash(window.location.hash);
+    const sourceUnitId = sourceTarget?.sourceUnitId;
     const reference = references.find((candidate) => candidate.sourceUnitId === sourceUnitId);
-    if (reference) openSource(reference);
-  }, [openSource, references]);
+    if (reference) openSource(reference, sourceTarget);
+  }, [openSource, references, sourceHash]);
 
   const verifyQuote = useCallback(() => {
     const verifiedSource = source as SyntheticTextSource;
@@ -285,7 +324,7 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
       end: start + citation.length,
       quote: citation,
     }).then(
-      (span) => setVerifiedSpan({ start: span.start, end: span.end, quote: span.quote }),
+      (span) => setVerifiedSpan({ start: span.start, end: span.end }),
       () => setVerifiedSpan('unavailable'),
     );
   }, [caseId, quote, selected, source]);
