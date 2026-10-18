@@ -64,7 +64,7 @@ export function App() {
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/cases" element={<CasesPage />} />
-        <Route path="/cases/:caseId" element={<CaseDetailPage />} />
+        <Route path="/cases/:caseId/*" element={<CaseDetailPage />} />
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/demo" element={<DemoCasePage />} />
       </Routes>

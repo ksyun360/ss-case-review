@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router';
+import { Link, useLocation, useParams } from 'react-router';
 import {
   getSyntheticDocumentProcessing,
   getSyntheticOriginal,
@@ -84,15 +84,17 @@ export function sourceTargetFromHash(
   hash: string,
 ): { sourceUnitId: string; start: number; end: number } | undefined {
   /* Stryker disable all -- this parser is covered by direct valid and invalid hash tests. */
-  let result: { sourceUnitId: string; start: number; end: number } | undefined;
-  if (!hash.startsWith('#source=')) return result;
-  const params = new URLSearchParams(hash.slice(1));
-  const sourceUnitId = params.get('source');
-  const start = Number(params.get('start'));
-  const end = Number(params.get('end'));
-  if (!sourceUnitId || !Number.isSafeInteger(start) || !Number.isSafeInteger(end)) return result;
-  if (end < start) return result;
-  result = { sourceUnitId, start, end };
+  const result = (() => {
+    if (!hash.startsWith('#source=')) return undefined;
+    const params = new URLSearchParams(hash.slice(1));
+    const sourceUnitId = params.get('source');
+    const start = Number(params.get('start'));
+    const end = Number(params.get('end'));
+    if (!sourceUnitId || !Number.isSafeInteger(start) || !Number.isSafeInteger(end))
+      return undefined;
+    if (end < start) return undefined;
+    return { sourceUnitId, start, end };
+  })();
   /* Stryker restore all */
   return result;
 }
@@ -432,8 +434,42 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   );
 }
 
+const CASE_SECTIONS = [
+  { slug: 'summary', label: 'Summary', heading: 'Summary' },
+  { slug: 'medical-chronology', label: 'Medical chronology', heading: 'Medical chronology' },
+  {
+    slug: 'procedural-chronology',
+    label: 'Procedural chronology',
+    heading: 'Procedural chronology',
+  },
+  { slug: 'five-step-review', label: 'Five-step review', heading: 'Five-step review' },
+] as const;
+
+function CaseSectionNavigation({ caseId, section }: { caseId: string; section: string }) {
+  return (
+    <nav className="case-section-navigation" aria-label="Case sections">
+      {CASE_SECTIONS.map((item) => (
+        <Link
+          key={item.slug}
+          to={`/cases/${caseId}/${item.slug}`}
+          aria-current={section === item.slug ? 'page' : undefined}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+export function caseSectionSlug(pathname: string): (typeof CASE_SECTIONS)[number]['slug'] {
+  return CASE_SECTIONS.find((item) => pathname.endsWith(`/${item.slug}`))?.slug ?? 'summary';
+}
+
 export function CaseDetailPage() {
   const { caseId } = useParams();
+  const { pathname } = useLocation();
+  const sectionSlug = caseSectionSlug(pathname);
+  const section = CASE_SECTIONS.find((item) => item.slug === sectionSlug) ?? CASE_SECTIONS[0];
   const [record, setRecord] = useState<CaseSummary | null | 'unavailable'>();
   const load = useCallback(() => {
     setRecord(undefined);
@@ -471,8 +507,22 @@ export function CaseDetailPage() {
             <h1>{record.label}</h1>
             <p className="lede">Record revision {record.recordRevision}</p>
           </div>
-          <SyntheticOriginalInventory caseId={record.caseId} />
-          <SyntheticSourceWorkspace caseId={record.caseId} />
+          <CaseSectionNavigation caseId={record.caseId} section={section.slug} />
+          {section.slug === 'summary' ? (
+            <>
+              <SyntheticOriginalInventory caseId={record.caseId} />
+              <SyntheticSourceWorkspace caseId={record.caseId} />
+            </>
+          ) : (
+            <section className="panel empty-state" aria-live="polite">
+              <h2>{section.heading}</h2>
+              <p>
+                This review section is not ready because source-grounded artifact processing is
+                still in progress.
+              </p>
+              <p>Return to Summary to inspect registered originals and verified source text.</p>
+            </section>
+          )}
         </>
       ) : (
         <section className="panel empty-state" aria-live="polite">

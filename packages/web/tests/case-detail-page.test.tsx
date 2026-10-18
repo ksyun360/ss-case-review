@@ -10,6 +10,7 @@ import {
   SyntheticProcessingStatus,
   SyntheticSourceWorkspace,
   hasProcessingClaims,
+  caseSectionSlug,
   sourceUnitIdFromHash,
   splitVerifiedSourceText,
 } from '../src/case-detail-page.tsx';
@@ -83,6 +84,29 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   resolveCase({ caseId, label: 'Synthetic saved draft', recordRevision: 1 });
   expect(await screen.findByRole('heading', { name: 'Synthetic saved draft' })).toBeVisible();
   expect(screen.getByText('Record revision 1')).toBeVisible();
+  expect(screen.getByRole('link', { name: 'Summary' })).toHaveAttribute(
+    'href',
+    `/cases/${caseId}/summary`,
+  );
+  expect(screen.getByRole('link', { name: 'Summary' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('link', { name: 'Medical chronology' })).not.toHaveAttribute(
+    'aria-current',
+  );
+  expect(screen.getByRole('link', { name: 'Medical chronology' })).toHaveAttribute(
+    'href',
+    `/cases/${caseId}/medical-chronology`,
+  );
+  expect(screen.getByRole('link', { name: 'Procedural chronology' })).toHaveAttribute(
+    'href',
+    `/cases/${caseId}/procedural-chronology`,
+  );
+  expect(screen.getByRole('link', { name: 'Five-step review' })).toHaveAttribute(
+    'href',
+    `/cases/${caseId}/five-step-review`,
+  );
+  await user.click(screen.getByRole('link', { name: 'Medical chronology' }));
+  expect(await screen.findByRole('heading', { name: 'Medical chronology' })).toBeVisible();
+  await user.click(screen.getByRole('link', { name: 'Summary' }));
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
   expect(
     screen.getByText('Processing status comes from the case-scoped background queue.'),
@@ -92,12 +116,19 @@ test('opens saved synthetic case metadata and refreshes after case navigation', 
   expect(await screen.findByRole('heading', { name: 'Second synthetic draft' })).toBeVisible();
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
   expect(getSyntheticCase).toHaveBeenNthCalledWith(2, nextCaseId);
-  expect(listSyntheticOriginals).toHaveBeenNthCalledWith(2, nextCaseId);
+  expect(listSyntheticOriginals).toHaveBeenNthCalledWith(3, nextCaseId);
   cleanup();
   const inventory = render(<SyntheticOriginalInventory caseId={caseId} />);
   expect(await screen.findByText('No registered originals yet.')).toBeVisible();
   inventory.rerender(<SyntheticOriginalInventory caseId={nextCaseId} />);
-  expect(listSyntheticOriginals).toHaveBeenNthCalledWith(4, nextCaseId);
+  expect(listSyntheticOriginals).toHaveBeenNthCalledWith(5, nextCaseId);
+});
+
+test('falls back to Summary for an unknown case section path', () => {
+  expect(caseSectionSlug('/cases/00000000-0000-4000-8000-000000000002/unknown')).toBe('summary');
+  expect(caseSectionSlug('/cases/00000000-0000-4000-8000-000000000002/five-step-review')).toBe(
+    'five-step-review',
+  );
 });
 
 test('shows persisted source-grounded claims after processing publishes', async () => {
