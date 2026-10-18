@@ -8,7 +8,10 @@ import {
   listOriginalReferencesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
-import { findDocumentProcessingForReviewer } from '@record-review/case-repository/document-processing-attempts';
+import {
+  findDocumentProcessingForReviewer,
+  listDocumentProcessingForReviewer,
+} from '@record-review/case-repository/document-processing-attempts';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
 import { OriginalTooLargeError, readOriginal } from '@record-review/record-storage/originals';
@@ -234,6 +237,38 @@ export function createDevelopmentApi(
           /* Stryker disable next-line ConditionalExpression */
           ...(processing.claims !== undefined ? { claims: processing.claims } : {}),
         },
+      };
+    },
+  );
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId/document-processing',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      const processing = await listDocumentProcessingForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+        syntheticPdfProcessing.extractionVersion,
+      );
+      return {
+        processing: processing.map((item) => ({
+          documentVersionId: item.documentVersionId,
+          extractionVersion: item.extractionVersion,
+          state: item.state,
+          attemptCount: item.attemptCount,
+          failureCode: item.failureCode,
+          /* Stryker disable next-line ConditionalExpression -- undefined claims serialize identically. */
+          ...(item.claims !== undefined ? { claims: item.claims } : {}),
+        })),
       };
     },
   );

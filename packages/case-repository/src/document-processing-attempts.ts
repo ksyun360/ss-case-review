@@ -191,3 +191,29 @@ export async function findDocumentProcessingForReviewer(
   );
   return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }
+
+export async function listDocumentProcessingForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+  extractionVersion = 'pdfjs-native-v1',
+): Promise<DocumentProcessingStatus[]> {
+  const result = await client.query<ProcessingRow>(
+    `SELECT attempts.case_id AS "caseId",
+      attempts.document_version_id AS "documentVersionId",
+      attempts.reviewer_id AS "reviewerId",
+      attempts.extraction_version AS "extractionVersion",
+      attempts.maximum_bytes::float8 AS "maximumBytes",
+      attempts.maximum_pages AS "maximumPages", attempts.state,
+      attempts.attempt_count AS "attemptCount", attempts.failure_code AS "failureCode",
+      attempts.claims_json AS claims
+    FROM document_processing_attempts AS attempts
+    JOIN case_memberships AS members ON members.case_id = attempts.case_id
+      AND members.reviewer_id = attempts.reviewer_id
+    WHERE members.reviewer_id = $1 AND attempts.case_id = $2
+      AND attempts.extraction_version = $3
+    ORDER BY attempts.document_version_id`,
+    [reviewerId, caseId, extractionVersion],
+  );
+  return result.rows.map(withoutEmptyClaims);
+}

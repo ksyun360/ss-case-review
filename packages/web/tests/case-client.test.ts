@@ -10,6 +10,7 @@ import {
   listSyntheticCases,
   listSyntheticOriginals,
   listSyntheticTextSources,
+  listSyntheticDocumentProcessing,
   uploadSyntheticOriginal,
 } from '../src/case-client.ts';
 
@@ -145,6 +146,42 @@ test('loads and validates one document processing status without trusting malfor
     },
   );
   expect(fetch).toHaveBeenCalledTimes(validStatuses.length + 2 + invalidPayloads.length);
+});
+
+test('loads and validates processing records for a case', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const processing = {
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'queued',
+    attemptCount: 0,
+    failureCode: null,
+  } as const;
+  const fetch = vi
+    .fn()
+    .mockResolvedValue(new Response(JSON.stringify({ processing: [processing] })));
+  vi.stubGlobal('fetch', fetch);
+  await expect(listSyntheticDocumentProcessing(caseId)).resolves.toEqual([processing]);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/v1/cases/${caseId}/document-processing`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  for (const body of [
+    null,
+    {},
+    { processing: null },
+    { processing: [processing, { bad: true }] },
+  ]) {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(body))));
+    await expect(listSyntheticDocumentProcessing(caseId)).rejects.toThrow(
+      'document_processing_unavailable',
+    );
+  }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+  await expect(listSyntheticDocumentProcessing(caseId)).rejects.toThrow(
+    'document_processing_unavailable',
+  );
 });
 
 test('requests one reviewer-scoped draft through the same-origin API', async () => {

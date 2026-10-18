@@ -8,6 +8,7 @@ import { App } from '../src/app.tsx';
 import {
   SyntheticOriginalInventory,
   SyntheticProcessingStatus,
+  SyntheticProcessingOverview,
   SyntheticSourceWorkspace,
   hasProcessingClaims,
   caseSectionSlug,
@@ -16,6 +17,7 @@ import {
 } from '../src/case-detail-page.tsx';
 import {
   getSyntheticDocumentProcessing,
+  listSyntheticDocumentProcessing,
   getSyntheticOriginal,
   getSyntheticTextSource,
   getSyntheticCase,
@@ -32,6 +34,7 @@ import {
 vi.mock('../src/case-client.ts', () => ({
   getSyntheticCase: vi.fn(),
   getSyntheticDocumentProcessing: vi.fn(),
+  listSyntheticDocumentProcessing: vi.fn(),
   getSyntheticOriginal: vi.fn(),
   getSyntheticTextSource: vi.fn(),
   listSyntheticOriginals: vi.fn(),
@@ -44,6 +47,7 @@ beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
   vi.mocked(listSyntheticTextSources).mockResolvedValue([]);
   vi.mocked(getSyntheticDocumentProcessing).mockResolvedValue(undefined);
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValue([]);
   vi.mocked(verifySyntheticTextSpan).mockImplementation(
     async (_caseId, _sourceUnitId, candidate) => ({
       caseId: _caseId,
@@ -168,6 +172,83 @@ test('shows persisted source-grounded claims after processing publishes', async 
   expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
     'href',
     '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',
+  );
+});
+
+test('summarizes processing readiness for every registered document', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000021',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000022',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'failed',
+      attemptCount: 2,
+      failureCode: 'extraction_failed',
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000023',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'processing',
+      attemptCount: 1,
+      failureCode: null,
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000024',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    },
+  ]);
+  render(<SyntheticProcessingOverview caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Processing overview' })).toBeVisible();
+  expect(screen.getByText('4 documents')).toBeVisible();
+  expect(screen.getByText('1 ready')).toBeVisible();
+  expect(screen.getByText('1 needs review')).toBeVisible();
+  expect(screen.getByText('Document 0022')).toBeVisible();
+  expect(screen.getByText('Document 0023').closest('li')).toHaveTextContent('Reading');
+  expect(screen.getByText('Document 0024').closest('li')).toHaveTextContent('Queued');
+});
+
+test('reports and retries an unavailable processing overview', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockRejectedValueOnce(new Error('offline'));
+  render(<SyntheticProcessingOverview caseId={caseId} />);
+  expect(await screen.findByText('Processing overview unavailable.')).toBeVisible();
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([]);
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Retry processing overview' }));
+  expect(
+    await screen.findByText('No registered documents have processing records yet.'),
+  ).toBeVisible();
+});
+
+test('shows loading while processing overview data is pending', () => {
+  vi.mocked(listSyntheticDocumentProcessing).mockImplementationOnce(() => new Promise(() => {}));
+  render(<SyntheticProcessingOverview caseId="00000000-0000-4000-8000-000000000002" />);
+  expect(screen.getByRole('status')).toHaveTextContent('Loading processing overview');
+});
+
+test('reloads processing overview when the case changes', async () => {
+  vi.mocked(listSyntheticDocumentProcessing)
+    .mockResolvedValueOnce([])
+    .mockImplementationOnce(() => new Promise(() => {}));
+  const view = render(
+    <SyntheticProcessingOverview caseId="00000000-0000-4000-8000-000000000002" />,
+  );
+  expect(
+    await screen.findByText('No registered documents have processing records yet.'),
+  ).toBeVisible();
+  view.rerender(<SyntheticProcessingOverview caseId="00000000-0000-4000-8000-000000000003" />);
+  expect(screen.getByRole('status')).toHaveTextContent('Loading processing overview');
+  expect(listSyntheticDocumentProcessing).toHaveBeenLastCalledWith(
+    '00000000-0000-4000-8000-000000000003',
   );
 });
 

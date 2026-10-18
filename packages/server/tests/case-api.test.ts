@@ -771,6 +771,78 @@ test('returns member-scoped processing status for a registered original', async 
   }
 });
 
+test('lists member-scoped processing records for a case', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-processing-list-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000016';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Synthetic processing list case' });
+    const documentVersionIds: string[] = [];
+    for (const payload of ['abc', 'def']) {
+      const uploaded = await api.inject({
+        method: 'POST',
+        url: `/api/v1/cases/${caseId}/synthetic-originals`,
+        headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+        payload: Buffer.from(payload),
+      });
+      documentVersionIds.push(
+        uploaded.json<{ original: { documentVersionId: string } }>().original.documentVersionId,
+      );
+    }
+    const response = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/document-processing`,
+      headers: requestHeaders,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json<{ processing: unknown[] }>().processing).toHaveLength(2);
+    expect(response.json<{ processing: Array<{ state: string }> }>().processing).toMatchObject([
+      { state: 'queued' },
+      { state: 'queued' },
+    ]);
+    await database.query(
+      `UPDATE document_processing_attempts SET state = 'published', claims_json = $1::jsonb
+       WHERE case_id = $2 AND document_version_id = $3`,
+      [JSON.stringify({ status: 'validated', claims: [] }), caseId, documentVersionIds[0]],
+    );
+    const published = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/document-processing`,
+      headers: requestHeaders,
+    });
+    const publishedProcessing = published.json<{
+      processing: Array<{ state: string; claims?: unknown }>;
+    }>().processing;
+    expect(publishedProcessing.find((item) => item.state === 'published')).toHaveProperty('claims');
+    expect(publishedProcessing.find((item) => item.state === 'queued')).not.toHaveProperty(
+      'claims',
+    );
+    const hidden = await api.inject({
+      method: 'GET',
+      url: '/api/v1/cases/00000000-0000-4000-8000-000000000099/document-processing',
+      headers: requestHeaders,
+    });
+    expect(hidden.statusCode).toBe(404);
+    expect(hidden.json()).toEqual({ code: 'case_not_found' });
+    const query = vi.spyOn(database, 'query');
+    try {
+      query.mockClear();
+      const malformed = await api.inject({
+        method: 'GET',
+        url: '/api/v1/cases/not-a-uuid/document-processing',
+        headers: requestHeaders,
+      });
+      expect(malformed.statusCode).toBe(400);
+      expect(query).not.toHaveBeenCalled();
+    } finally {
+      query.mockRestore();
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('downloads a member original as non-inline bytes after verifying its stored reference', async () => {
   const root = await mkdtemp(join(tmpdir(), 'record-review-api-download-test-'));
   const caseId = '00000000-0000-4000-8000-000000000013';

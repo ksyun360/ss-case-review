@@ -7,6 +7,7 @@ import {
   completeDocumentProcessing,
   failDocumentProcessing,
   findDocumentProcessingForReviewer,
+  listDocumentProcessingForReviewer,
   reserveDocumentProcessing,
 } from '../src/document-processing-attempts.ts';
 
@@ -19,6 +20,57 @@ const extractionVersion = 'pdfjs-native-v1';
 
 beforeAll(async () => {
   database = await PGlite.create();
+});
+
+test('lists member-scoped processing rows in document order', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Synthetic processing list case' });
+  const secondDocumentVersionId = '00000000-0000-4000-8000-000000000222';
+  for (const [version, bytes] of [
+    [documentVersionId, 1024],
+    [secondDocumentVersionId, 2048],
+  ] as const) {
+    await registerOriginalReference(database, reviewerId, {
+      caseId,
+      documentVersionId: version,
+      sha256: 'a'.repeat(64),
+      byteLength: bytes,
+    });
+    await reserveDocumentProcessing(database, {
+      caseId,
+      documentVersionId: version,
+      reviewerId,
+      extractionVersion,
+      maximumBytes: 4096,
+      maximumPages: 800,
+    });
+  }
+  await expect(listDocumentProcessingForReviewer(database, reviewerId, caseId)).resolves.toEqual([
+    {
+      caseId,
+      documentVersionId,
+      reviewerId,
+      extractionVersion,
+      maximumBytes: 4096,
+      maximumPages: 800,
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    },
+    {
+      caseId,
+      documentVersionId: secondDocumentVersionId,
+      reviewerId,
+      extractionVersion,
+      maximumBytes: 4096,
+      maximumPages: 800,
+      state: 'queued',
+      attemptCount: 0,
+      failureCode: null,
+    },
+  ]);
+  await expect(
+    listDocumentProcessingForReviewer(database, otherReviewerId, caseId),
+  ).resolves.toEqual([]);
 });
 
 beforeEach(async () => {

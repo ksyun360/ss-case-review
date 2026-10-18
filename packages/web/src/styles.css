@@ -184,7 +184,7 @@ main:focus {
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .case-section-navigation a {
@@ -206,6 +206,39 @@ main:focus {
 .case-section-navigation a[aria-current='page'] {
   color: var(--action);
   border-bottom-color: var(--action);
+}
+
+.processing-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.processing-summary span {
+  padding: 8px 12px;
+  border-radius: 4px;
+  background: var(--action-tint);
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.processing-overview-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.processing-overview-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--divider);
+  border-radius: 4px;
 }
 
 .primary-nav a:hover {

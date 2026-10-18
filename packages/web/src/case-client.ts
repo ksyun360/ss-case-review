@@ -134,23 +134,50 @@ export async function getSyntheticDocumentProcessing(
   if (response.status === 404) return undefined;
   if (!response.ok) throw new Error('document_processing_unavailable');
   const payload = (await response.json()) as { processing?: unknown } | null;
-  const processing = payload?.processing as SyntheticDocumentProcessing | null | undefined;
-  if (
-    !processing ||
-    processing.documentVersionId !== documentVersionId ||
-    !UUID4_PATTERN.test(processing.documentVersionId) ||
-    typeof processing.extractionVersion !== 'string' ||
-    !/\S/.test(processing.extractionVersion) ||
-    processing.extractionVersion.length > 128 ||
-    !PROCESSING_STATES.has(processing.state) ||
-    !Number.isSafeInteger(processing.attemptCount) ||
-    processing.attemptCount < 0 ||
-    (processing.failureCode !== null && !PROCESSING_FAILURE_CODES.has(processing.failureCode))
-  )
-    throw new Error('document_processing_unavailable');
-  if (processing.claims !== undefined && !isSyntheticProcessingClaims(processing.claims, caseId))
+  const processing = payload?.processing;
+  if (!isSyntheticDocumentProcessing(processing, caseId, documentVersionId))
     throw new Error('document_processing_unavailable');
   return processing;
+}
+
+function isSyntheticDocumentProcessing(
+  value: unknown,
+  caseId: string,
+  expectedDocumentVersionId?: string,
+): value is SyntheticDocumentProcessing {
+  if (typeof value !== 'object' || value === null) return false;
+  const processing = value as SyntheticDocumentProcessing;
+  return (
+    (expectedDocumentVersionId === undefined ||
+      processing.documentVersionId === expectedDocumentVersionId) &&
+    UUID4_PATTERN.test(processing.documentVersionId) &&
+    typeof processing.extractionVersion === 'string' &&
+    /\S/.test(processing.extractionVersion) &&
+    processing.extractionVersion.length <= 128 &&
+    PROCESSING_STATES.has(processing.state) &&
+    Number.isSafeInteger(processing.attemptCount) &&
+    processing.attemptCount >= 0 &&
+    (processing.failureCode === null || PROCESSING_FAILURE_CODES.has(processing.failureCode)) &&
+    (processing.claims === undefined || isSyntheticProcessingClaims(processing.claims, caseId))
+  );
+}
+
+export async function listSyntheticDocumentProcessing(
+  caseId: string,
+): Promise<SyntheticDocumentProcessing[]> {
+  const response = await fetch(`/api/v1/cases/${caseId}/document-processing`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('document_processing_unavailable');
+  const payload = (await response.json()) as { processing?: unknown } | null;
+  if (
+    !Array.isArray(payload?.processing) ||
+    !payload.processing.every((item) => isSyntheticDocumentProcessing(item, caseId))
+  )
+    throw new Error('document_processing_unavailable');
+  return payload.processing;
 }
 
 function isSyntheticTextSourceReference(

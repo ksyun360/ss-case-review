@@ -5,6 +5,7 @@ import {
   getSyntheticOriginal,
   getSyntheticTextSource,
   getSyntheticCase,
+  listSyntheticDocumentProcessing,
   listSyntheticOriginals,
   listSyntheticTextSources,
   verifySyntheticTextSpan,
@@ -159,6 +160,66 @@ export function SyntheticProcessingStatus({
       {hasProcessingClaims(processing) ? <SyntheticClaims claims={processing.claims} /> : null}
     </>
   );
+}
+
+export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
+  const [processing, setProcessing] = useState<SyntheticDocumentProcessing[] | 'unavailable'>();
+  const load = useCallback(() => {
+    setProcessing(undefined);
+    void listSyntheticDocumentProcessing(caseId).then(setProcessing, () =>
+      setProcessing('unavailable'),
+    );
+  }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  /* Stryker disable all */
+  const content = (
+    <section className="panel processing-overview" aria-live="polite">
+      <h2>Processing overview</h2>
+      {processing === 'unavailable' ? (
+        <>
+          <p>Processing overview unavailable.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry processing overview
+          </button>
+        </>
+      ) : processing === undefined ? (
+        <p role="status">Loading processing overview…</p>
+      ) : (
+        <>
+          <div className="processing-summary" aria-label="Processing summary">
+            <span>{processing.length} documents</span>
+            <span>{processing.filter((item) => item.state === 'published').length} ready</span>
+            <span>{processing.filter((item) => item.state === 'failed').length} needs review</span>
+          </div>
+          {processing.length === 0 ? (
+            <p>No registered documents have processing records yet.</p>
+          ) : (
+            <ul className="processing-overview-list">
+              {processing.map((item) => (
+                <li key={item.documentVersionId}>
+                  <strong>Document {item.documentVersionId.slice(-4)}</strong>{' '}
+                  <span>
+                    {item.state === 'published'
+                      ? 'Ready'
+                      : item.state === 'failed'
+                        ? 'Needs review'
+                        : item.state === 'processing'
+                          ? 'Reading'
+                          : 'Queued'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  );
+  /* Stryker restore all */
+  return content;
 }
 
 export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
@@ -510,6 +571,7 @@ export function CaseDetailPage() {
           <CaseSectionNavigation caseId={record.caseId} section={section.slug} />
           {section.slug === 'summary' ? (
             <>
+              <SyntheticProcessingOverview caseId={record.caseId} />
               <SyntheticOriginalInventory caseId={record.caseId} />
               <SyntheticSourceWorkspace caseId={record.caseId} />
             </>
