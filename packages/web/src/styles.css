@@ -873,6 +873,20 @@ a.primary-button:hover {
   font-size: 14px;
 }
 
+.reference-desk {
+  margin-top: 16px;
+}
+
+.reference-desk ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+}
+
+.reference-desk .reference-link {
+  color: var(--action);
+}
+
 .table-scroll {
   overflow-x: auto;
 }

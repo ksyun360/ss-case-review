@@ -99,3 +99,18 @@ test('records a local correction suggestion without replacing the source value',
   expect(screen.getByText('Confirm the imaging date against the report header.')).toBeVisible();
   expect(screen.getByText('Hill Country Imaging')).toBeVisible();
 });
+
+test('provides curated medical and legal reference links without treating them as evidence', () => {
+  render(<DemoCasePage />);
+
+  expect(screen.getByRole('heading', { name: 'Reference desk' })).toBeVisible();
+  expect(screen.getByRole('link', { name: /Residual functional capacity/i })).toHaveAttribute(
+    'href',
+    'https://www.ecfr.gov/current/title-20/part-404/subpart-P/section-404.1545',
+  );
+  expect(screen.getByRole('link', { name: /Intervertebral disc disease/i })).toHaveAttribute(
+    'href',
+    'https://medlineplus.gov/genetics/condition/intervertebral-disc-disease/',
+  );
+  expect(screen.getByText(/Reference material is not case evidence/i)).toBeVisible();
+});

@@ -249,6 +249,7 @@ export function DemoCasePage() {
               ))}
             </section>
           )}
+          <ReferenceDesk />
         </div>
         <aside className="demo-source-viewer" aria-label="Source document viewer">
           <div className="demo-viewer-header">
@@ -293,6 +294,50 @@ export function DemoCasePage() {
         </aside>
       </div>
     </main>
+  );
+}
+
+function ReferenceDesk() {
+  return (
+    <section className="panel demo-panel reference-desk" aria-labelledby="reference-desk-heading">
+      <h2 id="reference-desk-heading">Reference desk</h2>
+      <p>
+        Curated public references help explain terms. Reference material is not case evidence and
+        does not add an argument to the review.
+      </p>
+      <ul>
+        <li>
+          <a
+            className="reference-link"
+            href="https://www.ecfr.gov/current/title-20/part-404/subpart-P/section-404.1545"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Residual functional capacity · 20 CFR § 404.1545
+          </a>
+        </li>
+        <li>
+          <a
+            className="reference-link"
+            href="https://www.ssa.gov/oact/cola/sga.html"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Substantial gainful activity · SSA reference
+          </a>
+        </li>
+        <li>
+          <a
+            className="reference-link"
+            href="https://medlineplus.gov/genetics/condition/intervertebral-disc-disease/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Intervertebral disc disease · MedlinePlus
+          </a>
+        </li>
+      </ul>
+    </section>
   );
 }
 
