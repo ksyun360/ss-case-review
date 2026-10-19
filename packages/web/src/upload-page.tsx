@@ -13,6 +13,7 @@ export function UploadPage() {
   const [registrationStarted, setRegistrationStarted] = useState(false);
   const [creationUncertain, setCreationUncertain] = useState(false);
   const [unconfirmedIndex, setUnconfirmedIndex] = useState<number | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const [registeredCount, setRegisteredCount] = useState(0);
   const [savedCaseId, setSavedCaseId] = useState<string | null>(null);
   const capabilityRequested = useRef(false);
@@ -33,6 +34,19 @@ export function UploadPage() {
     );
   });
 
+  const transferRemaining = async (caseId: string, startIndex: number) => {
+    for (let index = startIndex; index < files.length; index++) {
+      try {
+        await uploadSyntheticOriginal(caseId, files[index] as File);
+      } catch {
+        setUnconfirmedIndex(index);
+        return;
+      }
+      setRegisteredCount(index + 1);
+    }
+    setUnconfirmedIndex(null);
+  };
+
   const registerOriginals = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setRegistrationStarted(true);
@@ -45,16 +59,13 @@ export function UploadPage() {
         return;
       }
       setSavedCaseId(created.caseId);
-      for (const [index, file] of files.entries()) {
-        try {
-          await uploadSyntheticOriginal(created.caseId, file);
-        } catch {
-          setUnconfirmedIndex(index);
-          return;
-        }
-        setRegisteredCount((count) => count + 1);
-      }
+      await transferRemaining(created.caseId, 0);
     })();
+  };
+
+  const retryUnconfirmed = (caseId: string, startIndex: number) => {
+    setRetrying(true);
+    void transferRemaining(caseId, startIndex).finally(() => setRetrying(false));
   };
 
   return (
@@ -168,10 +179,22 @@ export function UploadPage() {
               </p>
             )}
             {unconfirmedIndex !== null && (
-              <p role="alert">
-                A file transfer could not be confirmed. The case may contain some originals. Do not
-                retry this upload from this page.
-              </p>
+              <>
+                <p role="alert">
+                  A file transfer could not be confirmed. The case may contain some originals. You
+                  can retry the unconfirmed transfer.
+                </p>
+                <button
+                  className="button secondary-button"
+                  type="button"
+                  onClick={() =>
+                    retryUnconfirmed(savedCaseId as string, unconfirmedIndex as number)
+                  }
+                  disabled={retrying}
+                >
+                  {retrying ? 'Retrying unconfirmed transfer…' : 'Retry unconfirmed transfer'}
+                </button>
+              </>
             )}
             <p id="processing-note">Extraction and review are not available yet.</p>
           </form>

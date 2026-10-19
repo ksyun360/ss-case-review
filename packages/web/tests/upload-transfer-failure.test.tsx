@@ -7,6 +7,7 @@ import {
   createSyntheticCase,
   getSyntheticUploadCapability,
   uploadSyntheticOriginal,
+  type SyntheticOriginalReceipt,
 } from '../src/case-client.ts';
 import { UploadPage } from '../src/upload-page.tsx';
 
@@ -20,7 +21,7 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-test('marks an unconfirmed original and stops later transfers while preserving the known draft', async () => {
+test('marks an unconfirmed original and resumes the remaining queue after retry', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const files = [
     new File(['one'], 'one.pdf', { type: 'application/pdf' }),
@@ -33,6 +34,7 @@ test('marks an unconfirmed original and stops later transfers while preserving t
     label: 'Synthetic appeal',
     recordRevision: 1,
   });
+  let rejectRetry!: (reason?: unknown) => void;
   vi.mocked(uploadSyntheticOriginal)
     .mockResolvedValueOnce({
       caseId,
@@ -40,7 +42,25 @@ test('marks an unconfirmed original and stops later transfers while preserving t
       sha256: 'a'.repeat(64),
       byteLength: 3,
     })
-    .mockRejectedValueOnce(new Error('connection lost'));
+    .mockRejectedValueOnce(new Error('connection lost'))
+    .mockImplementationOnce(
+      () =>
+        new Promise<SyntheticOriginalReceipt>((_resolve, reject) => {
+          rejectRetry = reject;
+        }),
+    )
+    .mockResolvedValueOnce({
+      caseId,
+      documentVersionId: 'v2',
+      sha256: 'b'.repeat(64),
+      byteLength: 3,
+    })
+    .mockResolvedValueOnce({
+      caseId,
+      documentVersionId: 'v3',
+      sha256: 'c'.repeat(64),
+      byteLength: 5,
+    });
   const user = userEvent.setup();
   render(<UploadPage />);
   expect(await screen.findByText('Synthetic original transfer is available.')).toBeVisible();
@@ -52,7 +72,7 @@ test('marks an unconfirmed original and stops later transfers while preserving t
   const submit = screen.getByRole('button', { name: 'Register synthetic originals' });
   expect(fireEvent.submit(submit.closest('form') as HTMLFormElement)).toBe(false);
   expect(await screen.findByRole('alert')).toHaveTextContent(
-    'A file transfer could not be confirmed. The case may contain some originals. Do not retry this upload from this page.',
+    'A file transfer could not be confirmed. The case may contain some originals.',
   );
   const rows = within(screen.getByRole('list', { name: 'Selected documents' })).getAllByRole(
     'listitem',
@@ -68,4 +88,19 @@ test('marks an unconfirmed original and stops later transfers while preserving t
   expect(submit).toBeDisabled();
   expect(uploadSyntheticOriginal).toHaveBeenCalledTimes(2);
   expect(uploadSyntheticOriginal).toHaveBeenNthCalledWith(2, caseId, files[1]);
+  await user.click(screen.getByRole('button', { name: 'Retry unconfirmed transfer' }));
+  expect(screen.getByRole('button', { name: 'Retrying unconfirmed transfer…' })).toBeDisabled();
+  rejectRetry(new Error('still offline'));
+  expect(await screen.findByRole('button', { name: 'Retry unconfirmed transfer' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: 'Retry unconfirmed transfer' }));
+  expect(await screen.findByText('3 of 3 originals registered')).toBeVisible();
+  expect(rows[1]).toHaveTextContent('Registered');
+  expect(rows[2]).toHaveTextContent('Registered');
+  expect(
+    screen.queryByRole('button', { name: 'Retry unconfirmed transfer' }),
+  ).not.toBeInTheDocument();
+  expect(uploadSyntheticOriginal).toHaveBeenCalledTimes(5);
+  expect(uploadSyntheticOriginal).toHaveBeenNthCalledWith(3, caseId, files[1]);
+  expect(uploadSyntheticOriginal).toHaveBeenNthCalledWith(4, caseId, files[1]);
+  expect(uploadSyntheticOriginal).toHaveBeenNthCalledWith(5, caseId, files[2]);
 });
