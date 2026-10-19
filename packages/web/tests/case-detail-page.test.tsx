@@ -10,6 +10,7 @@ import {
   SyntheticProcessingStatus,
   SyntheticProcessingOverview,
   SyntheticArtifactSection,
+  SyntheticReferenceDesk,
   SyntheticSourceWorkspace,
   hasProcessingClaims,
   caseSectionSlug,
@@ -59,6 +60,21 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+});
+
+test('provides curated reference links without presenting them as case evidence', () => {
+  render(<SyntheticReferenceDesk />);
+
+  expect(screen.getByRole('heading', { name: 'Reference desk' })).toBeVisible();
+  expect(screen.getByText(/Reference material is not case evidence/i)).toBeVisible();
+  expect(screen.getByRole('link', { name: /Residual functional capacity/i })).toHaveAttribute(
+    'href',
+    'https://www.ecfr.gov/current/title-20/part-404/subpart-P/section-404.1545',
+  );
+  expect(screen.getByRole('link', { name: /Substantial gainful activity/i })).toHaveAttribute(
+    'href',
+    'https://www.ssa.gov/oact/cola/sga.html',
+  );
 });
 
 test('opens saved synthetic case metadata and refreshes after case navigation', async () => {
