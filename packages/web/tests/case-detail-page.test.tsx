@@ -9,6 +9,7 @@ import {
   SyntheticOriginalInventory,
   SyntheticProcessingStatus,
   SyntheticProcessingOverview,
+  SyntheticArtifactSection,
   SyntheticSourceWorkspace,
   hasProcessingClaims,
   caseSectionSlug,
@@ -135,6 +136,29 @@ test('falls back to Summary for an unknown case section path', () => {
   );
 });
 
+test('renders each production artifact route through its source-grounded section component', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(getSyntheticCase).mockResolvedValue({
+    caseId,
+    label: 'Synthetic saved draft',
+    recordRevision: 1,
+  });
+  for (const [path, heading] of [
+    ['medical-chronology', 'Medical chronology'],
+    ['procedural-chronology', 'Procedural chronology'],
+    ['five-step-review', 'Five-step review and RFC'],
+    ['unknown', 'Processing overview'],
+  ] as const) {
+    render(
+      <MemoryRouter initialEntries={[`/cases/${caseId}/${path}`]}>
+        <App />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByRole('heading', { name: heading })).toBeVisible();
+    cleanup();
+  }
+});
+
 test('shows persisted source-grounded claims after processing publishes', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const documentVersionId = '00000000-0000-4000-8000-000000000021';
@@ -218,6 +242,188 @@ test('summarizes processing readiness for every registered document', async () =
   expect(screen.getByText('Document 0022')).toBeVisible();
   expect(screen.getByText('Document 0023').closest('li')).toHaveTextContent('Reading');
   expect(screen.getByText('Document 0024').closest('li')).toHaveTextContent('Queued');
+});
+
+test('shows only explicitly classified source-grounded claims in an artifact section', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId,
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'verified',
+            claimId: 'medical-claim',
+            text: 'The MRI shows multilevel degenerative changes.',
+            section: 'medical',
+            speaker: 'alj',
+            source: {
+              caseId,
+              recordRevision: 1,
+              documentVersionId,
+              documentSha256: 'a'.repeat(64),
+              extractionVersion: 'pdfjs-native-v1',
+              sourceUnitId: '00000000-0000-4000-8000-000000000031',
+              start: 0,
+              end: 4,
+              quote: 'The ',
+            },
+          },
+          {
+            status: 'verified',
+            claimId: 'unclassified-claim',
+            text: 'This claim has no artifact section.',
+            source: {
+              caseId,
+              recordRevision: 1,
+              documentVersionId,
+              documentSha256: 'a'.repeat(64),
+              extractionVersion: 'pdfjs-native-v1',
+              sourceUnitId: '00000000-0000-4000-8000-000000000031',
+              start: 0,
+              end: 4,
+              quote: 'The ',
+            },
+          },
+        ],
+      },
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000022',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: { status: 'refused', code: 'provider_error' },
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000023',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: { status: 'invalid_output' },
+    },
+  ]);
+  render(<SyntheticArtifactSection caseId={caseId} section="medical" />);
+  expect(await screen.findByRole('heading', { name: 'Medical chronology' })).toBeVisible();
+  expect(screen.getByText(/The MRI shows multilevel degenerative changes\./)).toBeVisible();
+  expect(screen.getByText(/ALJ:/)).toBeVisible();
+  expect(screen.queryByText('This claim has no artifact section.')).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
+    'href',
+    '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',
+  );
+});
+
+test('explains empty and unverified artifact sections without inventing entries', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000021',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'unverified',
+            claimId: 'procedural-unverified',
+            text: 'A procedural date needs investigation.',
+            section: 'procedural',
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+        ],
+      },
+    },
+  ]);
+  render(<SyntheticArtifactSection caseId={caseId} section="procedural" />);
+  expect(await screen.findByText('A procedural date needs investigation.')).toBeVisible();
+  expect(
+    screen.getByText(
+      "The review system couldn't find this evidence in the authorized case record.",
+    ),
+  ).toBeVisible();
+
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([]);
+  const view = render(<SyntheticArtifactSection caseId={caseId} section="five_step" />);
+  expect(await screen.findByText(/No explicitly classified source-grounded entries/)).toBeVisible();
+  view.unmount();
+});
+
+test('reports and retries an unavailable artifact section', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockRejectedValueOnce(new Error('offline'));
+  render(<SyntheticArtifactSection caseId={caseId} section="medical" />);
+  expect(
+    await screen.findByText('Medical chronology is unavailable until processing can be confirmed.'),
+  ).toBeVisible();
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([]);
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Retry medical chronology' }));
+  expect(await screen.findByText(/No explicitly classified source-grounded entries/)).toBeVisible();
+});
+
+test('shows the loading state while an artifact section request is pending', () => {
+  vi.mocked(listSyntheticDocumentProcessing).mockImplementationOnce(() => new Promise(() => {}));
+  render(
+    <SyntheticArtifactSection caseId="00000000-0000-4000-8000-000000000002" section="medical" />,
+  );
+  expect(screen.getByRole('status')).toHaveTextContent('Loading medical chronology…');
+});
+
+test('ignores processing records without validated claims', async () => {
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000021',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000022',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: { status: 'refused', code: 'provider_error' },
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000023',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: { status: 'invalid_output' },
+    },
+  ]);
+  render(
+    <SyntheticArtifactSection caseId="00000000-0000-4000-8000-000000000002" section="medical" />,
+  );
+  expect(await screen.findByText(/No explicitly classified source-grounded entries/)).toBeVisible();
+});
+
+test('clears an artifact section while loading a different case', async () => {
+  vi.mocked(listSyntheticDocumentProcessing)
+    .mockResolvedValueOnce([])
+    .mockImplementationOnce(() => new Promise(() => {}));
+  const view = render(
+    <SyntheticArtifactSection caseId="00000000-0000-4000-8000-000000000002" section="medical" />,
+  );
+  expect(await screen.findByText(/No explicitly classified source-grounded entries/)).toBeVisible();
+  view.rerender(
+    <SyntheticArtifactSection caseId="00000000-0000-4000-8000-000000000003" section="medical" />,
+  );
+  expect(screen.getByRole('status')).toHaveTextContent('Loading medical chronology…');
 });
 
 test('reports and retries an unavailable processing overview', async () => {
