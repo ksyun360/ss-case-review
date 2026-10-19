@@ -1080,6 +1080,55 @@ test('opens a source targeted by a persisted claim link', async () => {
   window.history.replaceState({}, '', '/');
 });
 
+test('opens the selected source page in the original PDF viewer', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 7,
+  };
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource)
+    .mockResolvedValueOnce({
+      ...reference,
+      rawText: 'Source page text.',
+    })
+    .mockResolvedValueOnce({
+      ...reference,
+      rawText: 'Source page text.',
+    });
+  let resolveOriginal!: (value: Blob) => void;
+  vi.mocked(getSyntheticOriginal).mockImplementationOnce(
+    () =>
+      new Promise<Blob>((resolve) => {
+        resolveOriginal = resolve;
+      }),
+  );
+  const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:source-page');
+  const user = userEvent.setup();
+  render(<SyntheticSourceWorkspace caseId={caseId} />);
+  await user.click(await screen.findByRole('button', { name: 'Open document 0021, page 7' }));
+  expect(await screen.findByRole('heading', { name: 'Document 0021, page 7' })).toBeVisible();
+  const openOriginalButton = screen.getByRole('button', { name: 'Open original page 7' });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  await user.click(openOriginalButton);
+  expect(screen.getByRole('button', { name: 'Opening original page 7…' })).toBeDisabled();
+  resolveOriginal(new Blob(['%PDF-1.7']));
+  expect(await screen.findByTitle('Original page 7 preview')).toHaveAttribute(
+    'src',
+    'blob:source-page#page=7',
+  );
+  expect(getSyntheticOriginal).toHaveBeenCalledExactlyOnceWith(caseId, reference.documentVersionId);
+  await user.click(screen.getByRole('button', { name: 'Open document 0021, page 7' }));
+  expect(screen.queryByTitle('Original page 7 preview')).not.toBeInTheDocument();
+  createObjectURL.mockRestore();
+});
+
 test('does not highlight a cited span outside the persisted source page', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const sourceUnitId = '00000000-0000-4000-8000-000000000031';

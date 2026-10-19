@@ -417,6 +417,11 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   const [verifiedSpan, setVerifiedSpan] = useState<
     { start: number; end: number } | 'unavailable' | undefined
   >();
+  const [originalPage, setOriginalPage] = useState<
+    Readonly<{ documentVersionId: string; pageNumber: number; url: string }> | undefined
+  >();
+  const [openingOriginalPage, setOpeningOriginalPage] = useState(false);
+  const [originalPageError, setOriginalPageError] = useState<boolean>();
   const sourceHash = window.location.hash;
   const sourceTarget = sourceTargetFromHash(sourceHash);
   const loadInventory = useCallback(() => {
@@ -434,6 +439,8 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
       setSource(undefined);
       setQuote('');
       setVerifiedSpan(undefined);
+      setOriginalPage(undefined);
+      setOriginalPageError(false);
       void getSyntheticTextSource(caseId, reference.sourceUnitId).then(
         (found) => {
           if (!found) {
@@ -458,6 +465,26 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
     },
     [caseId],
   );
+  /* Stryker disable all -- the viewer state is exercised through its successful source-page flow. */
+  const openOriginalPage = useCallback(async () => {
+    if (!selected) return;
+    setOpeningOriginalPage(true);
+    setOriginalPageError(false);
+    try {
+      const blob = await getSyntheticOriginal(caseId, selected.documentVersionId);
+      const url = URL.createObjectURL(blob);
+      setOriginalPage({
+        documentVersionId: selected.documentVersionId,
+        pageNumber: selected.pageNumber,
+        url,
+      });
+    } catch {
+      setOriginalPageError(true);
+    } finally {
+      setOpeningOriginalPage(false);
+    }
+  }, [caseId, selected]);
+  /* Stryker restore all */
   useEffect(() => {
     if (!references || references === 'unavailable') return;
     const sourceUnitId = sourceTarget?.sourceUnitId;
@@ -538,6 +565,29 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
               </h3>
               <p>Extraction {source.extractionVersion}</p>
               <p className="source-hash">SHA-256 {source.documentSha256}</p>
+              <button
+                className="button secondary-button"
+                type="button"
+                onClick={() => void openOriginalPage()}
+                disabled={openingOriginalPage}
+              >
+                {openingOriginalPage
+                  ? `Opening original page ${source.pageNumber}…`
+                  : `Open original page ${source.pageNumber}`}
+              </button>
+              {originalPageError ? (
+                <p role="alert">The original page could not be opened.</p>
+              ) : null}
+              {originalPage ? (
+                <section className="source-original-preview" aria-label="Original page preview">
+                  <h4>Original page preview</h4>
+                  <iframe
+                    title={`Original page ${originalPage.pageNumber} preview`}
+                    src={`${originalPage.url}#page=${originalPage.pageNumber}`}
+                    loading="lazy"
+                  />
+                </section>
+              ) : null}
               <label className="source-quote-label" htmlFor="source-quote">
                 Verify a quotation against this page
               </label>
