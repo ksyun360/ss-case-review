@@ -67,6 +67,37 @@ test('parses Gemini claims and validates every citation against authorized sourc
   });
 });
 
+test('preserves an approved artifact section and speaker on a verified claim', async () => {
+  const generate = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([
+      {
+        claimId: 'claim-rfc',
+        text: 'The ALJ assessed sedentary work.',
+        section: 'five_step',
+        speaker: 'alj',
+        source: {
+          recordRevision: 1,
+          documentVersionId: 'document-version-a',
+          documentSha256: 'a'.repeat(64),
+          extractionVersion: 'extraction-v1',
+          sourceUnitId: 'source-unit-a',
+          start: 0,
+          end: 20,
+          quote: source.rawText.slice(0, 20),
+        },
+      },
+    ]),
+  });
+
+  await expect(
+    generateValidatedClaims(generate, 'Compare the RFC.', 'case-a', [source]),
+  ).resolves.toMatchObject({
+    status: 'validated',
+    claims: [{ section: 'five_step', speaker: 'alj' }],
+  });
+});
+
 test('preserves a bounded Gemini refusal without parsing model text', async () => {
   const generate = async () => ({ status: 'refused' as const, code: 'safety_refusal' as const });
 
@@ -109,6 +140,12 @@ test('rejects each malformed claim field before source validation', async () => 
     { ...valid, text: 1 },
     { ...valid, text: { length: 1 } },
     { ...valid, text: '' },
+    { ...valid, section: 'unknown' },
+    { ...valid, section: 1 },
+    { ...valid, section: {} },
+    { ...valid, speaker: 'unknown' },
+    { ...valid, speaker: 1 },
+    { ...valid, speaker: {} },
     { ...valid, source: { ...valid.source, recordRevision: 1.5 } },
     { ...valid, source: { ...valid.source, documentVersionId: 1 } },
     { ...valid, source: { ...valid.source, documentSha256: 1 } },

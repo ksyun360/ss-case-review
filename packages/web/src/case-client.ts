@@ -33,6 +33,8 @@ export type SyntheticProcessingClaim =
       claimId: string;
       text: string;
       source: SyntheticTextSpan;
+      section?: 'summary' | 'medical' | 'procedural' | 'five_step';
+      speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
     }>
   | Readonly<{
       status: 'unverified';
@@ -40,6 +42,8 @@ export type SyntheticProcessingClaim =
       text: string;
       message: "The review system couldn't find this evidence in the authorized case record.";
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
+      section?: 'summary' | 'medical' | 'procedural' | 'five_step';
+      speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
     }>;
 
 export type SyntheticClaimsResult =
@@ -91,6 +95,8 @@ const CLAIM_UNVERIFIED_REASONS = new Set([
   'invalid_offsets',
   'quote_mismatch',
 ]);
+const CLAIM_SECTIONS = new Set(['summary', 'medical', 'procedural', 'five_step']);
+const CLAIM_SPEAKERS = new Set(['alj', 'plaintiff', 'commissioner', 'vocational_expert']);
 
 /* Stryker disable all */
 function isSyntheticProcessingClaims(
@@ -109,6 +115,13 @@ function isSyntheticProcessingClaims(
       claim.claimId.length === 0 ||
       typeof claim.text !== 'string' ||
       claim.text.length === 0
+    )
+      return false;
+    if (
+      (claim.section !== undefined &&
+        (typeof claim.section !== 'string' || !CLAIM_SECTIONS.has(claim.section))) ||
+      (claim.speaker !== undefined &&
+        (typeof claim.speaker !== 'string' || !CLAIM_SPEAKERS.has(claim.speaker)))
     )
       return false;
     if (claim.status === 'verified') return isSyntheticTextSpan(claim.source, caseId);

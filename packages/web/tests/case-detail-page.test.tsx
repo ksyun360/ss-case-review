@@ -151,6 +151,8 @@ test('shows persisted source-grounded claims after processing publishes', async 
           status: 'verified',
           claimId: 'claim-a',
           text: 'The record supports the stated limitation.',
+          section: 'five_step',
+          speaker: 'alj',
           source: {
             caseId,
             recordRevision: 1,
@@ -169,6 +171,7 @@ test('shows persisted source-grounded claims after processing publishes', async 
   render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
   expect(await screen.findByText('Source extraction complete')).toBeVisible();
   expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
+  expect(screen.getByText('Five-step review · ALJ')).toBeVisible();
   expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
     'href',
     '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',

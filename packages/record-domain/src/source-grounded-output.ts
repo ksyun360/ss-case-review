@@ -1,9 +1,14 @@
 import { locateSourceSpan, type SourceSpanCandidate, type SourceUnit } from './source-span.ts';
 
+export type GeneratedClaimSection = 'summary' | 'medical' | 'procedural' | 'five_step';
+export type GeneratedClaimSpeaker = 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+
 export type GeneratedClaim = Readonly<{
   claimId: string;
   text: string;
   source: SourceSpanCandidate;
+  section?: GeneratedClaimSection;
+  speaker?: GeneratedClaimSpeaker;
 }>;
 
 export type GeneratedClaimValidation =
@@ -12,6 +17,8 @@ export type GeneratedClaimValidation =
       claimId: string;
       text: string;
       source: Extract<ReturnType<typeof locateSourceSpan>, { status: 'located' }>['span'];
+      section?: GeneratedClaimSection;
+      speaker?: GeneratedClaimSpeaker;
     }>
   | Readonly<{
       status: 'unverified';
@@ -19,6 +26,8 @@ export type GeneratedClaimValidation =
       text: string;
       message: "The review system couldn't find this evidence in the authorized case record.";
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
+      section?: GeneratedClaimSection;
+      speaker?: GeneratedClaimSpeaker;
     }>;
 
 /**
@@ -34,12 +43,21 @@ export function validateGeneratedClaim(
   const source = sources.find((candidate) => candidate.sourceUnitId === claim.source.sourceUnitId);
   const result = locateSourceSpan(caseId, source, claim.source);
   if (result.status === 'located')
-    return { status: 'verified', claimId: claim.claimId, text: claim.text, source: result.span };
+    return {
+      status: 'verified',
+      claimId: claim.claimId,
+      text: claim.text,
+      source: result.span,
+      ...(claim.section ? { section: claim.section } : {}),
+      ...(claim.speaker ? { speaker: claim.speaker } : {}),
+    };
   return {
     status: 'unverified',
     claimId: claim.claimId,
     text: claim.text,
     message: "The review system couldn't find this evidence in the authorized case record.",
     reason: result.reason,
+    ...(claim.section ? { section: claim.section } : {}),
+    ...(claim.speaker ? { speaker: claim.speaker } : {}),
   };
 }

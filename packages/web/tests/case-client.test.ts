@@ -41,6 +41,8 @@ test('loads and validates one document processing status without trusting malfor
             status: 'verified',
             claimId: 'claim-a',
             text: 'The record supports the stated limitation.',
+            section: 'five_step',
+            speaker: 'alj',
             source: {
               caseId,
               recordRevision: 1,
@@ -107,6 +109,33 @@ test('loads and validates one document processing status without trusting malfor
     { processing: { ...processing, failureCode: 'unknown_failure' } },
     { processing: { ...processing, claims: null } },
     { processing: { ...processing, claims: { status: 'refused', code: 'unknown' } } },
+    {
+      processing: {
+        ...processing,
+        claims: {
+          status: 'validated',
+          claims: [
+            {
+              status: 'verified',
+              claimId: 'claim-bad-section',
+              text: 'Unsupported section.',
+              section: 'unknown',
+              source: {
+                caseId,
+                recordRevision: 1,
+                documentVersionId,
+                documentSha256: 'a'.repeat(64),
+                extractionVersion: 'pdfjs-native-v1',
+                sourceUnitId: '00000000-0000-4000-8000-000000000031',
+                start: 0,
+                end: 4,
+                quote: 'The ',
+              },
+            },
+          ],
+        },
+      },
+    },
   ];
   const errorJson = vi.fn();
   const fetch = vi.fn();

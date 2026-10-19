@@ -1,6 +1,8 @@
 import {
   validateGeneratedClaim,
   type GeneratedClaim,
+  type GeneratedClaimSection,
+  type GeneratedClaimSpeaker,
   type GeneratedClaimValidation,
 } from '@record-review/record-domain/source-grounded-output';
 import type { SourceUnit } from '@record-review/record-domain/source-span';
@@ -10,6 +12,19 @@ type GeminiGenerate = (request: {
   prompt: string;
   maxOutputTokens: number;
 }) => Promise<GeminiTextResult>;
+
+const GENERATED_CLAIM_SECTIONS = new Set<GeneratedClaimSection>([
+  'summary',
+  'medical',
+  'procedural',
+  'five_step',
+]);
+const GENERATED_CLAIM_SPEAKERS = new Set<GeneratedClaimSpeaker>([
+  'alj',
+  'plaintiff',
+  'commissioner',
+  'vocational_expert',
+]);
 
 export type ValidatedClaimsResult =
   | Readonly<{
@@ -32,6 +47,10 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
     claim.claimId.length > 0 &&
     typeof claim.text === 'string' &&
     claim.text.length > 0 &&
+    (claim.section === undefined ||
+      GENERATED_CLAIM_SECTIONS.has(claim.section as GeneratedClaimSection)) &&
+    (claim.speaker === undefined ||
+      GENERATED_CLAIM_SPEAKERS.has(claim.speaker as GeneratedClaimSpeaker)) &&
     Number.isSafeInteger(candidate.recordRevision) &&
     typeof candidate.documentVersionId === 'string' &&
     typeof candidate.documentSha256 === 'string' &&
@@ -50,7 +69,7 @@ export async function generateValidatedClaims(
   sources: readonly SourceUnit[],
 ): Promise<ValidatedClaimsResult> {
   const result = await generate({
-    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Use only the supplied case record; do not invent claims or citations.`,
+    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. Use only the supplied case record; do not invent claims or citations.`,
     maxOutputTokens: 2_048,
   });
   if (result.status === 'refused') return result;

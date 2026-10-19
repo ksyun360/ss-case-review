@@ -79,3 +79,45 @@ test('selects the source unit named by the claim instead of the first available 
 
   expect(validateGeneratedClaim('case-a', [otherSource, source], claim).status).toBe('verified');
 });
+
+test('preserves approved artifact context on verified and unverified claims', () => {
+  const verified = validateGeneratedClaim('case-a', [source], {
+    claimId: 'claim-context',
+    text: 'The ALJ assessed sedentary work.',
+    section: 'five_step',
+    speaker: 'alj',
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 0,
+      end: 20,
+      quote: source.rawText.slice(0, 20),
+    },
+  });
+  expect(verified).toMatchObject({ status: 'verified', section: 'five_step', speaker: 'alj' });
+
+  const unverified = validateGeneratedClaim('case-a', [source], {
+    claimId: 'claim-context-unverified',
+    text: 'The Commissioner disputes the limitation.',
+    section: 'summary',
+    speaker: 'commissioner',
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 0,
+      end: 3,
+      quote: 'No such quote.',
+    },
+  });
+  expect(unverified).toMatchObject({
+    status: 'unverified',
+    section: 'summary',
+    speaker: 'commissioner',
+  });
+});

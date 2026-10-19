@@ -23,6 +23,18 @@ const PROCESSING_LABELS = {
   failed: 'Extraction could not complete',
 } as const;
 const PROCESSING_POLL_MILLISECONDS = 2_000;
+const CLAIM_SECTION_LABELS = {
+  summary: 'Summary',
+  medical: 'Medical chronology',
+  procedural: 'Procedural chronology',
+  five_step: 'Five-step review',
+} as const;
+const CLAIM_SPEAKER_LABELS = {
+  alj: 'ALJ',
+  plaintiff: 'Plaintiff',
+  commissioner: 'Commissioner',
+  vocational_expert: 'Vocational expert',
+} as const;
 
 function SyntheticClaims({
   claims,
@@ -38,6 +50,12 @@ function SyntheticClaims({
           <ul>
             {claims.claims.map((claim) => (
               <li key={claim.claimId}>
+                {claim.section || claim.speaker ? (
+                  <small className="claim-context">
+                    {claim.section ? CLAIM_SECTION_LABELS[claim.section] : 'Source-grounded claim'}
+                    {claim.speaker ? ` · ${CLAIM_SPEAKER_LABELS[claim.speaker]}` : ''}
+                  </small>
+                ) : null}
                 <span>{claim.text}</span>{' '}
                 <small>
                   {claim.status === 'verified'
