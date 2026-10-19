@@ -194,6 +194,7 @@ export function SyntheticArtifactSection({
   section: keyof typeof ARTIFACT_SECTION_LABELS;
 }) {
   const [processing, setProcessing] = useState<SyntheticDocumentProcessing[] | 'unavailable'>();
+  const [query, setQuery] = useState('');
   const load = useCallback(() => {
     setProcessing(undefined);
     void listSyntheticDocumentProcessing(caseId).then(setProcessing, () =>
@@ -212,6 +213,10 @@ export function SyntheticArtifactSection({
             : [],
         )
       : /* Stryker disable next-line ArrayDeclaration -- the loading branch renders before this fallback can affect output. */ [];
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const filteredClaims = claims.filter((claim) =>
+    claim.text.toLocaleLowerCase().includes(normalizedQuery),
+  );
   const heading = ARTIFACT_SECTION_LABELS[section];
   return (
     <section className="panel artifact-section" aria-live="polite">
@@ -233,26 +238,39 @@ export function SyntheticArtifactSection({
       ) : (
         <>
           <p>Only claims explicitly classified for this review section appear below.</p>
-          <ul className="artifact-claim-list">
-            {claims.map((claim) => (
-              <li key={claim.claimId}>
-                <p>
-                  {claim.speaker ? `${CLAIM_SPEAKER_LABELS[claim.speaker]}: ` : ''}
-                  {claim.text}
-                </p>
-                {claim.status === 'verified' ? (
-                  <a
-                    className="source-link"
-                    href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
-                  >
-                    Open cited source
-                  </a>
-                ) : (
-                  <small>{claim.message}</small>
-                )}
-              </li>
-            ))}
-          </ul>
+          <label className="source-quote-label" htmlFor="artifact-search">
+            Search {heading.toLocaleLowerCase()}
+          </label>
+          <input
+            id="artifact-search"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {filteredClaims.length === 0 ? (
+            <p>No classified entries match this search.</p>
+          ) : (
+            <ul className="artifact-claim-list">
+              {filteredClaims.map((claim) => (
+                <li key={claim.claimId}>
+                  <p>
+                    {claim.speaker ? `${CLAIM_SPEAKER_LABELS[claim.speaker]}: ` : ''}
+                    {claim.text}
+                  </p>
+                  {claim.status === 'verified' ? (
+                    <a
+                      className="source-link"
+                      href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
+                    >
+                      Open cited source
+                    </a>
+                  ) : (
+                    <small>{claim.message}</small>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </section>

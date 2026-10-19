@@ -360,6 +360,50 @@ test('explains empty and unverified artifact sections without inventing entries'
   view.unmount();
 });
 
+test('filters classified artifact entries with a case-insensitive search', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000021',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'unverified',
+            claimId: 'medical-mri',
+            text: 'The MRI showed degenerative changes.',
+            section: 'medical',
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+          {
+            status: 'unverified',
+            claimId: 'medical-therapy',
+            text: 'The claimant completed physical therapy.',
+            section: 'medical',
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+        ],
+      },
+    },
+  ]);
+  const user = userEvent.setup();
+  render(<SyntheticArtifactSection caseId={caseId} section="medical" />);
+  expect(await screen.findByText('The MRI showed degenerative changes.')).toBeVisible();
+  expect(screen.getByText('The claimant completed physical therapy.')).toBeVisible();
+  await user.type(screen.getByLabelText('Search medical chronology'), '  mRi  ');
+  expect(screen.getByText('The MRI showed degenerative changes.')).toBeVisible();
+  expect(screen.queryByText('The claimant completed physical therapy.')).not.toBeInTheDocument();
+  await user.clear(screen.getByLabelText('Search medical chronology'));
+  await user.type(screen.getByLabelText('Search medical chronology'), 'no match');
+  expect(screen.getByText('No classified entries match this search.')).toBeVisible();
+});
+
 test('reports and retries an unavailable artifact section', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   vi.mocked(listSyntheticDocumentProcessing).mockRejectedValueOnce(new Error('offline'));
