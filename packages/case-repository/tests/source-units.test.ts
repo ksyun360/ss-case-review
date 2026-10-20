@@ -21,6 +21,11 @@ const source = {
   extractionVersion: 'synthetic-native-v1',
   pageNumber: 1,
   rawText: "Synthetic source: A😀B\nQuoted text'; DROP TABLE cases; --",
+  geometry: {
+    view: [0, 0, 612, 792],
+    rotation: 0,
+    items: [{ start: 0, end: 16, transform: [1, 0, 0, 1, 72, 720], width: 96, height: 12 }],
+  },
 };
 
 beforeAll(async () => {
@@ -40,6 +45,12 @@ beforeEach(async () => {
     'utf8',
   );
   await database.exec(sourceMigration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    await readFile(
+      new URL('../migrations/202610190001_text_source_geometry.sql', import.meta.url),
+      'utf8',
+    ).then((migration) => migration.replace(/-- Down Migration[\s\S]*$/, '')),
+  );
   await createCase(database, { caseId: source.caseId, reviewerId, label: 'Synthetic source case' });
   await registerOriginalReference(database, reviewerId, {
     caseId: source.caseId,
@@ -60,6 +71,9 @@ test('persists exact page text with original provenance for a case member', asyn
   ]);
   expect((await database.query('SELECT raw_text FROM text_source_units')).rows).toEqual([
     { raw_text: source.rawText },
+  ]);
+  expect((await database.query('SELECT geometry FROM text_source_units')).rows).toEqual([
+    { geometry: source.geometry },
   ]);
 });
 
@@ -201,6 +215,7 @@ test('lists only member-case text sources in stable physical page order', async 
       documentSha256: source.documentSha256,
       extractionVersion: source.extractionVersion,
       pageNumber: source.pageNumber,
+      geometry: source.geometry,
     },
     {
       sourceUnitId: pageTwo.sourceUnitId,
@@ -210,6 +225,7 @@ test('lists only member-case text sources in stable physical page order', async 
       documentSha256: pageTwo.documentSha256,
       extractionVersion: pageTwo.extractionVersion,
       pageNumber: pageTwo.pageNumber,
+      geometry: pageTwo.geometry,
     },
   ]);
   expect(await listTextSourcesForReviewer(database, otherReviewerId, source.caseId)).toEqual([]);

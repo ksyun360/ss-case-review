@@ -243,6 +243,7 @@ test('migrates a native PostgreSQL database and round-trips case and original me
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
     { name: '202610150001_processing_claims' },
+    { name: '202610190001_text_source_geometry' },
   ]);
   expect((await client.query('SHOW server_version_num')).rows).toEqual([
     { server_version_num: '180006' },
@@ -306,7 +307,7 @@ test('rolls back partial schema changes and leaves a failed migration unapplied'
   ]);
   expect((await client.query('SELECT name FROM record_review_migrations')).rows).toEqual([]);
   await client.query('DROP TABLE original_references');
-  expect(await migrateCaseSchema(client)).toHaveLength(5);
+  expect(await migrateCaseSchema(client)).toHaveLength(6);
 });
 
 test('refuses a competing migration until the other connection releases the lock', async () => {
@@ -321,7 +322,7 @@ test('refuses a competing migration until the other connection releases the lock
   } finally {
     await blocker.end();
   }
-  expect(await migrateCaseSchema(client)).toHaveLength(5);
+  expect(await migrateCaseSchema(client)).toHaveLength(6);
 });
 
 test('rejects migration history that does not match the repository plan', async () => {
@@ -345,6 +346,7 @@ test('rejects migration history that does not match the repository plan', async 
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
     { name: '202610150001_processing_claims' },
+    { name: '202610190001_text_source_geometry' },
   ]);
   expect(await listCasesForReviewer(client, input.reviewerId)).toEqual([
     { caseId: input.caseId, label: input.label, recordRevision: 1 },
@@ -378,7 +380,7 @@ test('loads the migration SQL from the compiled package layout', async () => {
   const compiled = (await import(
     new URL('../../packages/case-repository/dist/migrations.js', import.meta.url).href
   )) as typeof import('../../packages/case-repository/src/migrations.ts');
-  expect(await compiled.migrateCaseSchema(client)).toHaveLength(5);
+  expect(await compiled.migrateCaseSchema(client)).toHaveLength(6);
   expect(
     (
       await client.query(`SELECT to_regclass('public.cases') AS cases,
@@ -402,5 +404,6 @@ test('loads the migration SQL from the compiled package layout', async () => {
     { name: '202609280001_text_source_units' },
     { name: '202610010001_document_processing_attempts' },
     { name: '202610150001_processing_claims' },
+    { name: '202610190001_text_source_geometry' },
   ]);
 });

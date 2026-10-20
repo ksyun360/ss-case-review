@@ -238,6 +238,11 @@ test('loads and validates one case-scoped text source before browser display', a
     extractionVersion: 'x'.repeat(128),
     pageNumber: 1,
     rawText: 'Synthetic source A😀B\nLiteral quotation',
+    geometry: {
+      view: [0, 0, 612, 792],
+      rotation: 0,
+      items: [{ start: 0, end: 3, transform: [1, 0, 0, 1, 72, 720], width: 18, height: 12 }],
+    },
   };
   const shortVersionSource = { ...source, extractionVersion: 'x' };
   const errorJson = vi.fn();
@@ -268,6 +273,7 @@ test('loads and validates one case-scoped text source before browser display', a
     { source: { ...source, pageNumber: 0 } },
     { source: { ...source, pageNumber: 1.5 } },
     { source: { ...source, pageNumber: Number.MAX_SAFE_INTEGER + 1 } },
+    { source: { ...source, geometry: { view: ['not-a-number'] } } },
     { source: { ...source, rawText: null } },
   ];
   const fetch = vi

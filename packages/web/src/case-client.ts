@@ -60,6 +60,19 @@ export type SyntheticTextSource = Readonly<{
   extractionVersion: string;
   pageNumber: number;
   rawText: string;
+  geometry?: SyntheticTextSourceGeometry;
+}>;
+
+export type SyntheticTextSourceGeometry = Readonly<{
+  view: readonly number[];
+  rotation: number;
+  items: readonly Readonly<{
+    start: number;
+    end: number;
+    transform: readonly number[];
+    width: number;
+    height: number;
+  }>[];
 }>;
 
 export type SyntheticTextSourceReference = Omit<SyntheticTextSource, 'rawText'>;
@@ -97,6 +110,38 @@ const CLAIM_UNVERIFIED_REASONS = new Set([
 ]);
 const CLAIM_SECTIONS = new Set(['summary', 'medical', 'procedural', 'five_step']);
 const CLAIM_SPEAKERS = new Set(['alj', 'plaintiff', 'commissioner', 'vocational_expert']);
+
+/* Stryker disable all */
+function isSyntheticTextSourceGeometry(value: unknown): value is SyntheticTextSourceGeometry {
+  if (typeof value !== 'object' || value === null) return false;
+  const geometry = value as SyntheticTextSourceGeometry;
+  if (
+    !Array.isArray(geometry.view) ||
+    !geometry.view.every((entry) => typeof entry === 'number' && Number.isFinite(entry)) ||
+    typeof geometry.rotation !== 'number' ||
+    !Number.isFinite(geometry.rotation) ||
+    !Array.isArray(geometry.items)
+  )
+    return false;
+  return geometry.items.every(
+    (item) =>
+      typeof item === 'object' &&
+      item !== null &&
+      Number.isSafeInteger(item.start) &&
+      item.start >= 0 &&
+      Number.isSafeInteger(item.end) &&
+      item.end >= item.start &&
+      Array.isArray(item.transform) &&
+      item.transform.every(
+        (entry: unknown) => typeof entry === 'number' && Number.isFinite(entry),
+      ) &&
+      typeof item.width === 'number' &&
+      Number.isFinite(item.width) &&
+      typeof item.height === 'number' &&
+      Number.isFinite(item.height),
+  );
+}
+/* Stryker restore all */
 
 /* Stryker disable all */
 function isSyntheticProcessingClaims(
@@ -210,7 +255,8 @@ function isSyntheticTextSourceReference(
     source.extractionVersion.length <= 128 &&
     /\S/.test(source.extractionVersion) &&
     Number.isSafeInteger(source.pageNumber) &&
-    source.pageNumber >= 1
+    source.pageNumber >= 1 &&
+    (source.geometry === undefined || isSyntheticTextSourceGeometry(source.geometry))
   );
 }
 

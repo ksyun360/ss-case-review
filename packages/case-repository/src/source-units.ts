@@ -1,5 +1,17 @@
 import type { SqlClient } from './cases.ts';
 
+export type TextSourceGeometry = Readonly<{
+  view: readonly number[];
+  rotation: number;
+  items: readonly Readonly<{
+    start: number;
+    end: number;
+    transform: readonly number[];
+    width: number;
+    height: number;
+  }>[];
+}>;
+
 export type TextSourceUnit = Readonly<{
   sourceUnitId: string;
   caseId: string;
@@ -9,6 +21,7 @@ export type TextSourceUnit = Readonly<{
   extractionVersion: string;
   pageNumber: number;
   rawText: string;
+  geometry: TextSourceGeometry;
 }>;
 
 export type TextSourceReference = Omit<TextSourceUnit, 'rawText'>;
@@ -22,7 +35,7 @@ export async function listTextSourcesForReviewer(
     `SELECT sources.source_unit_id AS "sourceUnitId", sources.case_id AS "caseId",
       sources.document_version_id AS "documentVersionId", sources.record_revision AS "recordRevision",
       sources.document_sha256 AS "documentSha256", sources.extraction_version AS "extractionVersion",
-      sources.page_number AS "pageNumber"
+      sources.page_number AS "pageNumber", sources.geometry AS "geometry"
     FROM text_source_units sources
     JOIN case_memberships members ON members.case_id = sources.case_id
     JOIN original_references originals ON originals.case_id = sources.case_id
@@ -48,7 +61,8 @@ export async function findTextSourceForReviewer(
     `SELECT sources.source_unit_id AS "sourceUnitId", sources.case_id AS "caseId",
       sources.document_version_id AS "documentVersionId", sources.record_revision AS "recordRevision",
       sources.document_sha256 AS "documentSha256", sources.extraction_version AS "extractionVersion",
-      sources.page_number AS "pageNumber", sources.raw_text AS "rawText"
+      sources.page_number AS "pageNumber", sources.raw_text AS "rawText",
+      sources.geometry AS "geometry"
     FROM text_source_units sources
     JOIN case_memberships members ON members.case_id = sources.case_id
     JOIN original_references originals ON originals.case_id = sources.case_id
@@ -68,17 +82,17 @@ export async function insertTextSourceForReviewer(
   const result = await client.query<TextSourceUnit>(
     `INSERT INTO text_source_units (
       source_unit_id, case_id, document_version_id, record_revision,
-      document_sha256, extraction_version, page_number, raw_text
+      document_sha256, extraction_version, page_number, raw_text, geometry
     )
-    SELECT $1, case_id, $3, $4, $5, $6, $7, $8
+    SELECT $1, case_id, $3, $4, $5, $6, $7, $8, $9::jsonb
     FROM case_memberships JOIN original_references USING (case_id)
       JOIN cases USING (case_id)
-    WHERE case_id = $2 AND reviewer_id = $9 AND document_version_id = $3
+    WHERE case_id = $2 AND reviewer_id = $10 AND document_version_id = $3
       AND sha256 = $5 AND cases.record_revision = $4
     RETURNING source_unit_id AS "sourceUnitId", case_id AS "caseId",
       document_version_id AS "documentVersionId", record_revision AS "recordRevision",
       document_sha256 AS "documentSha256", extraction_version AS "extractionVersion",
-      page_number AS "pageNumber", raw_text AS "rawText"`,
+      page_number AS "pageNumber", raw_text AS "rawText", geometry AS "geometry"`,
     [
       source.sourceUnitId,
       source.caseId,
@@ -88,6 +102,7 @@ export async function insertTextSourceForReviewer(
       source.extractionVersion,
       source.pageNumber,
       source.rawText,
+      JSON.stringify(source.geometry),
       reviewerId,
     ],
   );
@@ -110,6 +125,7 @@ export async function insertTextSourcesForReviewer(
         entry.value->>'extractionVersion' AS extraction_version,
         (entry.value->>'pageNumber')::integer AS page_number,
         entry.value->>'rawText' AS raw_text,
+        entry.value->'geometry' AS geometry,
         entry.ordinality
       FROM jsonb_array_elements($1::jsonb) WITH ORDINALITY AS entry(value, ordinality)
     ), authorized AS (
@@ -124,20 +140,20 @@ export async function insertTextSourcesForReviewer(
     ), inserted AS (
       INSERT INTO text_source_units (
         source_unit_id, case_id, document_version_id, record_revision,
-        document_sha256, extraction_version, page_number, raw_text
+        document_sha256, extraction_version, page_number, raw_text, geometry
       )
       SELECT source_unit_id, case_id, document_version_id, record_revision,
-        document_sha256, extraction_version, page_number, raw_text
+        document_sha256, extraction_version, page_number, raw_text, geometry
       FROM authorized
       WHERE (SELECT count(*) FROM authorized) = (SELECT count(*) FROM candidates)
       RETURNING source_unit_id, case_id, document_version_id, record_revision,
-        document_sha256, extraction_version, page_number, raw_text
+        document_sha256, extraction_version, page_number, raw_text, geometry
     )
     SELECT inserted.source_unit_id AS "sourceUnitId", inserted.case_id AS "caseId",
       inserted.document_version_id AS "documentVersionId",
       inserted.record_revision AS "recordRevision", inserted.document_sha256 AS "documentSha256",
       inserted.extraction_version AS "extractionVersion", inserted.page_number AS "pageNumber",
-      inserted.raw_text AS "rawText"
+      inserted.raw_text AS "rawText", inserted.geometry AS "geometry"
     FROM inserted JOIN candidates USING (source_unit_id)
     ORDER BY candidates.ordinality`,
     [JSON.stringify(sources), reviewerId],

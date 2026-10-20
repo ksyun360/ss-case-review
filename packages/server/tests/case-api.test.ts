@@ -86,6 +86,17 @@ test('lists current text source metadata through a guarded member-scoped route',
     'utf8',
   );
   await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610190001_text_source_geometry.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   const source = {
     sourceUnitId: '00000000-0000-4000-8000-000000000031',
     caseId: '00000000-0000-4000-8000-000000000001',
@@ -95,6 +106,7 @@ test('lists current text source metadata through a guarded member-scoped route',
     extractionVersion: 'synthetic-native-v1',
     pageNumber: 1,
     rawText: 'Synthetic source text excluded from inventory',
+    geometry: { view: [], rotation: 0, items: [] },
   };
   await createCase(database, {
     caseId: source.caseId,
@@ -125,6 +137,7 @@ test('lists current text source metadata through a guarded member-scoped route',
         documentSha256: source.documentSha256,
         extractionVersion: source.extractionVersion,
         pageNumber: source.pageNumber,
+        geometry: source.geometry,
       },
     ],
   });
@@ -187,6 +200,17 @@ test('opens stored page text through a guarded member-scoped source route', asyn
     'utf8',
   );
   await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610190001_text_source_geometry.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   const source = {
     sourceUnitId: '00000000-0000-4000-8000-000000000031',
     caseId: '00000000-0000-4000-8000-000000000001',
@@ -196,6 +220,7 @@ test('opens stored page text through a guarded member-scoped source route', asyn
     extractionVersion: 'synthetic-native-v1',
     pageNumber: 1,
     rawText: 'Synthetic source A😀B\nLiteral quotation',
+    geometry: { view: [], rotation: 0, items: [] },
   };
   await createCase(database, {
     caseId: source.caseId,
@@ -247,6 +272,17 @@ test('verifies a citation quote against the authorized persisted source', async 
     'utf8',
   );
   await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610190001_text_source_geometry.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   const source = {
     sourceUnitId: '00000000-0000-4000-8000-000000000041',
     caseId: '00000000-0000-4000-8000-000000000001',
@@ -256,6 +292,7 @@ test('verifies a citation quote against the authorized persisted source', async 
     extractionVersion: 'synthetic-native-v1',
     pageNumber: 1,
     rawText: 'The claimant cannot return to past work.',
+    geometry: { view: [], rotation: 0, items: [] },
   };
   await createCase(database, { caseId: source.caseId, reviewerId, label: 'Citation case' });
   await registerOriginalReference(database, reviewerId, {
@@ -422,6 +459,17 @@ test('hides another reviewer text source through the guarded source route', asyn
     'utf8',
   );
   await database.exec(migration.replace(/-- Down Migration[\s\S]*$/, ''));
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610190001_text_source_geometry.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   const source = {
     sourceUnitId: '00000000-0000-4000-8000-000000000031',
     caseId: '00000000-0000-4000-8000-000000000002',
@@ -431,6 +479,7 @@ test('hides another reviewer text source through the guarded source route', asyn
     extractionVersion: 'synthetic-native-v1',
     pageNumber: 1,
     rawText: 'Synthetic private source text',
+    geometry: { view: [], rotation: 0, items: [] },
   };
   await createCase(database, {
     caseId: source.caseId,

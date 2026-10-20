@@ -68,6 +68,7 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
     for (const migration of [
       '202609230001_initial_case_metadata.sql',
       '202609280001_text_source_units.sql',
+      '202610190001_text_source_geometry.sql',
     ]) {
       const sql = await readFile(
         new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
@@ -92,7 +93,16 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
       expect([...received]).toEqual([...bytes]);
       expect(maximumPages).toBe(3);
       return [
-        { status: 'extracted' as const, pageNumber: 1, rawText: 'First exact page' },
+        {
+          status: 'extracted' as const,
+          pageNumber: 1,
+          rawText: 'First exact page',
+          geometry: {
+            view: [0, 0, 612, 792],
+            rotation: 0,
+            items: [{ start: 0, end: 16, transform: [1, 0, 0, 1, 72, 720], width: 96, height: 12 }],
+          },
+        },
         {
           status: 'unavailable' as const,
           pageNumber: 2,
@@ -179,6 +189,11 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
         documentSha256: reference.sha256,
         extractionVersion: 'synthetic-native-v1',
         pageNumber: 1,
+        geometry: {
+          view: [0, 0, 612, 792],
+          rotation: 0,
+          items: [{ start: 0, end: 16, transform: [1, 0, 0, 1, 72, 720], width: 96, height: 12 }],
+        },
       },
       {
         sourceUnitId: sourceIds[1],
@@ -188,6 +203,7 @@ test('publishes extracted PDF pages from verified original bytes and reports pag
         documentSha256: reference.sha256,
         extractionVersion: 'synthetic-native-v1',
         pageNumber: 3,
+        geometry: { view: [], rotation: 0, items: [] },
       },
     ]);
   } finally {
@@ -214,6 +230,7 @@ test('processes a verified stored PDF through the bounded concrete adapter', asy
     for (const migration of [
       '202609230001_initial_case_metadata.sql',
       '202609280001_text_source_units.sql',
+      '202610190001_text_source_geometry.sql',
     ]) {
       const sql = await readFile(
         new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
@@ -253,6 +270,7 @@ test('processes a verified stored PDF through the bounded concrete adapter', asy
         documentSha256: reference.sha256,
         extractionVersion: 'pdfjs-native-v1',
         pageNumber: 1,
+        geometry: { view: [], rotation: 0, items: expect.any(Array) },
       },
       {
         sourceUnitId: sourceIds[1],
@@ -262,6 +280,7 @@ test('processes a verified stored PDF through the bounded concrete adapter', asy
         documentSha256: reference.sha256,
         extractionVersion: 'pdfjs-native-v1',
         pageNumber: 2,
+        geometry: { view: [], rotation: 0, items: expect.any(Array) },
       },
     ]);
     await expect(
@@ -271,8 +290,14 @@ test('processes a verified stored PDF through the bounded concrete adapter', asy
         ),
       ),
     ).resolves.toMatchObject([
-      { rawText: 'First stored source' },
-      { rawText: 'Second stored source' },
+      {
+        rawText: 'First stored source',
+        geometry: { view: [], rotation: 0, items: expect.any(Array) },
+      },
+      {
+        rawText: 'Second stored source',
+        geometry: { view: [], rotation: 0, items: expect.any(Array) },
+      },
     ]);
   } finally {
     await database.close();

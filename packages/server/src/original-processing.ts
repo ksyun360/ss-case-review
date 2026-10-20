@@ -5,6 +5,7 @@ import {
 } from '@record-review/case-repository/cases';
 import {
   insertTextSourcesForReviewer,
+  type TextSourceGeometry,
   type TextSourceUnit,
 } from '@record-review/case-repository/source-units';
 import { extractPdfBytes } from '@record-review/document-processing/pdf';
@@ -12,7 +13,12 @@ import { detectDocumentSignature } from '@record-review/record-domain/document-s
 import { readOriginal } from '@record-review/record-storage/originals';
 import type { ValidatedClaimsResult } from './source-grounded-generation.ts';
 
-type ExtractedPage = Readonly<{ status: 'extracted'; pageNumber: number; rawText: string }>;
+type ExtractedPage = Readonly<{
+  status: 'extracted';
+  pageNumber: number;
+  rawText: string;
+  geometry?: TextSourceGeometry;
+}>;
 type PageGap = Readonly<{
   status: 'unavailable';
   pageNumber: number;
@@ -73,6 +79,7 @@ export async function processPdfOriginalForReviewer(input: ProcessingInput) {
       extractionVersion: input.extractionVersion,
       pageNumber: page.pageNumber,
       rawText: page.rawText,
+      geometry: page.geometry ?? { view: [], rotation: 0, items: [] },
     }));
   const claims = input.generateClaims
     ? await input.generateClaims(input.caseId, sources)
