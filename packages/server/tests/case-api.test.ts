@@ -71,6 +71,17 @@ beforeEach(async () => {
       )
     ).replace(/-- Down Migration[\s\S]*$/, ''),
   );
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610200001_correction_suggestions.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   api = createDevelopmentApi(environment, database);
 });
 afterEach(async () => {
@@ -78,6 +89,122 @@ afterEach(async () => {
 });
 afterAll(async () => {
   await database.close();
+});
+
+test('creates and lists revision-scoped correction suggestions for a case member', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000001';
+  await createCase(database, { caseId, reviewerId, label: 'Correction route case' });
+  const body = {
+    artifact: 'medical',
+    entryKey: '2024-01-12|North Clinic|follow-up',
+    proposedText: 'The provider recorded an improved range of motion.',
+    rationale: 'The source page uses the phrase improved range of motion.',
+  };
+
+  const created = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${caseId}/correction-suggestions`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: body,
+  });
+  expect(created.statusCode).toBe(201);
+  expect(created.json()).toMatchObject({
+    suggestion: {
+      caseId,
+      recordRevision: 1,
+      artifact: body.artifact,
+      entryKey: body.entryKey,
+      proposedText: body.proposedText,
+      rationale: body.rationale,
+      status: 'pending',
+    },
+  });
+
+  const listed = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${caseId}/correction-suggestions`,
+    headers: requestHeaders,
+  });
+  expect(listed.statusCode).toBe(200);
+  expect(listed.json()).toEqual({ suggestions: [created.json().suggestion] });
+
+  const invalid = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${caseId}/correction-suggestions`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: { ...body, artifact: 'unknown' },
+  });
+  expect(invalid.statusCode).toBe(400);
+
+  const extra = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${caseId}/correction-suggestions`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: { ...body, unexpected: true },
+  });
+  expect(extra.statusCode).toBe(400);
+
+  const hiddenCaseId = '00000000-0000-4000-8000-000000000002';
+  const hiddenPost = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${hiddenCaseId}/correction-suggestions`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: body,
+  });
+  expect(hiddenPost.statusCode).toBe(404);
+  const hiddenGet = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${hiddenCaseId}/correction-suggestions`,
+    headers: requestHeaders,
+  });
+  expect(hiddenGet.statusCode).toBe(404);
+  expect(hiddenGet.json()).toEqual({ code: 'case_not_found' });
+  expect(hiddenPost.json()).toEqual({ code: 'case_not_found' });
+
+  for (const artifact of ['summary', 'procedural', 'five_step']) {
+    const accepted = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/correction-suggestions`,
+      headers: { ...requestHeaders, 'content-type': 'application/json' },
+      payload: { ...body, artifact, entryKey: `${artifact}-entry` },
+    });
+    expect(accepted.statusCode).toBe(201);
+  }
+
+  for (const field of ['artifact', 'entryKey', 'proposedText', 'rationale']) {
+    const missing = Object.fromEntries(Object.entries(body).filter(([key]) => key !== field));
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/correction-suggestions`,
+      headers: { ...requestHeaders, 'content-type': 'application/json' },
+      payload: missing,
+    });
+    expect(response.statusCode).toBe(400);
+  }
+
+  for (const field of ['entryKey', 'proposedText', 'rationale']) {
+    const whitespace = { ...body, [field]: '   ' };
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/correction-suggestions`,
+      headers: { ...requestHeaders, 'content-type': 'application/json' },
+      payload: whitespace,
+    });
+    expect(response.statusCode).toBe(400);
+  }
+
+  for (const method of ['POST', 'GET'] as const) {
+    const response = await api.inject({
+      method,
+      url: `/api/v1/cases/not-a-uuid/correction-suggestions`,
+      headers:
+        method === 'POST'
+          ? { ...requestHeaders, 'content-type': 'application/json' }
+          : requestHeaders,
+      ...(method === 'POST' ? { payload: body } : {}),
+    });
+    expect(response.statusCode).toBe(400);
+  }
 });
 
 test('lists current text source metadata through a guarded member-scoped route', async () => {

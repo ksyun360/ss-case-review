@@ -34,13 +34,33 @@ test('permits only documented unpatched development advisories while rejecting u
         ],
       },
       'make-fetch-happen': { severity: 'high', via: ['http-cache-semantics'] },
+      'markdown-it': {
+        severity: 'high',
+        via: [
+          { url: 'https://github.com/advisories/GHSA-r7fv-28h4-cvq7', severity: 'high' },
+          { url: 'https://github.com/advisories/GHSA-vfgh-jcmw-g37q', severity: 'low' },
+        ],
+      },
+      vite: {
+        severity: 'high',
+        via: [
+          { url: 'https://github.com/advisories/GHSA-698v-4r3x-3vcv', severity: 'moderate' },
+          { url: 'https://github.com/advisories/GHSA-r825-w8mm-5pxw', severity: 'moderate' },
+          { url: 'https://github.com/advisories/GHSA-587h-7wmj-h5pm', severity: 'high' },
+        ],
+      },
     },
     metadata: { vulnerabilities: { high: 4, critical: 0 } },
   };
 
   expect(validateDependencyAudits(clean, clean)).toEqual([]);
   expect(validateDependencyAudits(clean, allowed)).toEqual([
+    'GHSA-587h-7wmj-h5pm',
+    'GHSA-698v-4r3x-3vcv',
     'GHSA-ch52-4w7c-c8xp',
+    'GHSA-r7fv-28h4-cvq7',
+    'GHSA-r825-w8mm-5pxw',
+    'GHSA-vfgh-jcmw-g37q',
     'GHSA-vfj7-8cjw-p6xm',
   ]);
 
@@ -135,7 +155,15 @@ test('permits only documented unpatched development advisories while rejecting u
         informational: { severity: 'moderate', via: [{ url: 'https://example.invalid/moderate' }] },
       },
     }),
-  ).toEqual(['GHSA-ch52-4w7c-c8xp', 'GHSA-vfj7-8cjw-p6xm']);
+  ).toEqual([
+    'GHSA-587h-7wmj-h5pm',
+    'GHSA-698v-4r3x-3vcv',
+    'GHSA-ch52-4w7c-c8xp',
+    'GHSA-r7fv-28h4-cvq7',
+    'GHSA-r825-w8mm-5pxw',
+    'GHSA-vfgh-jcmw-g37q',
+    'GHSA-vfj7-8cjw-p6xm',
+  ]);
   expect(
     validateDependencyAudits(clean, {
       ...allowed,
@@ -150,7 +178,15 @@ test('permits only documented unpatched development advisories while rejecting u
     .fn()
     .mockReturnValueOnce({ status: 0, stdout: JSON.stringify(clean) })
     .mockReturnValueOnce({ status: 1, stdout: JSON.stringify(allowed) });
-  expect(runDependencyAudit(spawn)).toEqual(['GHSA-ch52-4w7c-c8xp', 'GHSA-vfj7-8cjw-p6xm']);
+  expect(runDependencyAudit(spawn)).toEqual([
+    'GHSA-587h-7wmj-h5pm',
+    'GHSA-698v-4r3x-3vcv',
+    'GHSA-ch52-4w7c-c8xp',
+    'GHSA-r7fv-28h4-cvq7',
+    'GHSA-r825-w8mm-5pxw',
+    'GHSA-vfgh-jcmw-g37q',
+    'GHSA-vfj7-8cjw-p6xm',
+  ]);
   expect(spawn).toHaveBeenNthCalledWith(
     1,
     'npm',

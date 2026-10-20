@@ -8,7 +8,8 @@
     "./document-processing-attempts": "./src/document-processing-attempts.ts",
     "./migrations": "./src/migrations.ts",
     "./upload-attempts": "./src/upload-attempts.ts",
-    "./source-units": "./src/source-units.ts"
+    "./source-units": "./src/source-units.ts",
+    "./corrections": "./src/corrections.ts"
   },
   "dependencies": {
     "node-pg-migrate": "9.0.0",

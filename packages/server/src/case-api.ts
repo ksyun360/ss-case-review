@@ -21,6 +21,10 @@ import {
   listTextSourcesForReviewer,
 } from '@record-review/case-repository/source-units';
 import {
+  insertCorrectionSuggestionForReviewer,
+  listCorrectionSuggestionsForReviewer,
+} from '@record-review/case-repository/corrections';
+import {
   locateSourceSpan,
   type SourceSpanCandidate,
 } from '@record-review/record-domain/source-span';
@@ -66,6 +70,71 @@ export function createDevelopmentApi(
   api.get('/api/v1/cases', async () => ({
     cases: await listCasesForReviewer(database, identity.reviewerId),
   }));
+  api.post<{
+    Params: { caseId: string };
+    Body: {
+      artifact: 'summary' | 'medical' | 'procedural' | 'five_step';
+      entryKey: string;
+      proposedText: string;
+      rationale: string;
+    };
+  }>(
+    '/api/v1/cases/:caseId/correction-suggestions',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['artifact', 'entryKey', 'proposedText', 'rationale'],
+          properties: {
+            artifact: { type: 'string', enum: ['summary', 'medical', 'procedural', 'five_step'] },
+            entryKey: { type: 'string', minLength: 1, maxLength: 256, pattern: '\\S' },
+            proposedText: { type: 'string', minLength: 1, maxLength: 4000, pattern: '\\S' },
+            rationale: { type: 'string', minLength: 1, maxLength: 4000, pattern: '\\S' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const suggestion = await insertCorrectionSuggestionForReviewer(
+        database,
+        identity.reviewerId,
+        {
+          correctionId: randomUUID(),
+          caseId: request.params.caseId,
+          ...request.body,
+        },
+      );
+      if (!suggestion) return reply.code(404).send({ code: 'case_not_found' });
+      return reply.code(201).send({ suggestion });
+    },
+  );
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId/correction-suggestions',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      return {
+        suggestions: await listCorrectionSuggestionsForReviewer(
+          database,
+          identity.reviewerId,
+          request.params.caseId,
+        ),
+      };
+    },
+  );
   api.get<{ Params: { caseId: string } }>(
     '/api/v1/cases/:caseId/text-sources',
     {

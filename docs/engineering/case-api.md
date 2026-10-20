@@ -25,12 +25,14 @@ The API requires `Host: 127.0.0.1:5176` and `x-record-review-client: synthetic-w
 
 The development entry point validates startup configuration and binds the listener to `127.0.0.1:5176`. Vite proxies browser case, capability, and synthetic original requests during local development. Do not expose the development API through a shared server or reverse proxy.
 
-| Endpoint                    | Behavior                                                                                                                                                               |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/cases`         | Returns `{ cases: [...] }` using membership-filtered repository queries for the configured reviewer.                                                                   |
-| `POST /api/v1/cases`        | Accepts a JSON object containing only `label`; returns HTTP 201 with `{ case: { caseId, label, recordRevision } }` after atomic case and creator-membership insertion. |
-| `GET /api/v1/cases/:caseId` | Returns `{ case: { caseId, label, recordRevision } }` only for the configured reviewer; returns the same 404 for an unknown or inaccessible UUID.                      |
-| `GET /api/v1/capabilities`  | Returns `{ syntheticOriginalUpload: boolean }` according to the server-owned storage setting without disclosing the storage path.                                      |
+| Endpoint                                            | Behavior                                                                                                                                                                    |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/cases`                                 | Returns `{ cases: [...] }` using membership-filtered repository queries for the configured reviewer.                                                                        |
+| `POST /api/v1/cases`                                | Accepts a JSON object containing only `label`; returns HTTP 201 with `{ case: { caseId, label, recordRevision } }` after atomic case and creator-membership insertion.      |
+| `GET /api/v1/cases/:caseId`                         | Returns `{ case: { caseId, label, recordRevision } }` only for the configured reviewer; returns the same 404 for an unknown or inaccessible UUID.                           |
+| `GET /api/v1/capabilities`                          | Returns `{ syntheticOriginalUpload: boolean }` according to the server-owned storage setting without disclosing the storage path.                                           |
+| `POST /api/v1/cases/:caseId/correction-suggestions` | Stores a pending, revision-scoped suggestion for a classified artifact entry without changing extracted evidence; returns HTTP 201 with `{ suggestion }` for a member case. |
+| `GET /api/v1/cases/:caseId/correction-suggestions`  | Returns `{ suggestions: [...] }` for the configured reviewer, or the same 404 for an unknown or inaccessible case.                                                          |
 
 When a trusted caller supplies `originalStorage`, `POST /api/v1/cases/:caseId/synthetic-originals` accepts only `application/octet-stream` and streams bytes through the attempt journal and private original store. The route returns HTTP 201 with `{ original: { caseId, documentVersionId, sha256, byteLength } }` only after reference registration and durable processing reservation. Every accepted original receives a fixed 800-page ceiling and `pdfjs-native-v1` extraction version alongside the configured byte ceiling. A nonmember receives the same 404 as an unknown case. An oversized stream receives 413 and leaves a failed attempt but no registered original. An unsupported media type receives 415 before attempt reservation. The upload route does not accept a filename or perform extraction inside the request. Default server startup leaves the original routes disabled; explicit synthetic storage configuration enables browser registration after the capability check.
 
@@ -54,7 +56,7 @@ The metadata API limits parsed request bodies to 4,096 bytes and sets `Cache-Con
 | 415 / `unsupported_media_type`        | The optional original route receives a content type other than `application/octet-stream`.      |
 | 503 / `case_service_unavailable`      | An unclassified handler or parser failure prevents completion, including database failures.     |
 
-The error handler returns fixed codes rather than exception messages, query details, or submitted text. Additional parser/error classifications remain pending. Unknown routes retain Fastify's default not-found behavior. The factory provides no source-text viewer, artifact, or membership-administration endpoint; its opt-in original routes support synthetic fixtures only.
+The error handler returns fixed codes rather than exception messages, query details, or submitted text. Additional parser/error classifications remain pending. Unknown routes retain Fastify's default not-found behavior. Correction suggestions remain pending until a reviewer approves them; the routes never overwrite extracted evidence or the case revision. The factory provides no source-text viewer, artifact, or membership-administration endpoint; its opt-in original routes support synthetic fixtures only.
 
 ## Verification and remaining work
 
