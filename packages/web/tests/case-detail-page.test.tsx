@@ -972,6 +972,14 @@ test('retries source discovery and opens exact page text with its provenance', a
   const source: SyntheticTextSource = {
     ...reference,
     rawText: 'Exact synthetic page text\nwith preserved spacing.',
+    geometry: {
+      view: [0, 0, 612, 792],
+      rotation: 0,
+      items: [
+        { start: 0, end: 5, transform: [1, 0, 0, 1, 72, 720], width: 30, height: 12 },
+        { start: 6, end: 10, transform: [1, 0, 0, 1, 72, 700], width: 24, height: 12 },
+      ],
+    },
   };
   let resolveInventory!: (value: SyntheticTextSourceReference[]) => void;
   let resolveSource!: (value: SyntheticTextSource) => void;
@@ -1022,6 +1030,9 @@ test('retries source discovery and opens exact page text with its provenance', a
   ).toBeVisible();
   expect(screen.getByRole('button', { name: 'Verify and highlight' })).toBeDisabled();
   expect(screen.getByText('Extraction synthetic-native-v1')).toBeVisible();
+  expect(
+    screen.getByText((_content, element) => element?.textContent === 'Page alignment regions: 2.'),
+  ).toBeVisible();
   expect(screen.getByText(`SHA-256 ${source.documentSha256}`)).toBeVisible();
   await user.type(screen.getByLabelText('Verify a quotation against this page'), 'synthetic page');
   await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));

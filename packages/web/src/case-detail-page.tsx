@@ -627,6 +627,13 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
               </h3>
               <p>Extraction {source.extractionVersion}</p>
               <p className="source-hash">SHA-256 {source.documentSha256}</p>
+              {source.geometry ? (
+                <p className="source-geometry">
+                  Page alignment regions: {source.geometry.items.length}.
+                </p>
+              ) : (
+                <p className="source-geometry">Page alignment geometry is unavailable.</p>
+              )}
               <button
                 className="button secondary-button"
                 type="button"

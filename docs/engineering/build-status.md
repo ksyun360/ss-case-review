@@ -1,6 +1,6 @@
 # Build status
 
-The October 19, 2026 source-geometry increment passes formatting, linting, type checking, 307 fast tests, 10 native PostgreSQL tests, production bundling, and a 100% full mutation score across 3,060 mutants. The current coverage report reaches 99.22% statements, 98.22% branches, 100% functions, and 99.78% lines.
+The October 19, 2026 source-geometry increment passes formatting, linting, type checking, 307 fast tests, 10 native PostgreSQL tests, production bundling, and a 100% full mutation score across 3,060 mutants. The source workspace now displays the persisted page-alignment region count beside selected text; original-PDF geometry overlays remain pending. The current coverage report reaches 99.22% statements, 98.22% branches, 100% functions, and 99.78% lines.
 
 The local application-development gate passed on October 18, 2026: formatting, code/style/document lint, type checking, tests, coverage, mutation testing, production bundling, Chromium workflows, automated accessibility scans, secret scanning, dependency auditing, and license inventory checks.
 
