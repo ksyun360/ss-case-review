@@ -12,9 +12,120 @@ import {
   listSyntheticTextSources,
   listSyntheticDocumentProcessing,
   uploadSyntheticOriginal,
+  submitSyntheticCorrectionSuggestion,
+  listSyntheticCorrectionSuggestions,
 } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
+
+test('submits and lists validated revision-scoped correction suggestions', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const suggestion = {
+    correctionId: '00000000-0000-4000-8000-000000000041',
+    caseId,
+    recordRevision: 1,
+    artifact: 'medical' as const,
+    entryKey: '2024-01-12|North Clinic|follow-up',
+    proposedText: 'The provider recorded an improved range of motion.',
+    rationale: 'The source page uses the phrase improved range of motion.',
+    status: 'pending' as const,
+  };
+  const fetch = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ suggestion }) })
+    .mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ suggestions: [suggestion] }),
+    });
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(
+    submitSyntheticCorrectionSuggestion(caseId, {
+      artifact: suggestion.artifact,
+      entryKey: suggestion.entryKey,
+      proposedText: suggestion.proposedText,
+      rationale: suggestion.rationale,
+    }),
+  ).resolves.toEqual(suggestion);
+  await expect(listSyntheticCorrectionSuggestions(caseId)).resolves.toEqual([suggestion]);
+  expect(fetch).toHaveBeenNthCalledWith(
+    1,
+    `/api/v1/cases/${caseId}/correction-suggestions`,
+    expect.objectContaining({
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-record-review-client': 'synthetic-workspace',
+      },
+      cache: 'no-store',
+      redirect: 'error',
+    }),
+  );
+  expect(fetch).toHaveBeenNthCalledWith(2, `/api/v1/cases/${caseId}/correction-suggestions`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+
+  const invalidSuggestionPayloads = [
+    null,
+    {},
+    { suggestion: { ...suggestion, correctionId: 'not-a-uuid' } },
+    { suggestion: { ...suggestion, caseId: '00000000-0000-4000-8000-000000000003' } },
+    { suggestion: { ...suggestion, recordRevision: 0 } },
+    { suggestion: { ...suggestion, artifact: 1 } },
+    { suggestion: { ...suggestion, artifact: 'unknown' } },
+    { suggestion: { ...suggestion, entryKey: 1 } },
+    { suggestion: { ...suggestion, entryKey: '' } },
+    { suggestion: { ...suggestion, entryKey: 'x'.repeat(257) } },
+    { suggestion: { ...suggestion, entryKey: '   ' } },
+    { suggestion: { ...suggestion, proposedText: 1 } },
+    { suggestion: { ...suggestion, proposedText: '' } },
+    { suggestion: { ...suggestion, proposedText: 'x'.repeat(4001) } },
+    { suggestion: { ...suggestion, proposedText: '   ' } },
+    { suggestion: { ...suggestion, rationale: 1 } },
+    { suggestion: { ...suggestion, rationale: '' } },
+    { suggestion: { ...suggestion, rationale: '   ' } },
+    { suggestion: { ...suggestion, rationale: 'x'.repeat(4001) } },
+    { suggestion: { ...suggestion, status: 1 } },
+    { suggestion: { ...suggestion, status: 'unknown' } },
+  ];
+  fetch.mockResolvedValueOnce({ ok: false, status: 503, json: async () => ({ suggestion }) });
+  await expect(submitSyntheticCorrectionSuggestion(caseId, suggestion)).rejects.toThrow(
+    'correction_suggestion_unavailable',
+  );
+  for (const payload of invalidSuggestionPayloads) {
+    fetch.mockResolvedValueOnce({ ok: true, status: 201, json: async () => payload });
+    await expect(submitSyntheticCorrectionSuggestion(caseId, suggestion)).rejects.toThrow(
+      'correction_suggestion_unavailable',
+    );
+  }
+  fetch.mockResolvedValueOnce({
+    ok: false,
+    status: 503,
+    json: async () => ({ suggestions: [suggestion] }),
+  });
+  await expect(listSyntheticCorrectionSuggestions(caseId)).rejects.toThrow(
+    'correction_suggestions_unavailable',
+  );
+  fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ suggestions: null }) });
+  await expect(listSyntheticCorrectionSuggestions(caseId)).rejects.toThrow(
+    'correction_suggestions_unavailable',
+  );
+  fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => null });
+  await expect(listSyntheticCorrectionSuggestions(caseId)).rejects.toThrow(
+    'correction_suggestions_unavailable',
+  );
+  fetch.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ suggestions: [suggestion, { ...suggestion, status: 'unknown' }] }),
+  });
+  await expect(listSyntheticCorrectionSuggestions(caseId)).rejects.toThrow(
+    'correction_suggestions_unavailable',
+  );
+});
 
 test('loads and validates one document processing status without trusting malformed responses', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';

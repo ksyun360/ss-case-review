@@ -90,6 +90,24 @@ export type SyntheticTextSpanCandidate = Readonly<{
 
 export type SyntheticTextSpan = SyntheticTextSpanCandidate & Readonly<{ caseId: string }>;
 
+export type SyntheticCorrectionSuggestion = Readonly<{
+  correctionId: string;
+  caseId: string;
+  recordRevision: number;
+  artifact: 'summary' | 'medical' | 'procedural' | 'five_step';
+  entryKey: string;
+  proposedText: string;
+  rationale: string;
+  status: 'pending' | 'accepted' | 'rejected';
+}>;
+
+export type NewSyntheticCorrectionSuggestion = Readonly<{
+  artifact: SyntheticCorrectionSuggestion['artifact'];
+  entryKey: string;
+  proposedText: string;
+  rationale: string;
+}>;
+
 const UUID4_PATTERN = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const PROCESSING_STATES = new Set(['queued', 'processing', 'published', 'failed']);
@@ -110,6 +128,8 @@ const CLAIM_UNVERIFIED_REASONS = new Set([
 ]);
 const CLAIM_SECTIONS = new Set(['summary', 'medical', 'procedural', 'five_step']);
 const CLAIM_SPEAKERS = new Set(['alj', 'plaintiff', 'commissioner', 'vocational_expert']);
+const CORRECTION_ARTIFACTS = new Set(['summary', 'medical', 'procedural', 'five_step']);
+const CORRECTION_STATUSES = new Set(['pending', 'accepted', 'rejected']);
 
 /* Stryker disable all */
 function isSyntheticTextSourceGeometry(value: unknown): value is SyntheticTextSourceGeometry {
@@ -285,6 +305,38 @@ function isSyntheticTextSpan(value: unknown, caseId: string): value is Synthetic
 }
 /* Stryker restore all */
 
+/* Stryker disable all */
+function isSyntheticCorrectionSuggestion(
+  value: unknown,
+  caseId: string,
+): value is SyntheticCorrectionSuggestion {
+  if (typeof value !== 'object' || value === null) return false;
+  const suggestion = value as SyntheticCorrectionSuggestion;
+  return (
+    UUID4_PATTERN.test(suggestion.correctionId) &&
+    suggestion.caseId === caseId &&
+    Number.isSafeInteger(suggestion.recordRevision) &&
+    suggestion.recordRevision >= 1 &&
+    typeof suggestion.artifact === 'string' &&
+    CORRECTION_ARTIFACTS.has(suggestion.artifact) &&
+    typeof suggestion.entryKey === 'string' &&
+    suggestion.entryKey.length >= 1 &&
+    suggestion.entryKey.length <= 256 &&
+    /\S/.test(suggestion.entryKey) &&
+    typeof suggestion.proposedText === 'string' &&
+    suggestion.proposedText.length >= 1 &&
+    suggestion.proposedText.length <= 4000 &&
+    /\S/.test(suggestion.proposedText) &&
+    typeof suggestion.rationale === 'string' &&
+    suggestion.rationale.length >= 1 &&
+    suggestion.rationale.length <= 4000 &&
+    /\S/.test(suggestion.rationale) &&
+    typeof suggestion.status === 'string' &&
+    CORRECTION_STATUSES.has(suggestion.status)
+  );
+}
+/* Stryker restore all */
+
 export async function listSyntheticTextSources(
   caseId: string,
 ): Promise<SyntheticTextSourceReference[]> {
@@ -366,6 +418,45 @@ export async function verifySyntheticTextSpan(
     throw new Error('source_span_unavailable');
   /* Stryker restore all */
   return span;
+}
+
+export async function submitSyntheticCorrectionSuggestion(
+  caseId: string,
+  suggestion: NewSyntheticCorrectionSuggestion,
+): Promise<SyntheticCorrectionSuggestion> {
+  const response = await fetch(`/api/v1/cases/${caseId}/correction-suggestions`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: JSON.stringify(suggestion),
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('correction_suggestion_unavailable');
+  const payload = (await response.json()) as { suggestion?: unknown } | null;
+  if (!isSyntheticCorrectionSuggestion(payload?.suggestion, caseId))
+    throw new Error('correction_suggestion_unavailable');
+  return payload.suggestion;
+}
+
+export async function listSyntheticCorrectionSuggestions(
+  caseId: string,
+): Promise<SyntheticCorrectionSuggestion[]> {
+  const response = await fetch(`/api/v1/cases/${caseId}/correction-suggestions`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('correction_suggestions_unavailable');
+  const payload = (await response.json()) as { suggestions?: unknown } | null;
+  if (
+    !Array.isArray(payload?.suggestions) ||
+    !payload.suggestions.every((item) => isSyntheticCorrectionSuggestion(item, caseId))
+  )
+    throw new Error('correction_suggestions_unavailable');
+  return payload.suggestions;
 }
 
 export async function getSyntheticUploadCapability(): Promise<boolean> {
