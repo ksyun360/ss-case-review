@@ -8,8 +8,12 @@ import {
   listSyntheticDocumentProcessing,
   listSyntheticOriginals,
   listSyntheticTextSources,
+  listSyntheticCorrectionSuggestions,
+  submitSyntheticCorrectionSuggestion,
   verifySyntheticTextSpan,
   type CaseSummary,
+  type NewSyntheticCorrectionSuggestion,
+  type SyntheticCorrectionSuggestion,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
   type SyntheticTextSource,
@@ -34,6 +38,12 @@ const CLAIM_SPEAKER_LABELS = {
   plaintiff: 'Plaintiff',
   commissioner: 'Commissioner',
   vocational_expert: 'Vocational expert',
+} as const;
+const CORRECTION_ARTIFACT_LABELS = {
+  summary: 'Summary',
+  medical: 'Medical chronology',
+  procedural: 'Procedural chronology',
+  five_step: 'Five-step review and RFC',
 } as const;
 
 function SyntheticClaims({
@@ -179,6 +189,146 @@ export function SyntheticProcessingStatus({
     </>
   );
 }
+
+/* Stryker disable all -- interaction tests cover the presentation state transitions. */
+export function SyntheticCorrectionDesk({ caseId }: { caseId: string }) {
+  const [suggestions, setSuggestions] = useState<SyntheticCorrectionSuggestion[] | 'unavailable'>();
+  const [artifact, setArtifact] = useState<NewSyntheticCorrectionSuggestion['artifact']>('summary');
+  const [entryKey, setEntryKey] = useState('');
+  const [proposedText, setProposedText] = useState('');
+  const [rationale, setRationale] = useState('');
+  const [submission, setSubmission] = useState<'idle' | 'submitting' | 'submitted' | 'error'>(
+    'idle',
+  );
+  const load = useCallback(() => {
+    setSuggestions(undefined);
+    void listSyntheticCorrectionSuggestions(caseId).then(setSuggestions, () =>
+      setSuggestions('unavailable'),
+    );
+  }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const submit = async () => {
+    const suggestion = {
+      artifact,
+      entryKey: entryKey.trim(),
+      proposedText: proposedText.trim(),
+      rationale: rationale.trim(),
+    } satisfies NewSyntheticCorrectionSuggestion;
+    if (!suggestion.entryKey || !suggestion.proposedText || !suggestion.rationale) return;
+    setSubmission('submitting');
+    try {
+      const saved = await submitSyntheticCorrectionSuggestion(caseId, suggestion);
+      setSuggestions((current) =>
+        current === 'unavailable' || current === undefined ? [saved] : [...current, saved],
+      );
+      setEntryKey('');
+      setProposedText('');
+      setRationale('');
+      setSubmission('submitted');
+    } catch {
+      setSubmission('error');
+    }
+  };
+
+  return (
+    <section className="panel correction-desk" aria-live="polite">
+      <h2>Correction suggestions</h2>
+      <p>
+        Suggestions preserve the extracted record and ask a reviewer to compare the proposed change
+        with the source record.
+      </p>
+      {suggestions === 'unavailable' ? (
+        <>
+          <p>Correction suggestions are unavailable.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry correction suggestions
+          </button>
+        </>
+      ) : suggestions === undefined ? (
+        <p role="status">Loading correction suggestions…</p>
+      ) : (
+        <>
+          {suggestions.length === 0 ? (
+            <p>No correction suggestions have been submitted.</p>
+          ) : (
+            <ul className="correction-suggestion-list">
+              {suggestions.map((suggestion) => (
+                <li key={suggestion.correctionId}>
+                  <strong>{CORRECTION_ARTIFACT_LABELS[suggestion.artifact]}</strong>{' '}
+                  <span>{suggestion.entryKey}</span>
+                  <p>{suggestion.proposedText}</p>
+                  <small>
+                    {suggestion.status} · {suggestion.rationale}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="correction-form">
+            <label htmlFor="correction-artifact">Correction artifact</label>
+            <select
+              id="correction-artifact"
+              value={artifact}
+              onChange={(event) =>
+                setArtifact(event.target.value as NewSyntheticCorrectionSuggestion['artifact'])
+              }
+            >
+              {Object.entries(CORRECTION_ARTIFACT_LABELS).map(([value, label]) => (
+                <option value={value} key={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <label htmlFor="correction-entry-key">Correction entry key</label>
+            <input
+              id="correction-entry-key"
+              value={entryKey}
+              onChange={(event) => setEntryKey(event.target.value)}
+            />
+            <label htmlFor="proposed-correction">Proposed correction</label>
+            <textarea
+              id="proposed-correction"
+              value={proposedText}
+              onChange={(event) => setProposedText(event.target.value)}
+              rows={3}
+            />
+            <label htmlFor="correction-rationale">Correction rationale</label>
+            <textarea
+              id="correction-rationale"
+              value={rationale}
+              onChange={(event) => setRationale(event.target.value)}
+              rows={3}
+            />
+            <button
+              className="button secondary-button"
+              type="button"
+              onClick={() => void submit()}
+              disabled={
+                submission === 'submitting' ||
+                !entryKey.trim() ||
+                !proposedText.trim() ||
+                !rationale.trim()
+              }
+            >
+              {submission === 'submitting'
+                ? 'Submitting correction suggestion…'
+                : 'Submit correction suggestion'}
+            </button>
+            {submission === 'submitted' ? (
+              <p role="status">Correction suggestion submitted for review.</p>
+            ) : submission === 'error' ? (
+              <p role="alert">Correction suggestion could not be submitted.</p>
+            ) : null}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+/* Stryker restore all */
 
 const ARTIFACT_SECTION_LABELS = {
   medical: 'Medical chronology',

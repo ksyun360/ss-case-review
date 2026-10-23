@@ -12,6 +12,7 @@ import {
   SyntheticArtifactSection,
   SyntheticReferenceDesk,
   SyntheticSourceWorkspace,
+  SyntheticCorrectionDesk,
   hasProcessingClaims,
   caseSectionSlug,
   sourceUnitIdFromHash,
@@ -26,11 +27,14 @@ import {
   listSyntheticOriginals,
   listSyntheticTextSources,
   verifySyntheticTextSpan,
+  listSyntheticCorrectionSuggestions,
+  submitSyntheticCorrectionSuggestion,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
   type SyntheticTextSource,
   type SyntheticTextSourceReference,
+  type SyntheticCorrectionSuggestion,
 } from '../src/case-client.ts';
 
 vi.mock('../src/case-client.ts', () => ({
@@ -44,6 +48,8 @@ vi.mock('../src/case-client.ts', () => ({
   listSyntheticCases: vi.fn(),
   createSyntheticCase: vi.fn(),
   verifySyntheticTextSpan: vi.fn(),
+  listSyntheticCorrectionSuggestions: vi.fn(),
+  submitSyntheticCorrectionSuggestion: vi.fn(),
 }));
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
@@ -54,6 +60,16 @@ beforeEach(() => {
     async (_caseId, _sourceUnitId, candidate) => ({
       caseId: _caseId,
       ...candidate,
+    }),
+  );
+  vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValue([]);
+  vi.mocked(submitSyntheticCorrectionSuggestion).mockImplementation(
+    async (_caseId, suggestion) => ({
+      correctionId: '00000000-0000-4000-8000-000000000041',
+      caseId: _caseId,
+      recordRevision: 1,
+      status: 'pending',
+      ...suggestion,
     }),
   );
 });
@@ -75,6 +91,49 @@ test('provides curated reference links without presenting them as case evidence'
     'href',
     'https://www.ssa.gov/oact/cola/sga.html',
   );
+});
+
+test('submits a correction suggestion and displays the pending revision-scoped item', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const existing: SyntheticCorrectionSuggestion = {
+    correctionId: '00000000-0000-4000-8000-000000000041',
+    caseId,
+    recordRevision: 1,
+    artifact: 'medical',
+    entryKey: '2020-08-03',
+    proposedText: 'Confirm the imaging date against the report header.',
+    rationale: 'The chronology date may not match the source header.',
+    status: 'pending',
+  };
+  vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValueOnce([existing]);
+  const user = userEvent.setup();
+  render(<SyntheticCorrectionDesk caseId={caseId} />);
+
+  expect(
+    await screen.findByText('Confirm the imaging date against the report header.'),
+  ).toBeVisible();
+  await user.selectOptions(
+    screen.getByRole('combobox', { name: 'Correction artifact' }),
+    'medical',
+  );
+  await user.type(screen.getByRole('textbox', { name: 'Correction entry key' }), '2020-08-04');
+  await user.type(
+    screen.getByRole('textbox', { name: 'Proposed correction' }),
+    'Use the signed report date.',
+  );
+  await user.type(
+    screen.getByRole('textbox', { name: 'Correction rationale' }),
+    'The source header controls the date.',
+  );
+  await user.click(screen.getByRole('button', { name: 'Submit correction suggestion' }));
+
+  expect(submitSyntheticCorrectionSuggestion).toHaveBeenCalledWith(caseId, {
+    artifact: 'medical',
+    entryKey: '2020-08-04',
+    proposedText: 'Use the signed report date.',
+    rationale: 'The source header controls the date.',
+  });
+  expect(await screen.findByText('Correction suggestion submitted for review.')).toBeVisible();
 });
 
 test('opens saved synthetic case metadata and refreshes after case navigation', async () => {

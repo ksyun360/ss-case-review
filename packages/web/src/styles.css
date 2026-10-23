@@ -974,6 +974,27 @@ a.primary-button:hover {
   font-size: 13px;
 }
 
+.correction-desk {
+  margin-top: 16px;
+}
+
+.correction-desk select,
+.correction-desk input,
+.correction-desk textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.correction-suggestion-list {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+}
+
+.correction-suggestion-list p {
+  margin: 6px 0;
+}
+
 .important-event td:first-child,
 .important-event td:nth-child(2) {
   font-weight: 700;
