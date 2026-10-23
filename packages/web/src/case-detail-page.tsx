@@ -949,6 +949,7 @@ export function CaseDetailPage() {
           section.slug === 'five-step-review' ? (
             <SyntheticArtifactSection caseId={record.caseId} section="five_step" />
           ) : null}
+          <SyntheticCorrectionDesk caseId={record.caseId} />
           <SyntheticReferenceDesk />
         </>
       ) : (

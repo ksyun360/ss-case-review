@@ -234,6 +234,21 @@ test('renders each production artifact route through its source-grounded section
   }
 });
 
+test('includes the correction desk on a saved case summary', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(getSyntheticCase).mockResolvedValue({
+    caseId,
+    label: 'Synthetic saved draft',
+    recordRevision: 1,
+  });
+  render(
+    <MemoryRouter initialEntries={[`/cases/${caseId}/summary`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('heading', { name: 'Correction suggestions' })).toBeVisible();
+});
+
 test('shows persisted source-grounded claims after processing publishes', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const documentVersionId = '00000000-0000-4000-8000-000000000021';
