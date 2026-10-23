@@ -694,6 +694,23 @@ test('opens only a case assigned to the configured development reviewer', async 
   expect(malformed.json()).toEqual({ code: 'invalid_request' });
 });
 
+test('returns the complete member case payload from the case detail route', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000041';
+  await createCase(database, { caseId, reviewerId, label: 'Detail route assertion' });
+
+  const response = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${caseId}`,
+    headers: requestHeaders,
+  });
+
+  expect(response.statusCode).toBe(200);
+  expect(response.headers['content-type']).toContain('application/json');
+  expect(response.json()).toEqual({
+    case: { caseId, label: 'Detail route assertion', recordRevision: 1 },
+  });
+});
+
 test('lists original metadata for a member case without exposing another case', async () => {
   const caseId = '00000000-0000-4000-8000-000000000031';
   const emptyCaseId = '00000000-0000-4000-8000-000000000032';
