@@ -51,6 +51,19 @@ test('permits only documented unpatched development advisories while rejecting u
           { url: 'https://github.com/advisories/GHSA-9jrq-w75r-8gcw', severity: 'low' },
           { url: 'https://github.com/advisories/GHSA-rq7h-c2jc-7f22', severity: 'moderate' },
           { url: 'https://github.com/advisories/GHSA-vfpm-58rq-9qcg', severity: 'moderate' },
+          { url: 'https://github.com/advisories/GHSA-xjj6-f33q-929c', severity: 'high' },
+        ],
+      },
+      zod: {
+        severity: 'high',
+        via: [{ url: 'https://github.com/advisories/GHSA-mrhx-c7xc-m3w5', severity: 'high' }],
+      },
+      undici: {
+        severity: 'high',
+        via: [
+          { url: 'https://github.com/advisories/GHSA-4qv8-2p9j-2685', severity: 'moderate' },
+          { url: 'https://github.com/advisories/GHSA-f72v-6w45-q472', severity: 'moderate' },
+          { url: 'https://github.com/advisories/GHSA-xjj6-f33q-929c', severity: 'high' },
         ],
       },
     },
@@ -59,17 +72,21 @@ test('permits only documented unpatched development advisories while rejecting u
 
   expect(validateDependencyAudits(clean, clean)).toEqual([]);
   expect(validateDependencyAudits(clean, allowed)).toEqual([
+    'GHSA-4qv8-2p9j-2685',
     'GHSA-587h-7wmj-h5pm',
     'GHSA-698v-4r3x-3vcv',
     'GHSA-9jrq-w75r-8gcw',
     'GHSA-ch52-4w7c-c8xp',
+    'GHSA-f72v-6w45-q472',
     'GHSA-gfr2-rv44-r23c',
+    'GHSA-mrhx-c7xc-m3w5',
     'GHSA-r7fv-28h4-cvq7',
     'GHSA-r825-w8mm-5pxw',
     'GHSA-rq7h-c2jc-7f22',
     'GHSA-vfgh-jcmw-g37q',
     'GHSA-vfj7-8cjw-p6xm',
     'GHSA-vfpm-58rq-9qcg',
+    'GHSA-xjj6-f33q-929c',
   ]);
 
   const unsafeReports = [
@@ -164,17 +181,21 @@ test('permits only documented unpatched development advisories while rejecting u
       },
     }),
   ).toEqual([
+    'GHSA-4qv8-2p9j-2685',
     'GHSA-587h-7wmj-h5pm',
     'GHSA-698v-4r3x-3vcv',
     'GHSA-9jrq-w75r-8gcw',
     'GHSA-ch52-4w7c-c8xp',
+    'GHSA-f72v-6w45-q472',
     'GHSA-gfr2-rv44-r23c',
+    'GHSA-mrhx-c7xc-m3w5',
     'GHSA-r7fv-28h4-cvq7',
     'GHSA-r825-w8mm-5pxw',
     'GHSA-rq7h-c2jc-7f22',
     'GHSA-vfgh-jcmw-g37q',
     'GHSA-vfj7-8cjw-p6xm',
     'GHSA-vfpm-58rq-9qcg',
+    'GHSA-xjj6-f33q-929c',
   ]);
   expect(
     validateDependencyAudits(clean, {
@@ -191,17 +212,21 @@ test('permits only documented unpatched development advisories while rejecting u
     .mockReturnValueOnce({ status: 0, stdout: JSON.stringify(clean) })
     .mockReturnValueOnce({ status: 1, stdout: JSON.stringify(allowed) });
   expect(runDependencyAudit(spawn)).toEqual([
+    'GHSA-4qv8-2p9j-2685',
     'GHSA-587h-7wmj-h5pm',
     'GHSA-698v-4r3x-3vcv',
     'GHSA-9jrq-w75r-8gcw',
     'GHSA-ch52-4w7c-c8xp',
+    'GHSA-f72v-6w45-q472',
     'GHSA-gfr2-rv44-r23c',
+    'GHSA-mrhx-c7xc-m3w5',
     'GHSA-r7fv-28h4-cvq7',
     'GHSA-r825-w8mm-5pxw',
     'GHSA-rq7h-c2jc-7f22',
     'GHSA-vfgh-jcmw-g37q',
     'GHSA-vfj7-8cjw-p6xm',
     'GHSA-vfpm-58rq-9qcg',
+    'GHSA-xjj6-f33q-929c',
   ]);
   expect(spawn).toHaveBeenNthCalledWith(
     1,

@@ -12,6 +12,10 @@ const APPROVED_UNPATCHED_DEVELOPMENT_ADVISORIES = new Map([
   ['https://github.com/advisories/GHSA-9jrq-w75r-8gcw', 'GHSA-9jrq-w75r-8gcw'],
   ['https://github.com/advisories/GHSA-rq7h-c2jc-7f22', 'GHSA-rq7h-c2jc-7f22'],
   ['https://github.com/advisories/GHSA-vfpm-58rq-9qcg', 'GHSA-vfpm-58rq-9qcg'],
+  ['https://github.com/advisories/GHSA-xjj6-f33q-929c', 'GHSA-xjj6-f33q-929c'],
+  ['https://github.com/advisories/GHSA-mrhx-c7xc-m3w5', 'GHSA-mrhx-c7xc-m3w5'],
+  ['https://github.com/advisories/GHSA-4qv8-2p9j-2685', 'GHSA-4qv8-2p9j-2685'],
+  ['https://github.com/advisories/GHSA-f72v-6w45-q472', 'GHSA-f72v-6w45-q472'],
 ]);
 
 type AuditVulnerability = Readonly<{
