@@ -5,6 +5,7 @@ import { createCase } from '../src/cases.ts';
 import {
   insertCorrectionSuggestionForReviewer,
   listCorrectionSuggestionsForReviewer,
+  updateCorrectionSuggestionStatusForReviewer,
 } from '../src/corrections.ts';
 
 let database: PGlite;
@@ -60,5 +61,39 @@ test('persists and lists a revision-scoped correction suggestion without changin
   ]);
   expect((await database.query('SELECT record_revision FROM cases')).rows).toEqual([
     { record_revision: 1 },
+  ]);
+});
+
+test('updates only a pending correction suggestion for the current case member', async () => {
+  const suggestion = {
+    correctionId: '00000000-0000-4000-8000-000000000042',
+    caseId,
+    artifact: 'procedural' as const,
+    entryKey: 'alj-decision',
+    proposedText: 'Use the date printed on the decision cover page.',
+    rationale: 'The extracted chronology date needs source confirmation.',
+  };
+  await insertCorrectionSuggestionForReviewer(database, reviewerId, suggestion);
+
+  expect(
+    await updateCorrectionSuggestionStatusForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      suggestion.correctionId,
+      'accepted',
+    ),
+  ).toMatchObject({ ...suggestion, recordRevision: 1, status: 'accepted' });
+  expect(
+    await updateCorrectionSuggestionStatusForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      suggestion.correctionId,
+      'rejected',
+    ),
+  ).toBeUndefined();
+  expect(await listCorrectionSuggestionsForReviewer(database, reviewerId, caseId)).toMatchObject([
+    { correctionId: suggestion.correctionId, status: 'accepted' },
   ]);
 });

@@ -70,3 +70,33 @@ export async function listCorrectionSuggestionsForReviewer(
   );
   return result.rows;
 }
+
+export async function updateCorrectionSuggestionStatusForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+  correctionId: string,
+  status: Exclude<CorrectionStatus, 'pending'>,
+): Promise<CorrectionSuggestion | undefined> {
+  const result = await client.query<CorrectionSuggestion>(
+    `UPDATE correction_suggestions
+    SET status = $4
+    FROM case_memberships
+    WHERE correction_suggestions.correction_id = $1
+      AND correction_suggestions.case_id = $2
+      AND correction_suggestions.reviewer_id = $3
+      AND correction_suggestions.status = 'pending'
+      AND case_memberships.case_id = correction_suggestions.case_id
+      AND case_memberships.reviewer_id = $3
+    RETURNING correction_suggestions.correction_id AS "correctionId",
+      correction_suggestions.case_id AS "caseId",
+      correction_suggestions.record_revision AS "recordRevision",
+      correction_suggestions.artifact,
+      correction_suggestions.entry_key AS "entryKey",
+      correction_suggestions.proposed_text AS "proposedText",
+      correction_suggestions.rationale,
+      correction_suggestions.status`,
+    [correctionId, caseId, reviewerId, status],
+  );
+  return result.rows[0];
+}
