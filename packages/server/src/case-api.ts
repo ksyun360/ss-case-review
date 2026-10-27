@@ -23,6 +23,7 @@ import {
 import {
   insertCorrectionSuggestionForReviewer,
   listCorrectionSuggestionsForReviewer,
+  updateCorrectionSuggestionStatusForReviewer,
 } from '@record-review/case-repository/corrections';
 import {
   locateSourceSpan,
@@ -133,6 +134,44 @@ export function createDevelopmentApi(
           request.params.caseId,
         ),
       };
+    },
+  );
+  api.patch<{
+    Params: { caseId: string; correctionId: string };
+    Body: { status: 'accepted' | 'rejected' };
+  }>(
+    '/api/v1/cases/:caseId/correction-suggestions/:correctionId',
+    /* Stryker disable next-line ObjectLiteral -- route options are declarative configuration. */
+    {
+      /* Stryker disable all -- Fastify schema is declarative validation covered by request tests. */
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            caseId: { type: 'string', format: 'uuid' },
+            correctionId: { type: 'string', format: 'uuid' },
+          },
+          required: ['caseId', 'correctionId'],
+        },
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['status'],
+          properties: { status: { type: 'string', enum: ['accepted', 'rejected'] } },
+        },
+      },
+      /* Stryker restore all */
+    },
+    async (request, reply) => {
+      const suggestion = await updateCorrectionSuggestionStatusForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+        request.params.correctionId,
+        request.body.status,
+      );
+      if (!suggestion) return reply.code(404).send({ code: 'correction_not_found' });
+      return { suggestion };
     },
   );
   api.get<{ Params: { caseId: string } }>(

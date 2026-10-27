@@ -711,6 +711,41 @@ test('returns the complete member case payload from the case detail route', asyn
   });
 });
 
+test('updates a pending correction suggestion through the guarded reviewer route', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000051';
+  await createCase(database, { caseId, reviewerId, label: 'Correction status route case' });
+  const created = await api.inject({
+    method: 'POST',
+    url: `/api/v1/cases/${caseId}/correction-suggestions`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: {
+      artifact: 'summary',
+      entryKey: 'summary-entry',
+      proposedText: 'Use the exact source wording.',
+      rationale: 'The generated wording needs reviewer confirmation.',
+    },
+  });
+  const correctionId = created.json().suggestion.correctionId as string;
+
+  const accepted = await api.inject({
+    method: 'PATCH',
+    url: `/api/v1/cases/${caseId}/correction-suggestions/${correctionId}`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: { status: 'accepted' },
+  });
+  expect(accepted.statusCode).toBe(200);
+  expect(accepted.json()).toMatchObject({ suggestion: { correctionId, status: 'accepted' } });
+
+  const repeated = await api.inject({
+    method: 'PATCH',
+    url: `/api/v1/cases/${caseId}/correction-suggestions/${correctionId}`,
+    headers: { ...requestHeaders, 'content-type': 'application/json' },
+    payload: { status: 'rejected' },
+  });
+  expect(repeated.statusCode).toBe(404);
+  expect(repeated.json()).toEqual({ code: 'correction_not_found' });
+});
+
 test('lists original metadata for a member case without exposing another case', async () => {
   const caseId = '00000000-0000-4000-8000-000000000031';
   const emptyCaseId = '00000000-0000-4000-8000-000000000032';
