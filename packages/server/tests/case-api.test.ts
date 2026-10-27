@@ -722,6 +722,35 @@ test('returns the complete member case payload from the case detail route', asyn
   });
 });
 
+test('lists revision history only for a member case', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000042';
+  const documentVersionId = '00000000-0000-4000-8000-000000000043';
+  await createCase(database, { caseId, reviewerId, label: 'Revision history route case' });
+  await database.query(
+    `INSERT INTO case_revision_events
+      (case_id, record_revision, event_type, document_version_id)
+    VALUES ($1, 2, 'original_registered', $2)`,
+    [caseId, documentVersionId],
+  );
+
+  const response = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${caseId}/revision-history`,
+    headers: requestHeaders,
+  });
+
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({
+    revisions: [
+      {
+        recordRevision: 2,
+        eventType: 'original_registered',
+        documentVersionId,
+      },
+    ],
+  });
+});
+
 test('updates a pending correction suggestion through the guarded reviewer route', async () => {
   const caseId = '00000000-0000-4000-8000-000000000051';
   await createCase(database, { caseId, reviewerId, label: 'Correction status route case' });

@@ -13,6 +13,7 @@ import {
   SyntheticReferenceDesk,
   SyntheticSourceWorkspace,
   SyntheticCorrectionDesk,
+  SyntheticRevisionHistory,
   hasProcessingClaims,
   caseSectionSlug,
   sourceUnitIdFromHash,
@@ -30,6 +31,7 @@ import {
   listSyntheticCorrectionSuggestions,
   submitSyntheticCorrectionSuggestion,
   updateSyntheticCorrectionSuggestionStatus,
+  getSyntheticRevisionHistory,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
@@ -52,6 +54,7 @@ vi.mock('../src/case-client.ts', () => ({
   listSyntheticCorrectionSuggestions: vi.fn(),
   submitSyntheticCorrectionSuggestion: vi.fn(),
   updateSyntheticCorrectionSuggestionStatus: vi.fn(),
+  getSyntheticRevisionHistory: vi.fn(),
 }));
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
@@ -65,6 +68,7 @@ beforeEach(() => {
     }),
   );
   vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValue([]);
+  vi.mocked(getSyntheticRevisionHistory).mockResolvedValue([]);
   vi.mocked(submitSyntheticCorrectionSuggestion).mockImplementation(
     async (_caseId, suggestion) => ({
       correctionId: '00000000-0000-4000-8000-000000000041',
@@ -402,6 +406,23 @@ test('summarizes processing readiness for every registered document', async () =
   expect(screen.getByText('Document 0022')).toBeVisible();
   expect(screen.getByText('Document 0023').closest('li')).toHaveTextContent('Reading');
   expect(screen.getByText('Document 0024').closest('li')).toHaveTextContent('Queued');
+});
+
+test('renders member-scoped revision history on the case summary', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(getSyntheticRevisionHistory).mockResolvedValueOnce([
+    {
+      recordRevision: 2,
+      eventType: 'original_registered',
+      documentVersionId: '00000000-0000-4000-8000-000000000043',
+    },
+  ]);
+
+  render(<SyntheticRevisionHistory caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Revision history' })).toBeVisible();
+  expect(screen.getByText('Revision 2')).toBeVisible();
+  expect(screen.getByText('Original document registered')).toBeVisible();
+  expect(screen.getByText(/000000000043/)).toBeVisible();
 });
 
 test('shows only explicitly classified source-grounded claims in an artifact section', async () => {

@@ -17,6 +17,31 @@ export type OriginalReference = Readonly<{
   byteLength: number;
 }>;
 
+export type CaseRevisionEvent = Readonly<{
+  caseId: string;
+  recordRevision: number;
+  eventType: 'original_registered';
+  documentVersionId: string;
+}>;
+
+export async function listCaseRevisionEventsForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+): Promise<CaseRevisionEvent[]> {
+  const result = await client.query<CaseRevisionEvent>(
+    `SELECT events.case_id AS "caseId",
+      events.record_revision AS "recordRevision", events.event_type AS "eventType",
+      events.document_version_id AS "documentVersionId"
+    FROM case_revision_events AS events
+    JOIN case_memberships AS members ON members.case_id = events.case_id
+    WHERE members.reviewer_id = $1 AND events.case_id = $2
+    ORDER BY events.record_revision`,
+    [reviewerId, caseId],
+  );
+  return result.rows;
+}
+
 export async function listOriginalReferencesForReviewer(
   client: SqlClient,
   reviewerId: string,

@@ -15,6 +15,7 @@ import {
   submitSyntheticCorrectionSuggestion,
   listSyntheticCorrectionSuggestions,
   updateSyntheticCorrectionSuggestionStatus,
+  getSyntheticRevisionHistory,
 } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -1001,6 +1002,61 @@ test('rejects a failed synthetic original transfer without reading the error bod
     ),
   ).rejects.toThrow('original_upload_unavailable');
   expect(json).not.toHaveBeenCalled();
+});
+
+test('loads and validates member-scoped revision history', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000001';
+  const documentVersionId = '00000000-0000-4000-8000-000000000043';
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          revisions: [{ recordRevision: 2, eventType: 'original_registered', documentVersionId }],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    ),
+  );
+
+  await expect(getSyntheticRevisionHistory(caseId)).resolves.toEqual([
+    { recordRevision: 2, eventType: 'original_registered', documentVersionId },
+  ]);
+  expect(fetch).toHaveBeenCalledWith(`/api/v1/cases/${caseId}/revision-history`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
+
+test('rejects unavailable and malformed revision history responses', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000001';
+  const validEvent = {
+    recordRevision: 2,
+    eventType: 'original_registered',
+    documentVersionId: '00000000-0000-4000-8000-000000000043',
+  };
+  const invalidPayloads = [
+    { revisions: null },
+    { revisions: {} },
+    { revisions: [{ ...validEvent, recordRevision: 1 }] },
+    { revisions: [{ ...validEvent, recordRevision: 1.5 }] },
+    { revisions: [{ ...validEvent, eventType: 'unknown' }] },
+    { revisions: [{ ...validEvent, documentVersionId: 'not-a-uuid' }] },
+    { revisions: [validEvent, { ...validEvent, eventType: 'unknown' }] },
+  ];
+  for (const payload of invalidPayloads) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 })),
+    );
+    await expect(getSyntheticRevisionHistory(caseId)).rejects.toThrow(
+      'revision_history_unavailable',
+    );
+    vi.unstubAllGlobals();
+  }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 })));
+  await expect(getSyntheticRevisionHistory(caseId)).rejects.toThrow('revision_history_unavailable');
 });
 
 test('rejects a synthetic transfer receipt that cannot identify the saved bytes', async () => {

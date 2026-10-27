@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
-import { createCase, type SqlClient } from '../src/cases.ts';
+import { createCase, listCaseRevisionEventsForReviewer, type SqlClient } from '../src/cases.ts';
 import {
   completeOriginalUpload,
   failOriginalUpload,
@@ -134,6 +134,34 @@ test('records the registered document in the case revision history', async () =>
       document_version_id: documentVersionId,
     },
   ]);
+});
+
+test('lists revision history only for the current case member', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Listed revision history case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    reviewerId,
+    documentVersionId,
+    maximumBytes: 16,
+  });
+  await completeOriginalUpload(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'd'.repeat(64),
+    byteLength: 3,
+  });
+
+  await expect(listCaseRevisionEventsForReviewer(database, reviewerId, caseId)).resolves.toEqual([
+    {
+      caseId,
+      recordRevision: 2,
+      eventType: 'original_registered',
+      documentVersionId,
+    },
+  ]);
+  await expect(
+    listCaseRevisionEventsForReviewer(database, '00000000-0000-4000-8000-000000000012', caseId),
+  ).resolves.toEqual([]);
 });
 
 test('passes the reviewer identity when completing an original upload', async () => {

@@ -5,6 +5,7 @@ import {
   findCaseForReviewer,
   findOriginalReference,
   listCasesForReviewer,
+  listCaseRevisionEventsForReviewer,
   listOriginalReferencesForReviewer,
   type SqlClient,
 } from '@record-review/case-repository/cases';
@@ -289,6 +290,33 @@ export function createDevelopmentApi(
       const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
       if (!found) return reply.code(404).send({ code: 'case_not_found' });
       return { case: found };
+    },
+  );
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId/revision-history',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      const revisions = await listCaseRevisionEventsForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+      );
+      return {
+        revisions: revisions.map(({ recordRevision, eventType, documentVersionId }) => ({
+          recordRevision,
+          eventType,
+          documentVersionId,
+        })),
+      };
     },
   );
   api.get<{ Params: { caseId: string } }>(

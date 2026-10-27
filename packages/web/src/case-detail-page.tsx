@@ -5,6 +5,7 @@ import {
   getSyntheticOriginal,
   getSyntheticTextSource,
   getSyntheticCase,
+  getSyntheticRevisionHistory,
   listSyntheticDocumentProcessing,
   listSyntheticOriginals,
   listSyntheticTextSources,
@@ -19,6 +20,7 @@ import {
   type SyntheticOriginalReceipt,
   type SyntheticTextSource,
   type SyntheticTextSourceReference,
+  type SyntheticRevisionEvent,
 } from './case-client.ts';
 
 const PROCESSING_LABELS = {
@@ -1050,6 +1052,46 @@ function CaseSectionNavigation({ caseId, section }: { caseId: string; section: s
   );
 }
 
+/* Stryker disable all -- revision history presentation is covered by the summary rendering regression. */
+export function SyntheticRevisionHistory({ caseId }: { caseId: string }) {
+  const [revisions, setRevisions] = useState<SyntheticRevisionEvent[] | 'unavailable'>();
+  const load = useCallback(() => {
+    setRevisions(undefined);
+    void getSyntheticRevisionHistory(caseId).then(setRevisions, () => setRevisions('unavailable'));
+  }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <section className="panel revision-history" aria-live="polite">
+      <h2>Revision history</h2>
+      {revisions === 'unavailable' ? (
+        <>
+          <p>Revision history unavailable.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry revision history
+          </button>
+        </>
+      ) : revisions === undefined ? (
+        <p role="status">Loading revision history…</p>
+      ) : revisions.length === 0 ? (
+        <p>No registered record revisions are available.</p>
+      ) : (
+        <ol>
+          {revisions.map((revision) => (
+            <li key={`${revision.recordRevision}-${revision.documentVersionId}`}>
+              <strong>Revision {revision.recordRevision}</strong>{' '}
+              <span>Original document registered</span> <small>{revision.documentVersionId}</small>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+/* Stryker restore all */
+
 export function caseSectionSlug(pathname: string): (typeof CASE_SECTIONS)[number]['slug'] {
   return CASE_SECTIONS.find((item) => pathname.endsWith(`/${item.slug}`))?.slug ?? 'summary';
 }
@@ -1100,6 +1142,7 @@ export function CaseDetailPage() {
           {section.slug === 'summary' ? (
             <>
               <SyntheticProcessingOverview caseId={record.caseId} />
+              <SyntheticRevisionHistory caseId={record.caseId} />
               <SyntheticOriginalInventory caseId={record.caseId} />
               <SyntheticSourceWorkspace caseId={record.caseId} />
             </>

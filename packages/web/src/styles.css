@@ -311,6 +311,19 @@ main:focus {
   background: var(--surface);
 }
 
+.revision-history ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 24px;
+}
+
+.revision-history li small {
+  display: block;
+  color: var(--secondary);
+  overflow-wrap: anywhere;
+}
+
 .artifact-source-quote {
   padding-left: 12px;
   border-left: 3px solid var(--accent);

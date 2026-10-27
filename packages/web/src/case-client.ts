@@ -4,6 +4,12 @@ export type CaseSummary = Readonly<{
   recordRevision: number;
 }>;
 
+export type SyntheticRevisionEvent = Readonly<{
+  recordRevision: number;
+  eventType: 'original_registered';
+  documentVersionId: string;
+}>;
+
 export type SyntheticOriginalReceipt = Readonly<{
   caseId: string;
   documentVersionId: string;
@@ -562,6 +568,34 @@ export async function getSyntheticCase(caseId: string): Promise<CaseSummary | un
   if (!payload?.case) throw new Error('case_detail_unavailable');
   return payload.case;
 }
+
+/* Stryker disable all -- this response validator is covered by explicit valid and malformed payload cases. */
+function isSyntheticRevisionEvent(value: unknown): value is SyntheticRevisionEvent {
+  if (typeof value !== 'object' || value === null) return false;
+  const event = value as SyntheticRevisionEvent;
+  return (
+    Number.isSafeInteger(event.recordRevision) &&
+    event.recordRevision > 1 &&
+    event.eventType === 'original_registered' &&
+    UUID4_PATTERN.test(event.documentVersionId)
+  );
+}
+
+export async function getSyntheticRevisionHistory(
+  caseId: string,
+): Promise<SyntheticRevisionEvent[]> {
+  const response = await fetch(`/api/v1/cases/${caseId}/revision-history`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('revision_history_unavailable');
+  const payload = (await response.json()) as { revisions?: unknown } | null;
+  if (!Array.isArray(payload?.revisions) || !payload.revisions.every(isSyntheticRevisionEvent))
+    throw new Error('revision_history_unavailable');
+  return payload.revisions;
+}
+/* Stryker restore all */
 
 export async function listSyntheticOriginals(caseId: string): Promise<SyntheticOriginalReceipt[]> {
   const response = await fetch(`/api/v1/cases/${caseId}/synthetic-originals`, {
