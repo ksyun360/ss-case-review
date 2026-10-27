@@ -6,6 +6,7 @@ import {
   failOriginalUpload,
   reserveOriginalUpload,
 } from '@record-review/case-repository/upload-attempts';
+import { registerOriginalDocumentMetadata } from '@record-review/case-repository/original-document-metadata';
 import { discardOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 
 export async function storeOriginalForReviewer(
@@ -15,6 +16,7 @@ export async function storeOriginalForReviewer(
   root: string,
   chunks: AsyncIterable<Uint8Array>,
   maximumBytes: number,
+  metadata?: Readonly<{ fileName: string; mediaType: string }>,
 ): Promise<OriginalReference | undefined> {
   const documentVersionId = randomUUID();
   const reserved = await reserveOriginalUpload(database, {
@@ -39,6 +41,14 @@ export async function storeOriginalForReviewer(
   let registered: OriginalReference | undefined;
   try {
     registered = await completeOriginalUpload(database, reviewerId, reference);
+    if (registered && metadata) {
+      const savedMetadata = await registerOriginalDocumentMetadata(database, reviewerId, {
+        ...metadata,
+        caseId,
+        documentVersionId,
+      });
+      if (!savedMetadata) throw new Error('document_metadata_registration_failed');
+    }
   } catch (error) {
     await discardOriginal(root, reference);
     await failOriginalUpload(database, reviewerId, caseId, documentVersionId);
@@ -60,6 +70,7 @@ type QueuedOriginalInput = Readonly<{
   maximumBytes: number;
   maximumPages: number;
   extractionVersion: string;
+  metadata?: Readonly<{ fileName: string; mediaType: string }>;
   reserveProcessing?: typeof reserveDocumentProcessing;
 }>;
 
@@ -73,6 +84,7 @@ export async function storeOriginalAndQueueForReviewer(
     input.root,
     input.chunks,
     input.maximumBytes,
+    input.metadata,
   );
   if (!original) return undefined;
   const processing = await (input.reserveProcessing ?? reserveDocumentProcessing)(input.database, {

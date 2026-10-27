@@ -5,8 +5,9 @@ import { join } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { createCase, findOriginalReference } from '@record-review/case-repository/cases';
 import { findDocumentProcessingForReviewer } from '@record-review/case-repository/document-processing-attempts';
+import { findOriginalDocumentMetadata } from '@record-review/case-repository/original-document-metadata';
 import { readOriginal } from '@record-review/record-storage/originals';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import {
   storeOriginalAndQueueForReviewer,
   storeOriginalForReviewer,
@@ -17,6 +18,7 @@ async function migrateForTest(database: PGlite) {
     '202609230001_initial_case_metadata.sql',
     '202609230002_original_upload_attempts.sql',
     '202610270001_case_revision_events.sql',
+    '202611010001_original_document_metadata.sql',
   ]) {
     const sql = await readFile(
       new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
@@ -57,6 +59,59 @@ test('stores a synthetic original under a server-generated version and member-sc
       await findOriginalReference(database, reviewerId, caseId, reference.documentVersionId),
     ).toEqual(reference);
     expect(await readOriginal(root, caseId, reference)).toEqual(Buffer.from('abc'));
+  } finally {
+    await database.close();
+    await rm(root, { recursive: true, force: true });
+  }
+}, 15_000);
+
+test('persists supplied filename and media metadata with the registered original', async () => {
+  const database = await PGlite.create();
+  const root = await mkdtemp(join(tmpdir(), 'record-review-ingestion-metadata-test-'));
+  const caseId = '00000000-0000-0000-0000-000000000004';
+  const reviewerId = '00000000-0000-0000-0000-000000000014';
+  try {
+    await migrateForTest(database);
+    await createCase(database, { caseId, label: 'Metadata case', reviewerId });
+    async function* chunks() {
+      yield Buffer.from('abc');
+    }
+    const reference = await storeOriginalForReviewer(
+      database,
+      reviewerId,
+      caseId,
+      root,
+      chunks(),
+      3,
+      { fileName: '7-brief.pdf', mediaType: 'application/pdf' },
+    );
+    if (!reference) throw new Error('Expected a registered original');
+    await expect(
+      findOriginalDocumentMetadata(database, reviewerId, caseId, reference.documentVersionId),
+    ).resolves.toEqual({
+      caseId,
+      documentVersionId: reference.documentVersionId,
+      fileName: '7-brief.pdf',
+      mediaType: 'application/pdf',
+    });
+
+    const originalQuery = database.query.bind(database);
+    const query = vi.spyOn(database, 'query');
+    query.mockImplementation(async (statement, parameters) => {
+      if (statement.includes('INSERT INTO original_document_metadata'))
+        return { rows: [], fields: [] } as unknown as Awaited<ReturnType<typeof database.query>>;
+      return originalQuery(statement, parameters);
+    });
+    async function* failedMetadataChunks() {
+      yield Buffer.from('def');
+    }
+    await expect(
+      storeOriginalForReviewer(database, reviewerId, caseId, root, failedMetadataChunks(), 3, {
+        fileName: '8-brief.pdf',
+        mediaType: 'application/pdf',
+      }),
+    ).rejects.toThrow('document_metadata_registration_failed');
+    query.mockRestore();
   } finally {
     await database.close();
     await rm(root, { recursive: true, force: true });
