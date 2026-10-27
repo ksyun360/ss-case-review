@@ -190,3 +190,56 @@ test('rejects an array containing both a valid and malformed claim', async () =>
     generateValidatedClaims(generate, 'Summarize the RFC.', 'case-a', [source]),
   ).resolves.toEqual({ status: 'invalid_output' });
 });
+
+test('rejects generated claims with duplicate identifiers', async () => {
+  const claim = {
+    claimId: 'duplicate-claim',
+    text: 'A grounded claim.',
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 13,
+      end: 60,
+      quote: 'can sit for six hours in an eight-hour workday.',
+    },
+  };
+  const generate = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([claim, { ...claim, text: 'A second grounded claim.' }]),
+  });
+
+  await expect(
+    generateValidatedClaims(generate, 'Summarize the RFC.', 'case-a', [source]),
+  ).resolves.toEqual({ status: 'invalid_output' });
+});
+
+test('retains multiple generated claims when identifiers are distinct', async () => {
+  const claim = {
+    claimId: 'first-claim',
+    text: 'A grounded claim.',
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 13,
+      end: 60,
+      quote: 'can sit for six hours in an eight-hour workday.',
+    },
+  };
+  const generate = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([claim, { ...claim, claimId: 'second-claim' }]),
+  });
+
+  await expect(
+    generateValidatedClaims(generate, 'Summarize the RFC.', 'case-a', [source]),
+  ).resolves.toMatchObject({
+    status: 'validated',
+    claims: [{ claimId: 'first-claim' }, { claimId: 'second-claim' }],
+  });
+});

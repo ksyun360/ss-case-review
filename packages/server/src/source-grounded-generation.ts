@@ -84,6 +84,8 @@ export async function generateValidatedClaims(
   /* Stryker restore all */
   if (!Array.isArray(parsed) || !parsed.every(isGeneratedClaim))
     return { status: 'invalid_output' };
+  const claimIds = parsed.map((claim) => claim.claimId);
+  if (new Set(claimIds).size !== claimIds.length) return { status: 'invalid_output' };
 
   return {
     status: 'validated',
