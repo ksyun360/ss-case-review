@@ -13,6 +13,7 @@ import {
   findTextSourceForReviewer,
   insertTextSourceForReviewer,
 } from '@record-review/case-repository/source-units';
+import { reserveOriginalUpload } from '@record-review/case-repository/upload-attempts';
 import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
@@ -746,6 +747,35 @@ test('lists revision history only for a member case', async () => {
         recordRevision: 2,
         eventType: 'original_registered',
         documentVersionId,
+      },
+    ],
+  });
+});
+
+test('lists upload attempts only for a member case', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000044';
+  const documentVersionId = '00000000-0000-4000-8000-000000000045';
+  await createCase(database, { caseId, reviewerId, label: 'Upload attempt route case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    documentVersionId,
+    reviewerId,
+    maximumBytes: 16,
+  });
+
+  const response = await api.inject({
+    method: 'GET',
+    url: `/api/v1/cases/${caseId}/upload-attempts`,
+    headers: requestHeaders,
+  });
+
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({
+    attempts: [
+      {
+        documentVersionId,
+        state: 'receiving',
+        maximumBytes: 16,
       },
     ],
   });

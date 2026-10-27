@@ -26,6 +26,7 @@ import {
   listCorrectionSuggestionsForReviewer,
   updateCorrectionSuggestionStatusForReviewer,
 } from '@record-review/case-repository/corrections';
+import { listOriginalUploadsForReviewer } from '@record-review/case-repository/upload-attempts';
 import {
   locateSourceSpan,
   type SourceSpanCandidate,
@@ -315,6 +316,33 @@ export function createDevelopmentApi(
           recordRevision,
           eventType,
           documentVersionId,
+        })),
+      };
+    },
+  );
+  api.get<{ Params: { caseId: string } }>(
+    '/api/v1/cases/:caseId/upload-attempts',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: { caseId: { type: 'string', format: 'uuid' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
+      if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      const attempts = await listOriginalUploadsForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+      );
+      return {
+        attempts: attempts.map(({ documentVersionId, maximumBytes, state }) => ({
+          documentVersionId,
+          maximumBytes,
+          state,
         })),
       };
     },
