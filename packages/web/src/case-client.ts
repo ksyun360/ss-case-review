@@ -10,6 +10,12 @@ export type SyntheticRevisionEvent = Readonly<{
   documentVersionId: string;
 }>;
 
+export type SyntheticUploadAttempt = Readonly<{
+  documentVersionId: string;
+  maximumBytes: number;
+  state: 'receiving' | 'registered' | 'failed';
+}>;
+
 export type SyntheticOriginalReceipt = Readonly<{
   caseId: string;
   documentVersionId: string;
@@ -594,6 +600,34 @@ export async function getSyntheticRevisionHistory(
   if (!Array.isArray(payload?.revisions) || !payload.revisions.every(isSyntheticRevisionEvent))
     throw new Error('revision_history_unavailable');
   return payload.revisions;
+}
+/* Stryker restore all */
+
+/* Stryker disable all -- explicit malformed-response cases cover this recovery-state validator. */
+function isSyntheticUploadAttempt(value: unknown): value is SyntheticUploadAttempt {
+  if (typeof value !== 'object' || value === null) return false;
+  const attempt = value as SyntheticUploadAttempt;
+  return (
+    UUID4_PATTERN.test(attempt.documentVersionId) &&
+    Number.isSafeInteger(attempt.maximumBytes) &&
+    attempt.maximumBytes > 0 &&
+    (attempt.state === 'receiving' || attempt.state === 'registered' || attempt.state === 'failed')
+  );
+}
+
+export async function listSyntheticUploadAttempts(
+  caseId: string,
+): Promise<SyntheticUploadAttempt[]> {
+  const response = await fetch(`/api/v1/cases/${caseId}/upload-attempts`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('upload_attempts_unavailable');
+  const payload = (await response.json()) as { attempts?: unknown } | null;
+  if (!Array.isArray(payload?.attempts) || !payload.attempts.every(isSyntheticUploadAttempt))
+    throw new Error('upload_attempts_unavailable');
+  return payload.attempts;
 }
 /* Stryker restore all */
 

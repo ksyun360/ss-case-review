@@ -16,6 +16,7 @@ import {
   listSyntheticCorrectionSuggestions,
   updateSyntheticCorrectionSuggestionStatus,
   getSyntheticRevisionHistory,
+  listSyntheticUploadAttempts,
 } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -1057,6 +1058,55 @@ test('rejects unavailable and malformed revision history responses', async () =>
   }
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 })));
   await expect(getSyntheticRevisionHistory(caseId)).rejects.toThrow('revision_history_unavailable');
+});
+
+test('lists validated upload attempts for a case', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const attempt = {
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    maximumBytes: 512,
+    state: 'receiving' as const,
+  };
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ attempts: [attempt] }),
+  });
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(listSyntheticUploadAttempts(caseId)).resolves.toEqual([attempt]);
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(`/api/v1/cases/${caseId}/upload-attempts`, {
+    headers: { 'x-record-review-client': 'synthetic-workspace' },
+    cache: 'no-store',
+    redirect: 'error',
+  });
+});
+
+test('rejects unavailable and malformed upload-attempt responses', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const validAttempt = {
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    maximumBytes: 512,
+    state: 'receiving',
+  };
+  const invalidPayloads = [
+    { attempts: null },
+    { attempts: {} },
+    { attempts: [{ ...validAttempt, documentVersionId: 'not-a-uuid' }] },
+    { attempts: [{ ...validAttempt, maximumBytes: 0 }] },
+    { attempts: [{ ...validAttempt, maximumBytes: 1.5 }] },
+    { attempts: [{ ...validAttempt, state: 'unknown' }] },
+    { attempts: [validAttempt, { ...validAttempt, state: 'unknown' }] },
+  ];
+  for (const payload of invalidPayloads) {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(payload))));
+    await expect(listSyntheticUploadAttempts(caseId)).rejects.toThrow(
+      'upload_attempts_unavailable',
+    );
+    vi.unstubAllGlobals();
+  }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('unavailable', { status: 503 })));
+  await expect(listSyntheticUploadAttempts(caseId)).rejects.toThrow('upload_attempts_unavailable');
 });
 
 test('rejects a synthetic transfer receipt that cannot identify the saved bytes', async () => {
