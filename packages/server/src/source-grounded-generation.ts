@@ -84,7 +84,7 @@ export async function generateValidatedClaims(
   sources: readonly SourceUnit[],
 ): Promise<ValidatedClaimsResult> {
   const result = await generate({
-    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. Use only the supplied case record; do not invent claims or citations.`,
+    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. For medical or procedural entries, optionally include chronology with a source-supported date and optional provider, reason, prescription, or name. Use only the supplied case record; do not invent claims, chronology values, or citations.`,
     maxOutputTokens: 2_048,
   });
   if (result.status === 'refused') return result;

@@ -20,6 +20,7 @@ test('parses Gemini claims and validates every citation against authorized sourc
     maxOutputTokens: number;
   }) => {
     expect(prompt).toContain('Return only a JSON array of claims');
+    expect(prompt).toContain('chronology');
     expect(maxOutputTokens).toBe(2_048);
     return {
       status: 'generated' as const,
