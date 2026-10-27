@@ -1,6 +1,6 @@
 # Build status
 
-The October 26, 2026 correction-review increment passes formatting, linting, type checking, 319 fast tests, 10 native PostgreSQL tests, production bundling, and a 100% full mutation score across 3,488 mutants. The repository, guarded API, browser client, and case-page desk now store, list, validate, submit, accept, and reject revision-scoped correction suggestions without changing extracted evidence. The current coverage report reaches 98.93% statements, 97.81% branches, 99.29% functions, and 99.51% lines.
+The October 26, 2026 source-geometry increment passes formatting, linting, type checking, 319 fast tests, 10 native PostgreSQL tests, production bundling, and a 100% full mutation score across 3,510 mutants. The repository, guarded API, browser client, and case-page desk now store, list, validate, submit, accept, and reject revision-scoped correction suggestions without changing extracted evidence; the source workspace also renders persisted PDF alignment regions. The current coverage report reaches 98.94% statements, 97.81% branches, 99.3% functions, and 99.51% lines.
 
 The local application-development gate passed on October 18, 2026: formatting, code/style/document lint, type checking, tests, coverage, mutation testing, production bundling, Chromium workflows, automated accessibility scans, secret scanning, dependency auditing, and license inventory checks.
 
