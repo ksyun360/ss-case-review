@@ -75,6 +75,27 @@ test('reserves a recoverable original attempt for a case member before file rece
   ]);
 });
 
+test('advances the case record revision when an original upload is registered', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Revisioned upload case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    reviewerId,
+    documentVersionId,
+    maximumBytes: 16,
+  });
+
+  await completeOriginalUpload(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'b'.repeat(64),
+    byteLength: 3,
+  });
+
+  expect((await database.query('SELECT record_revision FROM cases')).rows).toEqual([
+    { record_revision: 2 },
+  ]);
+});
+
 test('passes the reviewer identity when completing an original upload', async () => {
   const reference = {
     caseId,
