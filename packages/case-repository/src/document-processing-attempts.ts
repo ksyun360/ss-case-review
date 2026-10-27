@@ -164,6 +164,32 @@ export async function failDocumentProcessing(
   return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
 }
 
+export async function retryDocumentProcessing(
+  client: SqlClient,
+  reviewerId: string,
+  input: ProcessingIdentity,
+): Promise<DocumentProcessingStatus | undefined> {
+  const result = await client.query<ProcessingRow>(
+    `UPDATE document_processing_attempts AS attempts
+    SET state = 'queued', failure_code = NULL, claims_json = NULL,
+      updated_at = now()
+    FROM case_memberships AS members, original_references AS originals
+    WHERE attempts.case_id = $2 AND attempts.document_version_id = $3
+      AND attempts.extraction_version = $4 AND attempts.state = 'failed'
+      AND members.case_id = attempts.case_id AND members.reviewer_id = $1
+      AND attempts.reviewer_id = members.reviewer_id
+      AND originals.case_id = attempts.case_id
+      AND originals.document_version_id = attempts.document_version_id
+    RETURNING attempts.case_id AS "caseId", attempts.document_version_id AS "documentVersionId",
+      attempts.reviewer_id AS "reviewerId", attempts.extraction_version AS "extractionVersion",
+      attempts.maximum_bytes::float8 AS "maximumBytes", attempts.maximum_pages AS "maximumPages",
+      attempts.state, attempts.attempt_count AS "attemptCount", attempts.failure_code AS "failureCode",
+      attempts.claims_json AS claims`,
+    [reviewerId, input.caseId, input.documentVersionId, input.extractionVersion],
+  );
+  return result.rows[0] ? withoutEmptyClaims(result.rows[0]) : undefined;
+}
+
 export async function findDocumentProcessingForReviewer(
   client: SqlClient,
   reviewerId: string,

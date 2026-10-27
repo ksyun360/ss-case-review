@@ -8,6 +8,7 @@ import {
   failDocumentProcessing,
   findDocumentProcessingForReviewer,
   listDocumentProcessingForReviewer,
+  retryDocumentProcessing,
   reserveDocumentProcessing,
 } from '../src/document-processing-attempts.ts';
 
@@ -294,6 +295,62 @@ test('records a fixed failure only from the worker that holds the current lease'
       now: new Date('2026-10-01T13:05:01Z'),
       leaseExpiresAt: new Date('2026-10-01T13:10:01Z'),
       leaseToken: '00000000-0000-4000-8000-000000000243',
+    }),
+  ).resolves.toBeUndefined();
+});
+
+test('requeues a failed document for the member without resetting its attempt history', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Synthetic processing retry case' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'c'.repeat(64),
+    byteLength: 512,
+  });
+  await reserveDocumentProcessing(database, {
+    caseId,
+    documentVersionId,
+    reviewerId,
+    extractionVersion,
+    maximumBytes: 1024,
+    maximumPages: 400,
+  });
+  const leaseToken = '00000000-0000-4000-8000-000000000251';
+  await claimDocumentProcessing(database, {
+    now: new Date('2026-10-01T14:00:00Z'),
+    leaseExpiresAt: new Date('2026-10-01T14:05:00Z'),
+    leaseToken,
+  });
+  await failDocumentProcessing(database, {
+    caseId,
+    documentVersionId,
+    extractionVersion,
+    leaseToken,
+    failureCode: 'extraction_failed',
+  });
+
+  await expect(
+    retryDocumentProcessing(database, reviewerId, {
+      caseId,
+      documentVersionId,
+      extractionVersion,
+    }),
+  ).resolves.toMatchObject({
+    caseId,
+    documentVersionId,
+    reviewerId,
+    extractionVersion,
+    maximumBytes: 1024,
+    maximumPages: 400,
+    state: 'queued',
+    attemptCount: 1,
+    failureCode: null,
+  });
+  await expect(
+    retryDocumentProcessing(database, otherReviewerId, {
+      caseId,
+      documentVersionId,
+      extractionVersion,
     }),
   ).resolves.toBeUndefined();
 });
