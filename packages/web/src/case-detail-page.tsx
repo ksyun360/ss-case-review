@@ -491,12 +491,17 @@ export function SyntheticArtifactSection({
                     {claim.text}
                   </p>
                   {claim.status === 'verified' ? (
-                    <a
-                      className="source-link"
-                      href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
-                    >
-                      Open cited source
-                    </a>
+                    <>
+                      <p className="artifact-source-quote">
+                        <span>Record quotation:</span> <q>{claim.source.quote}</q>
+                      </p>
+                      <a
+                        className="source-link"
+                        href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
+                      >
+                        Open cited source
+                      </a>
+                    </>
                   ) : (
                     <small>{claim.message}</small>
                   )}

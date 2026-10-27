@@ -473,6 +473,8 @@ test('shows only explicitly classified source-grounded claims in an artifact sec
   expect(await screen.findByRole('heading', { name: 'Medical chronology' })).toBeVisible();
   expect(screen.getByText(/The MRI shows multilevel degenerative changes\./)).toBeVisible();
   expect(screen.getByText(/ALJ:/)).toBeVisible();
+  expect(screen.getByText('Record quotation:')).toBeVisible();
+  expect(screen.getByText('The', { selector: 'q' })).toBeVisible();
   expect(screen.queryByText('This claim has no artifact section.')).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
     'href',
