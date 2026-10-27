@@ -146,6 +146,9 @@ test('rejects each malformed claim field before source validation', async () => 
     { ...valid, speaker: 'unknown' },
     { ...valid, speaker: 1 },
     { ...valid, speaker: {} },
+    { ...valid, chronology: null },
+    { ...valid, chronology: { date: '' } },
+    { ...valid, chronology: { date: '2024-03-12', provider: 1 } },
     { ...valid, source: { ...valid.source, recordRevision: 1.5 } },
     { ...valid, source: { ...valid.source, documentVersionId: 1 } },
     { ...valid, source: { ...valid.source, documentSha256: 1 } },
@@ -242,4 +245,65 @@ test('retains multiple generated claims when identifiers are distinct', async ()
     status: 'validated',
     claims: [{ claimId: 'first-claim' }, { claimId: 'second-claim' }],
   });
+});
+
+test('validates every chronology field before accepting a generated claim', async () => {
+  const valid = {
+    claimId: 'chronology-claim',
+    text: 'A grounded chronology claim.',
+    chronology: {
+      date: '2024-03-12',
+      provider: 'Dr. Rivera',
+      reason: 'Follow-up evaluation',
+      prescription: 'Continue physical therapy',
+      name: 'ALJ hearing',
+    },
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 13,
+      end: 60,
+      quote: 'can sit for six hours in an eight-hour workday.',
+    },
+  };
+  const invalidChronologies: unknown[] = [
+    null,
+    'chronology',
+    1,
+    {},
+    { date: 1 },
+    { date: ' ' },
+    { date: '2024-03-12', provider: 1 },
+    { date: '2024-03-12', reason: 1 },
+    { date: '2024-03-12', prescription: 1 },
+    { date: '2024-03-12', name: 1 },
+  ];
+  for (const chronology of invalidChronologies) {
+    const generate = async () => ({
+      status: 'generated' as const,
+      text: JSON.stringify([{ ...valid, chronology }]),
+    });
+    await expect(
+      generateValidatedClaims(generate, 'Summarize the record.', 'case-a', [source]),
+    ).resolves.toEqual({ status: 'invalid_output' });
+  }
+
+  const generate = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([valid]),
+  });
+  await expect(
+    generateValidatedClaims(generate, 'Summarize the record.', 'case-a', [source]),
+  ).resolves.toMatchObject({ status: 'validated' });
+
+  const minimal = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([{ ...valid, chronology: { date: '2024-03-12' } }]),
+  });
+  await expect(
+    generateValidatedClaims(minimal, 'Summarize the record.', 'case-a', [source]),
+  ).resolves.toMatchObject({ status: 'validated' });
 });

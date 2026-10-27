@@ -1,6 +1,7 @@
 import {
   validateGeneratedClaim,
   type GeneratedClaim,
+  type GeneratedClaimChronology,
   type GeneratedClaimSection,
   type GeneratedClaimSpeaker,
   type GeneratedClaimValidation,
@@ -42,6 +43,8 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
   /* Stryker disable next-line ConditionalExpression */
   if (typeof source !== 'object' || source === null) return false;
   const candidate = source as Record<string, unknown>;
+  const chronology = claim.chronology;
+  const hasValidChronology = chronology === undefined || isGeneratedClaimChronology(chronology);
   return (
     typeof claim.claimId === 'string' &&
     claim.claimId.length > 0 &&
@@ -51,6 +54,7 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
       GENERATED_CLAIM_SECTIONS.has(claim.section as GeneratedClaimSection)) &&
     (claim.speaker === undefined ||
       GENERATED_CLAIM_SPEAKERS.has(claim.speaker as GeneratedClaimSpeaker)) &&
+    hasValidChronology &&
     Number.isSafeInteger(candidate.recordRevision) &&
     typeof candidate.documentVersionId === 'string' &&
     typeof candidate.documentSha256 === 'string' &&
@@ -59,6 +63,17 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
     Number.isSafeInteger(candidate.start) &&
     Number.isSafeInteger(candidate.end) &&
     typeof candidate.quote === 'string'
+  );
+}
+
+function isGeneratedClaimChronology(value: unknown): value is GeneratedClaimChronology {
+  if (value === null) return false;
+  /* Stryker disable next-line ConditionalExpression -- JSON primitives cannot carry chronology properties. */
+  if (typeof value !== 'object') return false;
+  const chronology = value as Record<string, unknown>;
+  if (typeof chronology.date !== 'string' || chronology.date.trim().length === 0) return false;
+  return ['provider', 'reason', 'prescription', 'name'].every(
+    (key) => chronology[key] === undefined || typeof chronology[key] === 'string',
   );
 }
 

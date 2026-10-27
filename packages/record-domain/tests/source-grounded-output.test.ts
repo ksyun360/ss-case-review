@@ -104,6 +104,7 @@ test('preserves approved artifact context on verified and unverified claims', ()
     text: 'The Commissioner disputes the limitation.',
     section: 'summary',
     speaker: 'commissioner',
+    chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
     source: {
       recordRevision: 1,
       documentVersionId: 'document-version-a',
@@ -119,5 +120,40 @@ test('preserves approved artifact context on verified and unverified claims', ()
     status: 'unverified',
     section: 'summary',
     speaker: 'commissioner',
+    chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
+  });
+});
+
+test('preserves validated chronology metadata on a grounded claim', () => {
+  const result = validateGeneratedClaim('case-a', [source], {
+    claimId: 'medical-chronology-1',
+    text: 'The claimant attended a follow-up visit.',
+    section: 'medical',
+    chronology: {
+      date: '2024-03-12',
+      provider: 'Dr. Rivera',
+      reason: 'Follow-up evaluation',
+      prescription: 'Continue physical therapy',
+    },
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 0,
+      end: 10,
+      quote: source.rawText.slice(0, 10),
+    },
+  });
+
+  expect(result).toMatchObject({
+    status: 'verified',
+    chronology: {
+      date: '2024-03-12',
+      provider: 'Dr. Rivera',
+      reason: 'Follow-up evaluation',
+      prescription: 'Continue physical therapy',
+    },
   });
 });

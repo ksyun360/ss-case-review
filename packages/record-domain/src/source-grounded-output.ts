@@ -2,6 +2,13 @@ import { locateSourceSpan, type SourceSpanCandidate, type SourceUnit } from './s
 
 export type GeneratedClaimSection = 'summary' | 'medical' | 'procedural' | 'five_step';
 export type GeneratedClaimSpeaker = 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+export type GeneratedClaimChronology = Readonly<{
+  date: string;
+  provider?: string;
+  reason?: string;
+  prescription?: string;
+  name?: string;
+}>;
 
 export type GeneratedClaim = Readonly<{
   claimId: string;
@@ -9,6 +16,7 @@ export type GeneratedClaim = Readonly<{
   source: SourceSpanCandidate;
   section?: GeneratedClaimSection;
   speaker?: GeneratedClaimSpeaker;
+  chronology?: GeneratedClaimChronology;
 }>;
 
 export type GeneratedClaimValidation =
@@ -19,6 +27,7 @@ export type GeneratedClaimValidation =
       source: Extract<ReturnType<typeof locateSourceSpan>, { status: 'located' }>['span'];
       section?: GeneratedClaimSection;
       speaker?: GeneratedClaimSpeaker;
+      chronology?: GeneratedClaimChronology;
     }>
   | Readonly<{
       status: 'unverified';
@@ -28,6 +37,7 @@ export type GeneratedClaimValidation =
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
       section?: GeneratedClaimSection;
       speaker?: GeneratedClaimSpeaker;
+      chronology?: GeneratedClaimChronology;
     }>;
 
 /**
@@ -50,6 +60,7 @@ export function validateGeneratedClaim(
       source: result.span,
       ...(claim.section ? { section: claim.section } : {}),
       ...(claim.speaker ? { speaker: claim.speaker } : {}),
+      ...(claim.chronology ? { chronology: claim.chronology } : {}),
     };
   return {
     status: 'unverified',
@@ -59,5 +70,6 @@ export function validateGeneratedClaim(
     reason: result.reason,
     ...(claim.section ? { section: claim.section } : {}),
     ...(claim.speaker ? { speaker: claim.speaker } : {}),
+    ...(claim.chronology ? { chronology: claim.chronology } : {}),
   };
 }

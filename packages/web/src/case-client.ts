@@ -35,6 +35,7 @@ export type SyntheticProcessingClaim =
       source: SyntheticTextSpan;
       section?: 'summary' | 'medical' | 'procedural' | 'five_step';
       speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+      chronology?: SyntheticClaimChronology;
     }>
   | Readonly<{
       status: 'unverified';
@@ -44,7 +45,16 @@ export type SyntheticProcessingClaim =
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
       section?: 'summary' | 'medical' | 'procedural' | 'five_step';
       speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+      chronology?: SyntheticClaimChronology;
     }>;
+
+export type SyntheticClaimChronology = Readonly<{
+  date: string;
+  provider?: string;
+  reason?: string;
+  prescription?: string;
+  name?: string;
+}>;
 
 export type SyntheticClaimsResult =
   | Readonly<{ status: 'validated'; claims: readonly SyntheticProcessingClaim[] }>
@@ -182,6 +192,8 @@ function isSyntheticProcessingClaims(
       claim.text.length === 0
     )
       return false;
+    if (claim.chronology !== undefined && !isSyntheticClaimChronology(claim.chronology))
+      return false;
     if (
       (claim.section !== undefined &&
         (typeof claim.section !== 'string' || !CLAIM_SECTIONS.has(claim.section))) ||
@@ -197,6 +209,19 @@ function isSyntheticProcessingClaims(
       CLAIM_UNVERIFIED_REASONS.has(claim.reason)
     );
   });
+}
+/* Stryker restore all */
+
+/* Stryker disable all */
+function isSyntheticClaimChronology(value: unknown): value is SyntheticClaimChronology {
+  if (typeof value !== 'object' || value === null) return false;
+  const chronology = value as SyntheticClaimChronology;
+  if (typeof chronology.date !== 'string' || chronology.date.trim().length === 0) return false;
+  return ['provider', 'reason', 'prescription', 'name'].every(
+    (key) =>
+      chronology[key as keyof SyntheticClaimChronology] === undefined ||
+      typeof chronology[key as keyof SyntheticClaimChronology] === 'string',
+  );
 }
 /* Stryker restore all */
 

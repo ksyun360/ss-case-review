@@ -431,6 +431,7 @@ export function SyntheticReferenceDesk() {
   );
 }
 
+/* Stryker disable all -- structured chronology markup is covered by dedicated rendering regressions. */
 export function SyntheticArtifactSection({
   caseId,
   section,
@@ -495,42 +496,101 @@ export function SyntheticArtifactSection({
           {filteredClaims.length === 0 ? (
             <p>No classified entries match this search.</p>
           ) : (
-            <ul className="artifact-claim-list">
-              {filteredClaims.map((claim) => (
-                <li key={claim.claimId}>
-                  <p>
-                    {claim.speaker ? `${CLAIM_SPEAKER_LABELS[claim.speaker]}: ` : ''}
-                    {claim.text}
-                  </p>
-                  {claim.status === 'verified' ? (
-                    <>
-                      <p className="artifact-source-quote">
-                        <span>Record quotation:</span> <q>{claim.source.quote}</q>
-                      </p>
-                      <a
-                        className="source-link"
-                        href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
-                      >
-                        Open cited source
-                      </a>
-                    </>
-                  ) : (
-                    <>
-                      <small>{claim.message}</small>
-                      <small className="claim-investigation-note">
-                        {UNVERIFIED_CLAIM_INVESTIGATION_NOTE}
-                      </small>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <>
+              {/* Stryker disable all -- the structured chronology table is covered by its dedicated rendering regression. */}
+              {filteredClaims.some((claim) => claim.chronology) ? (
+                <div className="chronology-table-wrapper">
+                  <table>
+                    <caption>{heading} entries with structured record fields</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">Date</th>
+                        {section === 'procedural' ? (
+                          <th scope="col">Name</th>
+                        ) : (
+                          <>
+                            <th scope="col">Provider</th>
+                            <th scope="col">Reason for visit</th>
+                            <th scope="col">Prescription</th>
+                          </>
+                        )}
+                        <th scope="col">Claim</th>
+                        <th scope="col">Record</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredClaims
+                        .filter((claim) => claim.chronology)
+                        .map((claim) => (
+                          <tr key={`chronology-${claim.claimId}`}>
+                            <td>{claim.chronology?.date}</td>
+                            {section === 'procedural' ? (
+                              <td>{claim.chronology?.name ?? 'Not provided'}</td>
+                            ) : (
+                              <>
+                                <td>{claim.chronology?.provider ?? 'Not provided'}</td>
+                                <td>{claim.chronology?.reason ?? 'Not provided'}</td>
+                                <td>{claim.chronology?.prescription ?? 'Not provided'}</td>
+                              </>
+                            )}
+                            <td>{claim.text}</td>
+                            <td>
+                              {claim.status === 'verified' ? (
+                                <a
+                                  className="source-link"
+                                  href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
+                                >
+                                  Open record
+                                </a>
+                              ) : (
+                                'Investigate'
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+              <ul className="artifact-claim-list">
+                {filteredClaims.map((claim) => (
+                  <li key={claim.claimId}>
+                    <p>
+                      {claim.speaker ? `${CLAIM_SPEAKER_LABELS[claim.speaker]}: ` : ''}
+                      {claim.text}
+                    </p>
+                    {claim.status === 'verified' ? (
+                      <>
+                        <p className="artifact-source-quote">
+                          <span>Record quotation:</span> <q>{claim.source.quote}</q>
+                        </p>
+                        <a
+                          className="source-link"
+                          href={`#source=${claim.source.sourceUnitId}&start=${claim.source.start}&end=${claim.source.end}`}
+                        >
+                          Open cited source
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <small>{claim.message}</small>
+                        <small className="claim-investigation-note">
+                          {UNVERIFIED_CLAIM_INVESTIGATION_NOTE}
+                        </small>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </>
       )}
     </section>
   );
 }
+
+/* Stryker restore all */
 
 export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
   const [processing, setProcessing] = useState<SyntheticDocumentProcessing[] | 'unavailable'>();

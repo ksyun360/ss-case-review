@@ -484,6 +484,77 @@ test('shows only explicitly classified source-grounded claims in an artifact sec
   );
 });
 
+test('renders structured medical chronology fields with a source link', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId,
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'verified',
+            claimId: 'medical-chronology',
+            text: 'The claimant attended a follow-up visit.',
+            section: 'medical',
+            chronology: {
+              date: '2024-03-12',
+              provider: 'Dr. Rivera',
+              reason: 'Follow-up evaluation',
+              prescription: 'Continue physical therapy',
+            },
+            source: {
+              caseId,
+              recordRevision: 1,
+              documentVersionId,
+              documentSha256: 'a'.repeat(64),
+              extractionVersion: 'pdfjs-native-v1',
+              sourceUnitId: '00000000-0000-4000-8000-000000000031',
+              start: 0,
+              end: 4,
+              quote: 'The ',
+            },
+          },
+          {
+            status: 'verified',
+            claimId: 'medical-freeform-chronology-test',
+            text: 'The record discusses ongoing symptoms.',
+            section: 'medical',
+            chronology: { date: '2024-03-13' },
+            source: {
+              caseId,
+              recordRevision: 1,
+              documentVersionId,
+              documentSha256: 'a'.repeat(64),
+              extractionVersion: 'pdfjs-native-v1',
+              sourceUnitId: '00000000-0000-4000-8000-000000000031',
+              start: 0,
+              end: 4,
+              quote: 'The ',
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  render(<SyntheticArtifactSection caseId={caseId} section="medical" />);
+  expect(await screen.findByRole('table')).toBeVisible();
+  expect(screen.getAllByRole('row')).toHaveLength(3);
+  expect(screen.getByRole('cell', { name: '2024-03-12' })).toBeVisible();
+  expect(screen.getByRole('cell', { name: 'Dr. Rivera' })).toBeVisible();
+  expect(screen.getAllByRole('cell', { name: 'Not provided' })).toHaveLength(3);
+  expect(screen.getAllByRole('link', { name: 'Open record' })[0]).toHaveAttribute(
+    'href',
+    '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',
+  );
+});
+
 test('explains empty and unverified artifact sections without inventing entries', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
@@ -525,6 +596,48 @@ test('explains empty and unverified artifact sections without inventing entries'
   const view = render(<SyntheticArtifactSection caseId={caseId} section="five_step" />);
   expect(await screen.findByText(/No explicitly classified source-grounded entries/)).toBeVisible();
   view.unmount();
+});
+
+test('renders procedural chronology names and safe fallback values', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000021',
+      extractionVersion: 'pdfjs-native-v1',
+      state: 'published',
+      attemptCount: 1,
+      failureCode: null,
+      claims: {
+        status: 'validated',
+        claims: [
+          {
+            status: 'unverified',
+            claimId: 'procedural-chronology',
+            text: 'The Appeals Council denied review.',
+            section: 'procedural',
+            chronology: { date: '2024-04-01', name: 'Appeals Council denial' },
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+          {
+            status: 'unverified',
+            claimId: 'procedural-chronology-without-name',
+            text: 'A procedural event needs review.',
+            section: 'procedural',
+            chronology: { date: '2024-04-02' },
+            message: "The review system couldn't find this evidence in the authorized case record.",
+            reason: 'quote_mismatch',
+          },
+        ],
+      },
+    },
+  ]);
+
+  render(<SyntheticArtifactSection caseId={caseId} section="procedural" />);
+  expect(await screen.findByRole('table')).toBeVisible();
+  expect(screen.getByRole('cell', { name: 'Appeals Council denial' })).toBeVisible();
+  expect(screen.getByRole('cell', { name: 'Not provided' })).toBeVisible();
+  expect(screen.getAllByRole('cell', { name: 'Investigate' })).toHaveLength(2);
 });
 
 test('filters classified artifact entries with a case-insensitive search', async () => {

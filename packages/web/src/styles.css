@@ -282,6 +282,35 @@ main:focus {
   margin-bottom: 8px;
 }
 
+.chronology-table-wrapper {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.chronology-table-wrapper table {
+  width: 100%;
+  min-width: 736px;
+  border-collapse: collapse;
+}
+
+.chronology-table-wrapper caption {
+  margin-bottom: 8px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.chronology-table-wrapper th,
+.chronology-table-wrapper td {
+  padding: 8px;
+  border: 1px solid var(--divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.chronology-table-wrapper th {
+  background: var(--surface);
+}
+
 .artifact-source-quote {
   padding-left: 12px;
   border-left: 3px solid var(--accent);
