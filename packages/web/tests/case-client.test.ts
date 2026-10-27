@@ -14,6 +14,7 @@ import {
   uploadSyntheticOriginal,
   submitSyntheticCorrectionSuggestion,
   listSyntheticCorrectionSuggestions,
+  updateSyntheticCorrectionSuggestionStatus,
 } from '../src/case-client.ts';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -125,6 +126,83 @@ test('submits and lists validated revision-scoped correction suggestions', async
   await expect(listSyntheticCorrectionSuggestions(caseId)).rejects.toThrow(
     'correction_suggestions_unavailable',
   );
+});
+
+test('updates a correction suggestion status through the reviewer client', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const correctionId = '00000000-0000-4000-8000-000000000041';
+  const suggestion = {
+    correctionId,
+    caseId,
+    recordRevision: 1,
+    artifact: 'summary' as const,
+    entryKey: 'summary-entry',
+    proposedText: 'Use the exact source wording.',
+    rationale: 'The source confirms the correction.',
+    status: 'accepted' as const,
+  };
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ suggestion }),
+  });
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(
+    updateSyntheticCorrectionSuggestionStatus(caseId, correctionId, 'accepted'),
+  ).resolves.toEqual(suggestion);
+  expect(fetch).toHaveBeenCalledWith(
+    `/api/v1/cases/${caseId}/correction-suggestions/${correctionId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        'x-record-review-client': 'synthetic-workspace',
+      },
+      body: JSON.stringify({ status: 'accepted' }),
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
+});
+
+test('rejects unavailable or malformed correction status responses', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const correctionId = '00000000-0000-4000-8000-000000000041';
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+
+  const errorJson = vi.fn(async () => ({}));
+  fetch.mockResolvedValueOnce({ ok: false, status: 404, json: errorJson });
+  await expect(
+    updateSyntheticCorrectionSuggestionStatus(caseId, correctionId, 'rejected'),
+  ).rejects.toThrow('correction_suggestion_unavailable');
+  expect(errorJson).not.toHaveBeenCalled();
+
+  fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => null });
+  await expect(
+    updateSyntheticCorrectionSuggestionStatus(caseId, correctionId, 'rejected'),
+  ).rejects.toThrow('correction_suggestion_unavailable');
+
+  fetch.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      suggestion: {
+        correctionId,
+        caseId: '00000000-0000-4000-8000-000000000003',
+        recordRevision: 1,
+        artifact: 'summary',
+        entryKey: 'summary-entry',
+        proposedText: 'Use the exact source wording.',
+        rationale: 'The source confirms the correction.',
+        status: 'rejected',
+      },
+    }),
+  });
+  await expect(
+    updateSyntheticCorrectionSuggestionStatus(caseId, correctionId, 'rejected'),
+  ).rejects.toThrow('correction_suggestion_unavailable');
 });
 
 test('loads and validates one document processing status without trusting malformed responses', async () => {

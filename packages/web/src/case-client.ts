@@ -459,6 +459,28 @@ export async function listSyntheticCorrectionSuggestions(
   return payload.suggestions;
 }
 
+export async function updateSyntheticCorrectionSuggestionStatus(
+  caseId: string,
+  correctionId: string,
+  status: 'accepted' | 'rejected',
+): Promise<SyntheticCorrectionSuggestion> {
+  const response = await fetch(`/api/v1/cases/${caseId}/correction-suggestions/${correctionId}`, {
+    method: 'PATCH',
+    headers: {
+      'content-type': 'application/json',
+      'x-record-review-client': 'synthetic-workspace',
+    },
+    body: JSON.stringify({ status }),
+    cache: 'no-store',
+    redirect: 'error',
+  });
+  if (!response.ok) throw new Error('correction_suggestion_unavailable');
+  const payload = (await response.json()) as { suggestion?: unknown } | null;
+  if (!isSyntheticCorrectionSuggestion(payload?.suggestion, caseId))
+    throw new Error('correction_suggestion_unavailable');
+  return payload.suggestion;
+}
+
 export async function getSyntheticUploadCapability(): Promise<boolean> {
   const response = await fetch('/api/v1/capabilities', {
     headers: { 'x-record-review-client': 'synthetic-workspace' },
