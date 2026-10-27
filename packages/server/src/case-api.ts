@@ -28,6 +28,7 @@ import {
   updateCorrectionSuggestionStatusForReviewer,
 } from '@record-review/case-repository/corrections';
 import { listOriginalUploadsForReviewer } from '@record-review/case-repository/upload-attempts';
+import { listOriginalDocumentMetadataForReviewer } from '@record-review/case-repository/original-document-metadata';
 import {
   locateSourceSpan,
   type SourceSpanCandidate,
@@ -361,12 +362,27 @@ export function createDevelopmentApi(
     async (request, reply) => {
       const found = await findCaseForReviewer(database, identity.reviewerId, request.params.caseId);
       if (!found) return reply.code(404).send({ code: 'case_not_found' });
+      const metadata = await listOriginalDocumentMetadataForReviewer(
+        database,
+        identity.reviewerId,
+        request.params.caseId,
+      );
+      const metadataByDocumentVersionId = new Map(
+        metadata.map((entry) => [entry.documentVersionId, entry]),
+      );
       return {
-        originals: await listOriginalReferencesForReviewer(
-          database,
-          identity.reviewerId,
-          request.params.caseId,
-        ),
+        originals: (
+          await listOriginalReferencesForReviewer(
+            database,
+            identity.reviewerId,
+            request.params.caseId,
+          )
+        ).map((original) => {
+          const named = metadataByDocumentVersionId.get(original.documentVersionId);
+          return named
+            ? { ...original, fileName: named.fileName, mediaType: named.mediaType }
+            : original;
+        }),
       };
     },
   );

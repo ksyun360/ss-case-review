@@ -14,6 +14,7 @@ import {
   insertTextSourceForReviewer,
 } from '@record-review/case-repository/source-units';
 import { reserveOriginalUpload } from '@record-review/case-repository/upload-attempts';
+import { registerOriginalDocumentMetadata } from '@record-review/case-repository/original-document-metadata';
 import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
@@ -52,6 +53,17 @@ beforeEach(async () => {
       ),
       'utf8',
     ),
+  );
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202611010001_original_document_metadata.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
   );
   await database.exec(
     (
@@ -865,6 +877,42 @@ test('lists original metadata for a member case without exposing another case', 
   });
   expect(malformed.statusCode).toBe(400);
   expect(malformed.json()).toEqual({ code: 'invalid_request' });
+});
+
+test('includes uploaded filename and media type in the original inventory', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000034';
+  const documentVersionId = '00000000-0000-4000-8000-000000000042';
+  await createCase(database, { caseId, reviewerId, label: 'Named inventory' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'c'.repeat(64),
+    byteLength: 12,
+  });
+  await registerOriginalDocumentMetadata(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    fileName: '7-brief.pdf',
+    mediaType: 'application/pdf',
+  });
+
+  const response = await api.inject({
+    url: `/api/v1/cases/${caseId}/synthetic-originals`,
+    headers: requestHeaders,
+  });
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual({
+    originals: [
+      {
+        caseId,
+        documentVersionId,
+        sha256: 'c'.repeat(64),
+        byteLength: 12,
+        fileName: '7-brief.pdf',
+        mediaType: 'application/pdf',
+      },
+    ],
+  });
 });
 
 test('creates a synthetic draft with a server-generated identity and creator membership', async () => {
