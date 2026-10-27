@@ -104,6 +104,7 @@ test('preserves approved artifact context on verified and unverified claims', ()
     text: 'The Commissioner disputes the limitation.',
     section: 'summary',
     speaker: 'commissioner',
+    step: 2,
     chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
     source: {
       recordRevision: 1,
@@ -120,8 +121,31 @@ test('preserves approved artifact context on verified and unverified claims', ()
     status: 'unverified',
     section: 'summary',
     speaker: 'commissioner',
+    step: 2,
     chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
   });
+});
+
+test('preserves an explicit five-step evaluation number on grounded claims', () => {
+  const result = validateGeneratedClaim('case-a', [source], {
+    claimId: 'step-three-claim',
+    text: 'The impairment does not meet a listed impairment.',
+    section: 'five_step',
+    speaker: 'alj',
+    step: 3,
+    source: {
+      recordRevision: 1,
+      documentVersionId: 'document-version-a',
+      documentSha256: 'a'.repeat(64),
+      extractionVersion: 'extraction-v1',
+      sourceUnitId: 'source-unit-a',
+      start: 0,
+      end: 20,
+      quote: source.rawText.slice(0, 20),
+    },
+  });
+
+  expect(result).toMatchObject({ status: 'verified', section: 'five_step', step: 3 });
 });
 
 test('preserves validated chronology metadata on a grounded claim', () => {

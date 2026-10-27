@@ -77,6 +77,7 @@ test('preserves an approved artifact section and speaker on a verified claim', a
         text: 'The ALJ assessed sedentary work.',
         section: 'five_step',
         speaker: 'alj',
+        step: 3,
         source: {
           recordRevision: 1,
           documentVersionId: 'document-version-a',
@@ -95,7 +96,7 @@ test('preserves an approved artifact section and speaker on a verified claim', a
     generateValidatedClaims(generate, 'Compare the RFC.', 'case-a', [source]),
   ).resolves.toMatchObject({
     status: 'validated',
-    claims: [{ section: 'five_step', speaker: 'alj' }],
+    claims: [{ section: 'five_step', speaker: 'alj', step: 3 }],
   });
 });
 
@@ -147,6 +148,10 @@ test('rejects each malformed claim field before source validation', async () => 
     { ...valid, speaker: 'unknown' },
     { ...valid, speaker: 1 },
     { ...valid, speaker: {} },
+    { ...valid, step: 0 },
+    { ...valid, step: 6 },
+    { ...valid, step: 1.5 },
+    { ...valid, step: '3' },
     { ...valid, chronology: null },
     { ...valid, chronology: { date: '' } },
     { ...valid, chronology: { date: '2024-03-12', provider: 1 } },

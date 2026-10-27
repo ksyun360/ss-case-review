@@ -26,6 +26,7 @@ const GENERATED_CLAIM_SPEAKERS = new Set<GeneratedClaimSpeaker>([
   'commissioner',
   'vocational_expert',
 ]);
+const GENERATED_CLAIM_STEPS = new Set([1, 2, 3, 4, 5]);
 
 export type ValidatedClaimsResult =
   | Readonly<{
@@ -54,6 +55,8 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
       GENERATED_CLAIM_SECTIONS.has(claim.section as GeneratedClaimSection)) &&
     (claim.speaker === undefined ||
       GENERATED_CLAIM_SPEAKERS.has(claim.speaker as GeneratedClaimSpeaker)) &&
+    (claim.step === undefined ||
+      (Number.isSafeInteger(claim.step) && GENERATED_CLAIM_STEPS.has(claim.step as number))) &&
     hasValidChronology &&
     Number.isSafeInteger(candidate.recordRevision) &&
     typeof candidate.documentVersionId === 'string' &&
@@ -84,7 +87,7 @@ export async function generateValidatedClaims(
   sources: readonly SourceUnit[],
 ): Promise<ValidatedClaimsResult> {
   const result = await generate({
-    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. For medical or procedural entries, optionally include chronology with a source-supported date and optional provider, reason, prescription, or name. Use only the supplied case record; do not invent claims, chronology values, or citations.`,
+    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. For five_step claims, optionally include step as an integer from 1 through 5. For medical or procedural entries, optionally include chronology with a source-supported date and optional provider, reason, prescription, or name. Use only the supplied case record; do not invent claims, chronology values, or citations.`,
     maxOutputTokens: 2_048,
   });
   if (result.status === 'refused') return result;

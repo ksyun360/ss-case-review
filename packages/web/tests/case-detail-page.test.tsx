@@ -361,6 +361,25 @@ test('shows persisted source-grounded claims after processing publishes', async 
           text: 'The record supports the stated limitation.',
           section: 'five_step',
           speaker: 'alj',
+          step: 3,
+          source: {
+            caseId,
+            recordRevision: 1,
+            documentVersionId,
+            documentSha256: 'a'.repeat(64),
+            extractionVersion: 'pdfjs-native-v1',
+            sourceUnitId: '00000000-0000-4000-8000-000000000031',
+            start: 0,
+            end: 4,
+            quote: 'The ',
+          },
+        },
+        {
+          status: 'verified',
+          claimId: 'claim-without-step',
+          text: 'The Commissioner disputes the limitation.',
+          section: 'summary',
+          speaker: 'commissioner',
           source: {
             caseId,
             recordRevision: 1,
@@ -379,10 +398,11 @@ test('shows persisted source-grounded claims after processing publishes', async 
   render(<SyntheticProcessingStatus caseId={caseId} documentVersionId={documentVersionId} />);
   expect(await screen.findByText('Source extraction complete')).toBeVisible();
   expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
-  expect(screen.getByText('Five-step review · ALJ')).toBeVisible();
-  expect(screen.getByText('Record quotation:')).toBeVisible();
-  expect(screen.getByText('The', { selector: 'q' })).toBeVisible();
-  expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
+  expect(screen.getByText('Five-step review · ALJ · Step 3')).toBeVisible();
+  expect(screen.getAllByText('Record quotation:')).toHaveLength(2);
+  expect(screen.getAllByText('The', { selector: 'q' })).toHaveLength(2);
+  expect(screen.getAllByRole('link', { name: 'Open cited source' })).toHaveLength(2);
+  expect(screen.getAllByRole('link', { name: 'Open cited source' })[0]).toHaveAttribute(
     'href',
     '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',
   );

@@ -71,6 +71,7 @@ function SyntheticClaims({
                   <small className="claim-context">
                     {claim.section ? CLAIM_SECTION_LABELS[claim.section] : 'Source-grounded claim'}
                     {claim.speaker ? ` · ${CLAIM_SPEAKER_LABELS[claim.speaker]}` : ''}
+                    {claim.step ? ` · Step ${claim.step}` : ''}
                   </small>
                 ) : null}
                 <span>{claim.text}</span>{' '}

@@ -47,6 +47,7 @@ export type SyntheticProcessingClaim =
       source: SyntheticTextSpan;
       section?: 'summary' | 'medical' | 'procedural' | 'five_step';
       speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+      step?: 1 | 2 | 3 | 4 | 5;
       chronology?: SyntheticClaimChronology;
     }>
   | Readonly<{
@@ -57,6 +58,7 @@ export type SyntheticProcessingClaim =
       reason: 'source_unavailable' | 'source_mismatch' | 'invalid_offsets' | 'quote_mismatch';
       section?: 'summary' | 'medical' | 'procedural' | 'five_step';
       speaker?: 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
+      step?: 1 | 2 | 3 | 4 | 5;
       chronology?: SyntheticClaimChronology;
     }>;
 
@@ -150,6 +152,7 @@ const CLAIM_UNVERIFIED_REASONS = new Set([
 ]);
 const CLAIM_SECTIONS = new Set(['summary', 'medical', 'procedural', 'five_step']);
 const CLAIM_SPEAKERS = new Set(['alj', 'plaintiff', 'commissioner', 'vocational_expert']);
+const CLAIM_STEPS = new Set([1, 2, 3, 4, 5]);
 const CORRECTION_ARTIFACTS = new Set(['summary', 'medical', 'procedural', 'five_step']);
 const CORRECTION_STATUSES = new Set(['pending', 'accepted', 'rejected']);
 
@@ -210,7 +213,9 @@ function isSyntheticProcessingClaims(
       (claim.section !== undefined &&
         (typeof claim.section !== 'string' || !CLAIM_SECTIONS.has(claim.section))) ||
       (claim.speaker !== undefined &&
-        (typeof claim.speaker !== 'string' || !CLAIM_SPEAKERS.has(claim.speaker)))
+        (typeof claim.speaker !== 'string' || !CLAIM_SPEAKERS.has(claim.speaker))) ||
+      (claim.step !== undefined &&
+        (!Number.isSafeInteger(claim.step) || !CLAIM_STEPS.has(claim.step as number)))
     )
       return false;
     if (claim.status === 'verified') return isSyntheticTextSpan(claim.source, caseId);
