@@ -5,6 +5,7 @@ import { createCase, listCaseRevisionEventsForReviewer, type SqlClient } from '.
 import {
   completeOriginalUpload,
   failOriginalUpload,
+  listOriginalUploadsForReviewer,
   listRecoverableOriginalUploads,
   reserveOriginalUpload,
 } from '../src/upload-attempts.ts';
@@ -161,6 +162,29 @@ test('lists revision history only for the current case member', async () => {
   ]);
   await expect(
     listCaseRevisionEventsForReviewer(database, '00000000-0000-4000-8000-000000000012', caseId),
+  ).resolves.toEqual([]);
+});
+
+test('lists upload attempts only for the current case member', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Upload recovery case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    reviewerId,
+    documentVersionId,
+    maximumBytes: 16,
+  });
+
+  await expect(listOriginalUploadsForReviewer(database, reviewerId, caseId)).resolves.toEqual([
+    {
+      caseId,
+      documentVersionId,
+      reviewerId,
+      maximumBytes: 16,
+      state: 'receiving',
+    },
+  ]);
+  await expect(
+    listOriginalUploadsForReviewer(database, '00000000-0000-4000-8000-000000000012', caseId),
   ).resolves.toEqual([]);
 });
 

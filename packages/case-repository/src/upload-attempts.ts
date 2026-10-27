@@ -24,6 +24,26 @@ export async function reserveOriginalUpload(
   return result.rows[0];
 }
 
+export async function listOriginalUploadsForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+): Promise<OriginalUploadAttempt[]> {
+  const result = await client.query<OriginalUploadAttempt>(
+    `SELECT attempts.case_id AS "caseId",
+      attempts.document_version_id AS "documentVersionId",
+      attempts.reviewer_id AS "reviewerId",
+      attempts.maximum_bytes::float8 AS "maximumBytes", attempts.state
+    FROM original_upload_attempts AS attempts
+    JOIN case_memberships AS members ON members.case_id = attempts.case_id
+      AND members.reviewer_id = attempts.reviewer_id
+    WHERE attempts.case_id = $1 AND members.reviewer_id = $2
+    ORDER BY attempts.created_at, attempts.document_version_id`,
+    [caseId, reviewerId],
+  );
+  return result.rows;
+}
+
 export async function completeOriginalUpload(
   client: SqlClient,
   reviewerId: string,
