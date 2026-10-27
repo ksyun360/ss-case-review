@@ -18,7 +18,7 @@ The development team will continue with durable synthetic document transfer, sou
 
 ## Current evidence
 
-The October 19 geometry increment passes 307 fast tests, 10 native PostgreSQL tests, and a 100% full mutation score across 3,060 mutants. The current coverage report is 99.22% statements, 98.22% branches, 100% functions, and 99.78% lines.
+The October 27 processing-recovery increment passes 352 fast tests, 10 native PostgreSQL tests, 9 Chromium workflows, and a 100% full mutation score across 4,046 mutants. The current coverage report is 97.98% statements, 96.32% branches, 98.14% functions, and 99.05% lines. The member-scoped processing overview now lets a reviewer re-queue a failed extraction, reports missing or failed retry responses safely, and refreshes the document state after a successful retry.
 
 The case page now exposes a member-scoped processing overview that summarizes each registered document as Ready, Needs review, Reading, or Queued. The overview has explicit loading, retry, empty, and case-change states.
 
@@ -36,7 +36,7 @@ The current browser preview supports synthetic case-metadata feedback, opt-in sy
 - [x] Connect browser synthetic draft creation and member-scoped case-detail navigation to the local API.
 - [x] Add guarded citation-span verification against persisted source text.
 - [x] Let the source workspace verify a quotation and highlight the returned span.
-- [ ] Complete recoverable document uploads, inspection, extraction/OCR, and background progress; the browser now lists member-scoped upload attempts after navigation, while durable transfer recovery, inspection, OCR, and broader formats remain pending.
+- [ ] Complete recoverable document uploads, inspection, extraction/OCR, and background progress; the browser now lists member-scoped upload attempts, exposes a guarded retry route for failed processing, and refreshes retry results, while durable transfer recovery, inspection, OCR, and broader formats remain pending.
 - [ ] Persist source maps and provide original-page rendering with validated highlights and artifact links; persisted PDF geometry now accompanies source units, and the browser renders validated geometry regions in the source workspace.
 - [x] Add source-grounded Gemini claim parsing and validation before extracted-source publication, connect the configured generator through guarded startup, scheduling, and worker execution, persist published claim results, expose them through the guarded processing response, and render the persisted result states in the browser; claim-specific source navigation remains pending.
 - [ ] Build the summary, medical chronology, procedural chronology, and five-step/RFC comparison; the production case header and routes now exist, the Summary route now renders explicitly classified persisted claims, and medical and procedural claims support validated structured chronology fields and source-linked tables. Complete artifact construction remains pending.
