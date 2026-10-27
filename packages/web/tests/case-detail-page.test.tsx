@@ -22,6 +22,7 @@ import {
 } from '../src/case-detail-page.tsx';
 import {
   getSyntheticDocumentProcessing,
+  retrySyntheticDocumentProcessing,
   listSyntheticDocumentProcessing,
   getSyntheticOriginal,
   getSyntheticTextSource,
@@ -45,6 +46,7 @@ import {
 vi.mock('../src/case-client.ts', () => ({
   getSyntheticCase: vi.fn(),
   getSyntheticDocumentProcessing: vi.fn(),
+  retrySyntheticDocumentProcessing: vi.fn(),
   listSyntheticDocumentProcessing: vi.fn(),
   getSyntheticOriginal: vi.fn(),
   getSyntheticTextSource: vi.fn(),
@@ -63,6 +65,7 @@ beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
   vi.mocked(listSyntheticTextSources).mockResolvedValue([]);
   vi.mocked(getSyntheticDocumentProcessing).mockResolvedValue(undefined);
+  vi.mocked(retrySyntheticDocumentProcessing).mockResolvedValue(undefined);
   vi.mocked(listSyntheticDocumentProcessing).mockResolvedValue([]);
   vi.mocked(verifySyntheticTextSpan).mockImplementation(
     async (_caseId, _sourceUnitId, candidate) => ({
@@ -448,6 +451,61 @@ test('summarizes processing readiness for every registered document', async () =
   expect(screen.getByText('Document 0022')).toBeVisible();
   expect(screen.getByText('Document 0023').closest('li')).toHaveTextContent('Reading');
   expect(screen.getByText('Document 0024').closest('li')).toHaveTextContent('Queued');
+});
+
+test('retries a failed document from the processing overview', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const failedDocument = {
+    documentVersionId: '00000000-0000-4000-8000-000000000022',
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'failed' as const,
+    attemptCount: 2,
+    failureCode: 'extraction_failed' as const,
+  };
+  let resolveRetry!: (value: SyntheticDocumentProcessing) => void;
+  vi.mocked(listSyntheticDocumentProcessing)
+    .mockResolvedValueOnce([failedDocument])
+    .mockResolvedValueOnce([{ ...failedDocument, state: 'queued', failureCode: null }]);
+  vi.mocked(retrySyntheticDocumentProcessing).mockImplementationOnce(
+    () => new Promise((resolve) => (resolveRetry = resolve)),
+  );
+
+  const view = render(<SyntheticProcessingOverview caseId={caseId} />);
+  expect(await screen.findByText('Document 0022')).toBeVisible();
+  const user = userEvent.setup();
+  const retryButton = screen.getByRole('button', { name: 'Retry document 0022' });
+  expect(retryButton).not.toBeDisabled();
+  expect(screen.queryByRole('alert')).toBeNull();
+  await user.click(retryButton);
+  expect(retryButton).toBeDisabled();
+  expect(retryButton).toHaveTextContent('Retrying…');
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(retrySyntheticDocumentProcessing).toHaveBeenCalledWith(
+    caseId,
+    failedDocument.documentVersionId,
+  );
+  await act(async () => {
+    resolveRetry({ ...failedDocument, state: 'queued', failureCode: null });
+  });
+  expect(await screen.findByText('Queued')).toBeVisible();
+
+  view.unmount();
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([failedDocument]);
+  vi.mocked(retrySyntheticDocumentProcessing).mockResolvedValueOnce(undefined);
+  render(<SyntheticProcessingOverview caseId={caseId} />);
+  await screen.findByText('Document 0022');
+  await user.click(screen.getByRole('button', { name: 'Retry document 0022' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('could not be re-queued');
+  expect(screen.getByRole('button', { name: 'Retry document 0022' })).not.toBeDisabled();
+
+  cleanup();
+  vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([failedDocument]);
+  vi.mocked(retrySyntheticDocumentProcessing).mockRejectedValueOnce(new Error('offline'));
+  render(<SyntheticProcessingOverview caseId={caseId} />);
+  await screen.findByText('Document 0022');
+  await user.click(screen.getByRole('button', { name: 'Retry document 0022' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('could not be re-queued');
+  expect(screen.getByRole('button', { name: 'Retry document 0022' })).not.toBeDisabled();
 });
 
 test('renders member-scoped revision history on the case summary', async () => {

@@ -8,6 +8,7 @@ import {
   getSyntheticRevisionHistory,
   listSyntheticUploadAttempts,
   listSyntheticDocumentProcessing,
+  retrySyntheticDocumentProcessing,
   listSyntheticOriginals,
   listSyntheticTextSources,
   listSyntheticCorrectionSuggestions,
@@ -600,6 +601,8 @@ export function SyntheticArtifactSection({
 
 export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
   const [processing, setProcessing] = useState<SyntheticDocumentProcessing[] | 'unavailable'>();
+  const [retryingDocumentVersionId, setRetryingDocumentVersionId] = useState<string>();
+  const [retryError, setRetryError] = useState(false);
   const load = useCallback(() => {
     setProcessing(undefined);
     void listSyntheticDocumentProcessing(caseId).then(setProcessing, () =>
@@ -609,6 +612,23 @@ export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  const retryFailedDocument = async (documentVersionId: string) => {
+    setRetryingDocumentVersionId(documentVersionId);
+    setRetryError(false);
+    try {
+      const retried = await retrySyntheticDocumentProcessing(caseId, documentVersionId);
+      if (!retried) {
+        setRetryError(true);
+        return;
+      }
+      load();
+    } catch {
+      setRetryError(true);
+    } finally {
+      setRetryingDocumentVersionId(undefined);
+    }
+  };
 
   /* Stryker disable all */
   const content = (
@@ -625,6 +645,9 @@ export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
         <p role="status">Loading processing overview…</p>
       ) : (
         <>
+          {retryError ? (
+            <p role="alert">The failed document could not be re-queued. Try again.</p>
+          ) : null}
           <div className="processing-summary" aria-label="Processing summary">
             <span>{processing.length} documents</span>
             <span>{processing.filter((item) => item.state === 'published').length} ready</span>
@@ -646,6 +669,17 @@ export function SyntheticProcessingOverview({ caseId }: { caseId: string }) {
                           ? 'Reading'
                           : 'Queued'}
                   </span>
+                  {item.state === 'failed' ? (
+                    <button
+                      className="button secondary-button"
+                      type="button"
+                      aria-label={`Retry document ${item.documentVersionId.slice(-4)}`}
+                      disabled={retryingDocumentVersionId === item.documentVersionId}
+                      onClick={() => void retryFailedDocument(item.documentVersionId)}
+                    >
+                      {retryingDocumentVersionId === item.documentVersionId ? 'Retrying…' : 'Retry'}
+                    </button>
+                  ) : null}
                 </li>
               ))}
             </ul>
