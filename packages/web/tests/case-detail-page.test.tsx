@@ -354,6 +354,8 @@ test('shows persisted source-grounded claims after processing publishes', async 
   expect(await screen.findByText('Source extraction complete')).toBeVisible();
   expect(await screen.findByText('The record supports the stated limitation.')).toBeVisible();
   expect(screen.getByText('Five-step review · ALJ')).toBeVisible();
+  expect(screen.getByText('Record quotation:')).toBeVisible();
+  expect(screen.getByText('The', { selector: 'q' })).toBeVisible();
   expect(screen.getByRole('link', { name: 'Open cited source' })).toHaveAttribute(
     'href',
     '#source=00000000-0000-4000-8000-000000000031&start=0&end=4',

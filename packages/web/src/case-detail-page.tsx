@@ -75,6 +75,11 @@ function SyntheticClaims({
                     ? 'Evidence located in the case record.'
                     : claim.message}
                 </small>
+                {claim.status === 'verified' ? (
+                  <p className="artifact-source-quote">
+                    <span>Record quotation:</span> <q>{claim.source.quote}</q>
+                  </p>
+                ) : null}
                 {claim.status === 'unverified' ? (
                   <small className="claim-investigation-note">
                     {UNVERIFIED_CLAIM_INVESTIGATION_NOTE}
