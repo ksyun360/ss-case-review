@@ -12,6 +12,7 @@ import {
 import {
   findDocumentProcessingForReviewer,
   listDocumentProcessingForReviewer,
+  retryDocumentProcessing,
 } from '@record-review/case-repository/document-processing-attempts';
 import type { ServerEnvironment } from '@record-review/server-config/gemini-development';
 import { readDevelopmentIdentity } from '@record-review/server-config/development-identity';
@@ -400,6 +401,38 @@ export function createDevelopmentApi(
           failureCode: processing.failureCode,
           /* Stryker disable next-line ConditionalExpression */
           ...(processing.claims !== undefined ? { claims: processing.claims } : {}),
+        },
+      };
+    },
+  );
+  api.post<{ Params: { caseId: string; documentVersionId: string } }>(
+    '/api/v1/cases/:caseId/document-processing/:documentVersionId/retry',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            caseId: { type: 'string', format: 'uuid' },
+            documentVersionId: { type: 'string', format: 'uuid' },
+          },
+          required: ['caseId', 'documentVersionId'],
+        },
+      },
+    },
+    async (request, reply) => {
+      const processing = await retryDocumentProcessing(database, identity.reviewerId, {
+        caseId: request.params.caseId,
+        documentVersionId: request.params.documentVersionId,
+        extractionVersion: syntheticPdfProcessing.extractionVersion,
+      });
+      if (!processing) return reply.code(404).send({ code: 'processing_not_found' });
+      return {
+        processing: {
+          documentVersionId: processing.documentVersionId,
+          extractionVersion: processing.extractionVersion,
+          state: processing.state,
+          attemptCount: processing.attemptCount,
+          failureCode: processing.failureCode,
         },
       };
     },

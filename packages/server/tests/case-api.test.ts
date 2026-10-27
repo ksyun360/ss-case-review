@@ -1141,6 +1141,56 @@ test('lists member-scoped processing records for a case', async () => {
   }
 });
 
+test('requeues a failed processing record for a case member', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-processing-retry-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000017';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Synthetic processing retry case' });
+    const uploaded = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: { ...requestHeaders, 'content-type': 'application/octet-stream' },
+      payload: Buffer.from('abc'),
+    });
+    const documentVersionId = uploaded.json<{ original: { documentVersionId: string } }>().original
+      .documentVersionId;
+    await database.query(
+      `UPDATE document_processing_attempts
+       SET state = 'failed', failure_code = 'extraction_failed', attempt_count = 2
+       WHERE case_id = $1 AND document_version_id = $2`,
+      [caseId, documentVersionId],
+    );
+
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/document-processing/${documentVersionId}/retry`,
+      headers: requestHeaders,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      processing: {
+        documentVersionId,
+        extractionVersion: 'pdfjs-native-v1',
+        state: 'queued',
+        attemptCount: 2,
+        failureCode: null,
+      },
+    });
+
+    const missing = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/00000000-0000-0000-0000-000000000099/document-processing/${documentVersionId}/retry`,
+      headers: requestHeaders,
+    });
+    expect(missing.statusCode).toBe(404);
+    expect(missing.json()).toEqual({ code: 'processing_not_found' });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('downloads a member original as non-inline bytes after verifying its stored reference', async () => {
   const root = await mkdtemp(join(tmpdir(), 'record-review-api-download-test-'));
   const caseId = '00000000-0000-4000-8000-000000000013';
