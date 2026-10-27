@@ -260,6 +260,12 @@ main:focus {
   font-weight: 700;
 }
 
+.claim-investigation-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--secondary);
+}
+
 .artifact-claim-list {
   display: grid;
   gap: 16px;

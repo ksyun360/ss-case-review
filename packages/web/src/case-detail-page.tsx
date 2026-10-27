@@ -46,6 +46,8 @@ const CORRECTION_ARTIFACT_LABELS = {
   procedural: 'Procedural chronology',
   five_step: 'Five-step review and RFC',
 } as const;
+const UNVERIFIED_CLAIM_INVESTIGATION_NOTE =
+  'Investigate whether the citation reflects the complete record and whether the source context matches the impairment at issue.';
 
 function SyntheticClaims({
   claims,
@@ -73,6 +75,11 @@ function SyntheticClaims({
                     ? 'Evidence located in the case record.'
                     : claim.message}
                 </small>
+                {claim.status === 'unverified' ? (
+                  <small className="claim-investigation-note">
+                    {UNVERIFIED_CLAIM_INVESTIGATION_NOTE}
+                  </small>
+                ) : null}
                 {claim.status === 'verified' ? (
                   <a
                     className="source-link"
@@ -503,7 +510,12 @@ export function SyntheticArtifactSection({
                       </a>
                     </>
                   ) : (
-                    <small>{claim.message}</small>
+                    <>
+                      <small>{claim.message}</small>
+                      <small className="claim-investigation-note">
+                        {UNVERIFIED_CLAIM_INVESTIGATION_NOTE}
+                      </small>
+                    </>
                   )}
                 </li>
               ))}

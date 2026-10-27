@@ -513,6 +513,11 @@ test('explains empty and unverified artifact sections without inventing entries'
       "The review system couldn't find this evidence in the authorized case record.",
     ),
   ).toBeVisible();
+  expect(
+    screen.getByText(
+      'Investigate whether the citation reflects the complete record and whether the source context matches the impairment at issue.',
+    ),
+  ).toBeVisible();
 
   vi.mocked(listSyntheticDocumentProcessing).mockResolvedValueOnce([]);
   const view = render(<SyntheticArtifactSection caseId={caseId} section="five_step" />);
