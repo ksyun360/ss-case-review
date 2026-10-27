@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import {
   createSyntheticCase,
   getSyntheticDocumentProcessing,
+  retrySyntheticDocumentProcessing,
   getSyntheticOriginal,
   getSyntheticUploadCapability,
   getSyntheticCase,
@@ -430,6 +431,58 @@ test('loads and validates processing records for a case', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
   await expect(listSyntheticDocumentProcessing(caseId)).rejects.toThrow(
     'document_processing_unavailable',
+  );
+});
+
+test('requeues one failed processing record through the guarded client route', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  const processing = {
+    documentVersionId,
+    extractionVersion: 'pdfjs-native-v1',
+    state: 'queued',
+    attemptCount: 2,
+    failureCode: null,
+  } as const;
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ processing }),
+  });
+  vi.stubGlobal('fetch', fetch);
+
+  await expect(retrySyntheticDocumentProcessing(caseId, documentVersionId)).resolves.toEqual(
+    processing,
+  );
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(
+    `/api/v1/cases/${caseId}/document-processing/${documentVersionId}/retry`,
+    {
+      method: 'POST',
+      headers: { 'x-record-review-client': 'synthetic-workspace' },
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
+
+  fetch.mockResolvedValueOnce({ ok: false, status: 404 });
+  await expect(
+    retrySyntheticDocumentProcessing(caseId, documentVersionId),
+  ).resolves.toBeUndefined();
+  fetch.mockResolvedValueOnce({ ok: false, status: 503 });
+  await expect(retrySyntheticDocumentProcessing(caseId, documentVersionId)).rejects.toThrow(
+    'document_processing_retry_unavailable',
+  );
+  fetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => null });
+  await expect(retrySyntheticDocumentProcessing(caseId, documentVersionId)).rejects.toThrow(
+    'document_processing_retry_unavailable',
+  );
+  fetch.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    json: async () => ({ processing: { ...processing, documentVersionId: 'not-a-uuid' } }),
+  });
+  await expect(retrySyntheticDocumentProcessing(caseId, documentVersionId)).rejects.toThrow(
+    'document_processing_retry_unavailable',
   );
 });
 

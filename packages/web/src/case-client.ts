@@ -260,6 +260,28 @@ export async function getSyntheticDocumentProcessing(
   return processing;
 }
 
+export async function retrySyntheticDocumentProcessing(
+  caseId: string,
+  documentVersionId: string,
+): Promise<SyntheticDocumentProcessing | undefined> {
+  const response = await fetch(
+    `/api/v1/cases/${caseId}/document-processing/${documentVersionId}/retry`,
+    {
+      method: 'POST',
+      headers: { 'x-record-review-client': 'synthetic-workspace' },
+      cache: 'no-store',
+      redirect: 'error',
+    },
+  );
+  if (response.status === 404) return undefined;
+  if (!response.ok) throw new Error('document_processing_retry_unavailable');
+  const payload = (await response.json()) as { processing?: unknown } | null;
+  const processing = payload?.processing;
+  if (!isSyntheticDocumentProcessing(processing, caseId, documentVersionId))
+    throw new Error('document_processing_retry_unavailable');
+  return processing;
+}
+
 function isSyntheticDocumentProcessing(
   value: unknown,
   caseId: string,
