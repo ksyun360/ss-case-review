@@ -386,6 +386,7 @@ export function SyntheticCorrectionDesk({ caseId }: { caseId: string }) {
 /* Stryker restore all */
 
 const ARTIFACT_SECTION_LABELS = {
+  summary: 'Summary',
   medical: 'Medical chronology',
   procedural: 'Procedural chronology',
   five_step: 'Five-step review and RFC',
@@ -1201,6 +1202,7 @@ export function CaseDetailPage() {
               <SyntheticProcessingOverview caseId={record.caseId} />
               <SyntheticRevisionHistory caseId={record.caseId} />
               <SyntheticUploadRecovery caseId={record.caseId} />
+              <SyntheticArtifactSection caseId={record.caseId} section="summary" />
               <SyntheticOriginalInventory caseId={record.caseId} />
               <SyntheticSourceWorkspace caseId={record.caseId} />
             </>

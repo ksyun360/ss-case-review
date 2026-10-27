@@ -310,6 +310,24 @@ test('renders each production artifact route through its source-grounded section
   }
 });
 
+test('renders the source-grounded summary artifact on the summary route', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(getSyntheticCase).mockResolvedValue({
+    caseId,
+    label: 'Synthetic saved draft',
+    recordRevision: 1,
+  });
+  render(
+    <MemoryRouter initialEntries={[`/cases/${caseId}/summary`]}>
+      <App />
+    </MemoryRouter>,
+  );
+  expect(await screen.findByRole('heading', { name: 'Summary' })).toBeVisible();
+  expect(
+    await screen.findByText(/No explicitly classified source-grounded entries are available/),
+  ).toBeVisible();
+});
+
 test('includes the correction desk on a saved case summary', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   vi.mocked(getSyntheticCase).mockResolvedValue({
