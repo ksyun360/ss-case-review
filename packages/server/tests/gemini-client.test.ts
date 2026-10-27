@@ -1,5 +1,100 @@
 import { expect, test, vi } from 'vitest';
-import { createGeminiTextGenerator, generateGeminiText } from '../src/gemini-client.ts';
+import {
+  createGeminiTextGenerator,
+  generateGeminiText,
+  generateLocalText,
+} from '../src/gemini-client.ts';
+
+test('sends a bounded synthetic prompt to the configured local model endpoint', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ message: { content: 'A local source-grounded answer.' } }] }),
+  });
+  const config = {
+    endpoint: 'http://127.0.0.1:8080/v1/chat/completions',
+    modelId: 'record-review-local',
+  };
+
+  await expect(
+    generateLocalText(
+      config,
+      { prompt: 'Use only the supplied record.', maxOutputTokens: 128 },
+      fetch,
+    ),
+  ).resolves.toEqual({ status: 'generated', text: 'A local source-grounded answer.' });
+  expect(fetch).toHaveBeenCalledExactlyOnceWith(config.endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: config.modelId,
+      messages: [{ role: 'user', content: 'Use only the supplied record.' }],
+      max_tokens: 128,
+    }),
+    signal: expect.any(AbortSignal),
+  });
+});
+
+test('normalizes local model failures, refusals, and empty responses', async () => {
+  const config = {
+    endpoint: 'http://127.0.0.1:8080/v1/chat/completions',
+    modelId: 'record-review-local',
+  };
+  const request = { prompt: 'Use only the supplied record.', maxOutputTokens: 128 };
+  const failedFetch = vi.fn().mockResolvedValue({ ok: false, status: 503, json: vi.fn() });
+  await expect(generateLocalText(config, request, failedFetch)).resolves.toEqual({
+    status: 'refused',
+    code: 'provider_error',
+  });
+
+  const safetyFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ finish_reason: 'safety', message: { content: '' } }] }),
+  });
+  await expect(generateLocalText(config, request, safetyFetch)).resolves.toEqual({
+    status: 'refused',
+    code: 'safety_refusal',
+  });
+
+  const explicitRefusalFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ message: { refusal: 'blocked' } }] }),
+  });
+  await expect(generateLocalText(config, request, explicitRefusalFetch)).resolves.toEqual({
+    status: 'refused',
+    code: 'safety_refusal',
+  });
+
+  const emptyFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ message: { content: '  ' } }] }),
+  });
+  await expect(generateLocalText(config, request, emptyFetch)).resolves.toEqual({
+    status: 'refused',
+    code: 'empty_response',
+  });
+
+  for (const payload of [
+    null,
+    {},
+    { choices: [] },
+    { choices: [{}] },
+    { choices: [{ message: {} }] },
+  ]) {
+    const malformedFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => payload,
+    });
+    await expect(generateLocalText(config, request, malformedFetch)).resolves.toEqual({
+      status: 'refused',
+      code: 'empty_response',
+    });
+  }
+});
 
 test('sends a bounded synthetic prompt to the configured Gemini model', async () => {
   const fetch = vi.fn().mockResolvedValue({

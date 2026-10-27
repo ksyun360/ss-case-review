@@ -6,6 +6,15 @@ type GeminiResponse = Readonly<{
     Readonly<{ content?: Readonly<{ parts?: ReadonlyArray<Readonly<{ text?: unknown }>> }> }>
   >;
 }>;
+type LocalConfig = Readonly<{ endpoint: string; modelId: string }>;
+type LocalResponse = Readonly<{
+  choices?: ReadonlyArray<
+    Readonly<{
+      finish_reason?: unknown;
+      message?: Readonly<{ content?: unknown; refusal?: unknown }>;
+    }>
+  >;
+}>;
 
 export type GeminiTextResult =
   | Readonly<{ status: 'generated'; text: string }>
@@ -53,6 +62,32 @@ export async function generateGeminiText(
   if (payload.promptFeedback?.blockReason === 'SAFETY')
     return { status: 'refused', code: 'safety_refusal' };
   const text = payload.candidates?.[0]?.content?.parts?.[0]?.text as string;
+  if (typeof text !== 'string' || text.trim() === '')
+    return { status: 'refused', code: 'empty_response' };
+  return { status: 'generated', text };
+}
+
+export async function generateLocalText(
+  config: LocalConfig,
+  request: GeminiRequest,
+  fetchImplementation: typeof fetch = fetch,
+): Promise<GeminiTextResult> {
+  const response = await fetchImplementation(config.endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: config.modelId,
+      messages: [{ role: 'user', content: request.prompt }],
+      max_tokens: request.maxOutputTokens,
+    }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) return { status: 'refused', code: 'provider_error' };
+  const payload = (await response.json()) as LocalResponse | null;
+  const choice = payload?.choices?.[0];
+  if (choice?.finish_reason === 'safety' || typeof choice?.message?.refusal === 'string')
+    return { status: 'refused', code: 'safety_refusal' };
+  const text = choice?.message?.content;
   if (typeof text !== 'string' || text.trim() === '')
     return { status: 'refused', code: 'empty_response' };
   return { status: 'generated', text };
