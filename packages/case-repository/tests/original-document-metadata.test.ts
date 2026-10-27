@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { createCase, registerOriginalReference } from '../src/cases.ts';
 import {
   findOriginalDocumentMetadata,
+  listOriginalDocumentMetadataForReviewer,
   registerOriginalDocumentMetadata,
 } from '../src/original-document-metadata.ts';
 
@@ -65,4 +66,53 @@ test('stores bounded filename and media metadata only for the member original', 
   await expect(
     findOriginalDocumentMetadata(database, otherReviewerId, caseId, documentVersionId),
   ).resolves.toBeUndefined();
+});
+
+test('lists metadata in document order only for the member case', async () => {
+  const secondDocumentVersionId = '00000000-0000-0000-0000-000000000322';
+  await createCase(database, { caseId, reviewerId, label: 'Metadata case' });
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'a'.repeat(64),
+    byteLength: 3,
+  });
+  await registerOriginalReference(database, reviewerId, {
+    caseId,
+    documentVersionId: secondDocumentVersionId,
+    sha256: 'b'.repeat(64),
+    byteLength: 4,
+  });
+  await registerOriginalDocumentMetadata(database, reviewerId, {
+    caseId,
+    documentVersionId: secondDocumentVersionId,
+    fileName: '8-medical.pdf',
+    mediaType: 'application/pdf',
+  });
+  await registerOriginalDocumentMetadata(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    fileName: '7-brief.pdf',
+    mediaType: 'application/pdf',
+  });
+
+  await expect(
+    listOriginalDocumentMetadataForReviewer(database, reviewerId, caseId),
+  ).resolves.toEqual([
+    {
+      caseId,
+      documentVersionId,
+      fileName: '7-brief.pdf',
+      mediaType: 'application/pdf',
+    },
+    {
+      caseId,
+      documentVersionId: secondDocumentVersionId,
+      fileName: '8-medical.pdf',
+      mediaType: 'application/pdf',
+    },
+  ]);
+  await expect(
+    listOriginalDocumentMetadataForReviewer(database, otherReviewerId, caseId),
+  ).resolves.toEqual([]);
 });

@@ -53,3 +53,22 @@ export async function findOriginalDocumentMetadata(
   );
   return result.rows[0];
 }
+
+export async function listOriginalDocumentMetadataForReviewer(
+  client: SqlClient,
+  reviewerId: string,
+  caseId: string,
+): Promise<OriginalDocumentMetadata[]> {
+  const result = await client.query<OriginalDocumentMetadata>(
+    `SELECT metadata.case_id AS "caseId",
+      metadata.document_version_id AS "documentVersionId",
+      metadata.file_name AS "fileName", metadata.media_type AS "mediaType"
+    FROM original_document_metadata AS metadata
+    JOIN case_memberships AS members ON members.case_id = metadata.case_id
+      AND members.reviewer_id = $1
+    WHERE metadata.case_id = $2
+    ORDER BY metadata.document_version_id`,
+    [reviewerId, caseId],
+  );
+  return result.rows;
+}
