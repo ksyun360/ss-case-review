@@ -1175,6 +1175,8 @@ test('retries source discovery and opens exact page text with its provenance', a
   expect(
     screen.getByText((_content, element) => element?.textContent === 'Page alignment regions: 2.'),
   ).toBeVisible();
+  expect(screen.getByRole('img', { name: 'Page alignment overlay' })).toBeVisible();
+  expect(screen.getAllByRole('img', { name: /Alignment region/ })).toHaveLength(2);
   expect(screen.getByText(`SHA-256 ${source.documentSha256}`)).toBeVisible();
   await user.type(screen.getByLabelText('Verify a quotation against this page'), 'synthetic page');
   await user.click(screen.getByRole('button', { name: 'Verify and highlight' }));

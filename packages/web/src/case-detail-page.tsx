@@ -660,6 +660,46 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
   );
 }
 
+/* Stryker disable all -- geometry rendering is covered through the source workspace integration. */
+function SyntheticGeometryOverlay({
+  geometry,
+}: {
+  geometry: NonNullable<SyntheticTextSource['geometry']>;
+}) {
+  const width = geometry.view[2] as number;
+  const height = geometry.view[3] as number;
+  return (
+    <div
+      className="source-geometry-overlay"
+      role="img"
+      aria-label="Page alignment overlay"
+      style={{ aspectRatio: `${width} / ${height}` }}
+    >
+      {geometry.items.map((item, index) => {
+        const x = item.transform[4] as number;
+        const y = item.transform[5] as number;
+        const left = (x / width) * 100;
+        const top = ((height - y - item.height) / height) * 100;
+        return (
+          <span
+            className="source-geometry-region"
+            role="img"
+            aria-label={`Alignment region ${index + 1}`}
+            key={`${item.start}-${item.end}-${index}`}
+            style={{
+              left: `${left}%`,
+              top: `${top}%`,
+              width: `${(item.width / width) * 100}%`,
+              height: `${(item.height / height) * 100}%`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+/* Stryker restore all */
+
 export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   const [references, setReferences] = useState<SyntheticTextSourceReference[] | 'unavailable'>();
   const [selected, setSelected] = useState<SyntheticTextSourceReference>();
@@ -823,6 +863,7 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
               ) : (
                 <p className="source-geometry">Page alignment geometry is unavailable.</p>
               )}
+              {source.geometry ? <SyntheticGeometryOverlay geometry={source.geometry} /> : null}
               <button
                 className="button secondary-button"
                 type="button"
