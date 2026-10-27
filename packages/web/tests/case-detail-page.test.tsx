@@ -29,6 +29,7 @@ import {
   verifySyntheticTextSpan,
   listSyntheticCorrectionSuggestions,
   submitSyntheticCorrectionSuggestion,
+  updateSyntheticCorrectionSuggestionStatus,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
@@ -50,6 +51,7 @@ vi.mock('../src/case-client.ts', () => ({
   verifySyntheticTextSpan: vi.fn(),
   listSyntheticCorrectionSuggestions: vi.fn(),
   submitSyntheticCorrectionSuggestion: vi.fn(),
+  updateSyntheticCorrectionSuggestionStatus: vi.fn(),
 }));
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
@@ -70,6 +72,18 @@ beforeEach(() => {
       recordRevision: 1,
       status: 'pending',
       ...suggestion,
+    }),
+  );
+  vi.mocked(updateSyntheticCorrectionSuggestionStatus).mockImplementation(
+    async (_caseId, _correctionId, status) => ({
+      correctionId: _correctionId,
+      caseId: _caseId,
+      recordRevision: 1,
+      artifact: 'medical',
+      entryKey: '2020-08-03',
+      proposedText: 'Confirm the imaging date against the report header.',
+      rationale: 'The chronology date may not match the source header.',
+      status,
     }),
   );
 });
@@ -134,6 +148,60 @@ test('submits a correction suggestion and displays the pending revision-scoped i
     rationale: 'The source header controls the date.',
   });
   expect(await screen.findByText('Correction suggestion submitted for review.')).toBeVisible();
+});
+
+test('accepts and rejects pending correction suggestions from the correction desk', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const existing: SyntheticCorrectionSuggestion = {
+    correctionId: '00000000-0000-4000-8000-000000000041',
+    caseId,
+    recordRevision: 1,
+    artifact: 'medical',
+    entryKey: '2020-08-03',
+    proposedText: 'Confirm the imaging date against the report header.',
+    rationale: 'The chronology date may not match the source header.',
+    status: 'pending',
+  };
+  vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValueOnce([existing]);
+  const user = userEvent.setup();
+  render(<SyntheticCorrectionDesk caseId={caseId} />);
+
+  expect(await screen.findByText(existing.proposedText)).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Accept correction suggestion' }));
+  expect(updateSyntheticCorrectionSuggestionStatus).toHaveBeenCalledWith(
+    caseId,
+    existing.correctionId,
+    'accepted',
+  );
+  expect(await screen.findByText(/accepted ·/i)).toBeVisible();
+  expect(screen.queryByRole('button', { name: 'Reject correction suggestion' })).toBeNull();
+});
+
+test('reports correction review failures without changing the pending item', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const existing: SyntheticCorrectionSuggestion = {
+    correctionId: '00000000-0000-4000-8000-000000000041',
+    caseId,
+    recordRevision: 1,
+    artifact: 'medical',
+    entryKey: '2020-08-03',
+    proposedText: 'Confirm the imaging date against the report header.',
+    rationale: 'The chronology date may not match the source header.',
+    status: 'pending',
+  };
+  vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValueOnce([existing]);
+  vi.mocked(updateSyntheticCorrectionSuggestionStatus).mockRejectedValueOnce(
+    new Error('correction_suggestion_unavailable'),
+  );
+  const user = userEvent.setup();
+  render(<SyntheticCorrectionDesk caseId={caseId} />);
+
+  await screen.findByText(existing.proposedText);
+  await user.click(screen.getByRole('button', { name: 'Accept correction suggestion' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Correction suggestion could not be submitted.',
+  );
+  expect(screen.getByText(/pending ·/i)).toBeVisible();
 });
 
 test('opens saved synthetic case metadata and refreshes after case navigation', async () => {

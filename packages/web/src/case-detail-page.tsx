@@ -10,6 +10,7 @@ import {
   listSyntheticTextSources,
   listSyntheticCorrectionSuggestions,
   submitSyntheticCorrectionSuggestion,
+  updateSyntheticCorrectionSuggestionStatus,
   verifySyntheticTextSpan,
   type CaseSummary,
   type NewSyntheticCorrectionSuggestion,
@@ -233,6 +234,26 @@ export function SyntheticCorrectionDesk({ caseId }: { caseId: string }) {
     }
   };
 
+  const updateStatus = async (
+    suggestion: SyntheticCorrectionSuggestion,
+    status: 'accepted' | 'rejected',
+  ) => {
+    try {
+      const saved = await updateSyntheticCorrectionSuggestionStatus(
+        caseId,
+        suggestion.correctionId,
+        status,
+      );
+      setSuggestions((current) =>
+        current === undefined || current === 'unavailable'
+          ? current
+          : current.map((item) => (item.correctionId === saved.correctionId ? saved : item)),
+      );
+    } catch {
+      setSubmission('error');
+    }
+  };
+
   return (
     <section className="panel correction-desk" aria-live="polite">
       <h2>Correction suggestions</h2>
@@ -263,6 +284,24 @@ export function SyntheticCorrectionDesk({ caseId }: { caseId: string }) {
                   <small>
                     {suggestion.status} · {suggestion.rationale}
                   </small>
+                  {suggestion.status === 'pending' ? (
+                    <div className="correction-actions">
+                      <button
+                        className="button secondary-button"
+                        type="button"
+                        onClick={() => void updateStatus(suggestion, 'accepted')}
+                      >
+                        Accept correction suggestion
+                      </button>
+                      <button
+                        className="button secondary-button"
+                        type="button"
+                        onClick={() => void updateStatus(suggestion, 'rejected')}
+                      >
+                        Reject correction suggestion
+                      </button>
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
