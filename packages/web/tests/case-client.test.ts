@@ -1004,6 +1004,48 @@ test('requests a case-scoped synthetic original inventory and rejects failed res
   });
 });
 
+test('preserves optional uploaded filename and media type in the original inventory', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const original = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+    fileName: '7-brief.pdf',
+    mediaType: 'application/pdf',
+  };
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({ ok: true, json: async () => ({ originals: [original] }) }),
+  );
+  await expect(listSyntheticOriginals(caseId)).resolves.toEqual([original]);
+});
+
+test('rejects malformed optional uploaded metadata before display', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const base = {
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    sha256: 'a'.repeat(64),
+    byteLength: 12,
+  };
+  const invalidPayloads = [
+    { ...base, fileName: '', mediaType: 'application/pdf' },
+    { ...base, fileName: '7-brief.pdf' },
+    { ...base, mediaType: 'application/pdf' },
+    { ...base, fileName: 7, mediaType: 'application/pdf' },
+    { ...base, fileName: '   ', mediaType: 'application/pdf' },
+    { ...base, fileName: '7-brief.pdf', mediaType: 7 },
+    { ...base, fileName: '7-brief.pdf', mediaType: '   ' },
+  ];
+  const fetch = vi.fn();
+  for (const original of invalidPayloads)
+    fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ originals: [original] }) });
+  vi.stubGlobal('fetch', fetch);
+  for (let index = 0; index < invalidPayloads.length; index += 1)
+    await expect(listSyntheticOriginals(caseId)).rejects.toThrow('original_list_unavailable');
+});
+
 test('rejects malformed synthetic original inventory rows before display', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const original = {

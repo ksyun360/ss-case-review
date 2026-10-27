@@ -21,6 +21,8 @@ export type SyntheticOriginalReceipt = Readonly<{
   documentVersionId: string;
   sha256: string;
   byteLength: number;
+  fileName?: string;
+  mediaType?: string;
 }>;
 
 export type SyntheticDocumentProcessing = Readonly<{
@@ -678,7 +680,12 @@ export async function listSyntheticOriginals(caseId: string): Promise<SyntheticO
         ) &&
         /^[a-f0-9]{64}$/.test(original.sha256) &&
         Number.isSafeInteger(original.byteLength) &&
-        original.byteLength >= 0
+        original.byteLength >= 0 &&
+        ((original.fileName === undefined && original.mediaType === undefined) ||
+          (typeof original.fileName === 'string' &&
+            original.fileName.trim().length > 0 &&
+            typeof original.mediaType === 'string' &&
+            original.mediaType.trim().length > 0))
       );
     })
   )
