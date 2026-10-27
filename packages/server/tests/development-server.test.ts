@@ -213,6 +213,34 @@ test('wires the configured Gemini generator into original processing', async () 
   vi.unstubAllGlobals();
 });
 
+test('wires the configured local generator into original processing', async () => {
+  const root = join(tmpdir(), 'record-review-synthetic-local-originals');
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify({ choices: [{ message: { content: '[]' } }] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+  );
+  vi.stubGlobal('fetch', fetch);
+  await startDevelopmentServer({
+    ...environment,
+    DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root,
+    MODEL_PROVIDER: 'local',
+    LOCAL_MODEL_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+    LOCAL_MODEL_ID: 'record-review-local',
+  });
+
+  const scheduler = vi.mocked(startDocumentProcessingScheduler).mock.calls[0]?.[0];
+  expect(scheduler?.generateClaims).toEqual(expect.any(Function));
+  await expect(scheduler?.generateClaims?.('synthetic-case', [])).resolves.toEqual({
+    status: 'validated',
+    claims: [],
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+  vi.unstubAllGlobals();
+});
+
 test('leaves claim generation disabled when Gemini is not configured', async () => {
   const root = join(tmpdir(), 'record-review-synthetic-originals');
   await startDevelopmentServer({ ...environment, DEVELOPMENT_ORIGINAL_STORAGE_ROOT: root });

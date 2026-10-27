@@ -1,9 +1,47 @@
 import { expect, test, vi } from 'vitest';
 import {
+  createDevelopmentTextGenerator,
   createGeminiTextGenerator,
   generateGeminiText,
   generateLocalText,
 } from '../src/gemini-client.ts';
+
+test('constructs a configured local generator from the explicit local provider', async () => {
+  const fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: async () => ({ choices: [{ message: { content: 'Local answer.' } }] }),
+  });
+  const result = createDevelopmentTextGenerator(
+    {
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      MODEL_PROVIDER: 'local',
+      LOCAL_MODEL_ENDPOINT: 'http://127.0.0.1:8080/v1/chat/completions',
+      LOCAL_MODEL_ID: 'record-review-local',
+    },
+    fetch,
+  );
+  expect(result.status).toBe('configured');
+  if (result.status === 'configured')
+    await expect(
+      result.generate({ prompt: 'Bounded prompt.', maxOutputTokens: 64 }),
+    ).resolves.toEqual({ status: 'generated', text: 'Local answer.' });
+});
+
+test('keeps provider selection and local configuration failures explicit', () => {
+  expect(createDevelopmentTextGenerator({ MODEL_PROVIDER: 'unsupported' })).toEqual({
+    status: 'configuration_error',
+    code: 'unsupported_provider',
+  });
+  expect(
+    createDevelopmentTextGenerator({
+      APP_ENV: 'development',
+      DATA_CLASSIFICATION: 'synthetic',
+      MODEL_PROVIDER: 'local',
+    }),
+  ).toEqual({ status: 'configuration_error', code: 'missing_local_endpoint' });
+});
 
 test('sends a bounded synthetic prompt to the configured local model endpoint', async () => {
   const fetch = vi.fn().mockResolvedValue({

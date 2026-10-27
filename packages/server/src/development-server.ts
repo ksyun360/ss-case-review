@@ -8,7 +8,7 @@ import { migrateCaseSchema } from '@record-review/case-repository/migrations';
 import type { TextSourceUnit } from '@record-review/case-repository/source-units';
 import { createDevelopmentApi } from './case-api.ts';
 import { readDevelopmentDatabaseConfig } from './development-database.ts';
-import { createGeminiTextGenerator } from './gemini-client.ts';
+import { createDevelopmentTextGenerator } from './gemini-client.ts';
 import { recoverStaleOriginalUploads } from './original-upload-recovery.ts';
 import { startDocumentProcessingScheduler } from './processing-scheduler.ts';
 import { runNextDocumentProcessing } from './processing-worker.ts';
@@ -79,7 +79,7 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
 }
 
 function createClaimGenerator(environment: ServerEnvironment) {
-  const generator = createGeminiTextGenerator(environment);
+  const generator = createDevelopmentTextGenerator(environment);
   if (generator.status !== 'configured') return undefined;
   return (caseId: string, sources: readonly TextSourceUnit[]) =>
     generateValidatedClaims(generator.generate, CLAIM_GENERATION_TASK, caseId, sources);

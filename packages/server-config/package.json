@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./development-identity": "./src/development-identity.ts",
-    "./gemini-development": "./src/gemini-development.ts"
+    "./gemini-development": "./src/gemini-development.ts",
+    "./local-model-development": "./src/local-model-development.ts"
   }
 }

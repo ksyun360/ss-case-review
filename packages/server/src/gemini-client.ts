@@ -96,3 +96,20 @@ import {
   readGeminiDevelopmentConfig,
   type ServerEnvironment,
 } from '@record-review/server-config/gemini-development';
+import { readLocalModelDevelopmentConfig } from '@record-review/server-config/local-model-development';
+
+export function createDevelopmentTextGenerator(
+  environment: ServerEnvironment,
+  fetchImplementation: typeof fetch = fetch,
+): GeminiGeneratorResult {
+  if (environment.MODEL_PROVIDER === 'gemini')
+    return createGeminiTextGenerator(environment, fetchImplementation);
+  if (environment.MODEL_PROVIDER !== 'local')
+    return { status: 'configuration_error', code: 'unsupported_provider' };
+  const configuration = readLocalModelDevelopmentConfig(environment);
+  if (configuration.status === 'configuration_error') return configuration;
+  return {
+    status: 'configured',
+    generate: (request) => generateLocalText(configuration.config, request, fetchImplementation),
+  };
+}
