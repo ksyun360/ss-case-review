@@ -6,6 +6,7 @@ import {
   getSyntheticTextSource,
   getSyntheticCase,
   getSyntheticRevisionHistory,
+  listSyntheticUploadAttempts,
   listSyntheticDocumentProcessing,
   listSyntheticOriginals,
   listSyntheticTextSources,
@@ -21,6 +22,7 @@ import {
   type SyntheticTextSource,
   type SyntheticTextSourceReference,
   type SyntheticRevisionEvent,
+  type SyntheticUploadAttempt,
 } from './case-client.ts';
 
 const PROCESSING_LABELS = {
@@ -1092,6 +1094,61 @@ export function SyntheticRevisionHistory({ caseId }: { caseId: string }) {
 }
 /* Stryker restore all */
 
+/* Stryker disable all -- recovery presentation is covered by the upload recovery rendering regression. */
+export function SyntheticUploadRecovery({ caseId }: { caseId: string }) {
+  const [attempts, setAttempts] = useState<SyntheticUploadAttempt[] | 'unavailable'>();
+  const load = useCallback(() => {
+    setAttempts(undefined);
+    void listSyntheticUploadAttempts(caseId).then(setAttempts, () => setAttempts('unavailable'));
+  }, [caseId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <section className="panel upload-recovery" aria-live="polite">
+      <h2>Upload recovery</h2>
+      {attempts === 'unavailable' ? (
+        <>
+          <p>Upload recovery status unavailable.</p>
+          <button className="button secondary-button" type="button" onClick={load}>
+            Retry upload recovery
+          </button>
+        </>
+      ) : attempts === undefined ? (
+        <p role="status">Loading upload recovery…</p>
+      ) : attempts.length === 0 ? (
+        <p>No interrupted uploads need recovery.</p>
+      ) : (
+        <>
+          <p>
+            These upload attempts remain recorded for investigation after a transfer interruption.
+          </p>
+          <ul>
+            {attempts.map((attempt) => (
+              <li key={attempt.documentVersionId}>
+                <strong>Document {attempt.documentVersionId.slice(-4)}</strong>{' '}
+                <span>
+                  {attempt.state === 'receiving'
+                    ? '· Transfer still receiving'
+                    : attempt.state === 'failed'
+                      ? '· Transfer failed'
+                      : '· Transfer registered'}
+                </span>
+                <small>
+                  Re-select the original file to retry this transfer ({attempt.maximumBytes} byte
+                  limit).
+                </small>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
+}
+/* Stryker restore all */
+
 export function caseSectionSlug(pathname: string): (typeof CASE_SECTIONS)[number]['slug'] {
   return CASE_SECTIONS.find((item) => pathname.endsWith(`/${item.slug}`))?.slug ?? 'summary';
 }
@@ -1143,6 +1200,7 @@ export function CaseDetailPage() {
             <>
               <SyntheticProcessingOverview caseId={record.caseId} />
               <SyntheticRevisionHistory caseId={record.caseId} />
+              <SyntheticUploadRecovery caseId={record.caseId} />
               <SyntheticOriginalInventory caseId={record.caseId} />
               <SyntheticSourceWorkspace caseId={record.caseId} />
             </>

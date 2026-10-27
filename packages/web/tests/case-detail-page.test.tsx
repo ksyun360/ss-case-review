@@ -14,6 +14,7 @@ import {
   SyntheticSourceWorkspace,
   SyntheticCorrectionDesk,
   SyntheticRevisionHistory,
+  SyntheticUploadRecovery,
   hasProcessingClaims,
   caseSectionSlug,
   sourceUnitIdFromHash,
@@ -32,6 +33,7 @@ import {
   submitSyntheticCorrectionSuggestion,
   updateSyntheticCorrectionSuggestionStatus,
   getSyntheticRevisionHistory,
+  listSyntheticUploadAttempts,
   type CaseSummary,
   type SyntheticDocumentProcessing,
   type SyntheticOriginalReceipt,
@@ -55,6 +57,7 @@ vi.mock('../src/case-client.ts', () => ({
   submitSyntheticCorrectionSuggestion: vi.fn(),
   updateSyntheticCorrectionSuggestionStatus: vi.fn(),
   getSyntheticRevisionHistory: vi.fn(),
+  listSyntheticUploadAttempts: vi.fn(),
 }));
 beforeEach(() => {
   vi.mocked(listSyntheticOriginals).mockResolvedValue([]);
@@ -69,6 +72,7 @@ beforeEach(() => {
   );
   vi.mocked(listSyntheticCorrectionSuggestions).mockResolvedValue([]);
   vi.mocked(getSyntheticRevisionHistory).mockResolvedValue([]);
+  vi.mocked(listSyntheticUploadAttempts).mockResolvedValue([]);
   vi.mocked(submitSyntheticCorrectionSuggestion).mockImplementation(
     async (_caseId, suggestion) => ({
       correctionId: '00000000-0000-4000-8000-000000000041',
@@ -423,6 +427,30 @@ test('renders member-scoped revision history on the case summary', async () => {
   expect(screen.getByText('Revision 2')).toBeVisible();
   expect(screen.getByText('Original document registered')).toBeVisible();
   expect(screen.getByText(/000000000043/)).toBeVisible();
+});
+
+test('renders upload recovery state on the case summary', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  vi.mocked(listSyntheticUploadAttempts).mockResolvedValueOnce([
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000044',
+      maximumBytes: 512,
+      state: 'receiving',
+    },
+    {
+      documentVersionId: '00000000-0000-4000-8000-000000000045',
+      maximumBytes: 512,
+      state: 'failed',
+    },
+  ]);
+
+  render(<SyntheticUploadRecovery caseId={caseId} />);
+  expect(await screen.findByRole('heading', { name: 'Upload recovery' })).toBeVisible();
+  expect(screen.getByText('Document 0044').closest('li')).toHaveTextContent(
+    'Transfer still receiving',
+  );
+  expect(screen.getByText('Document 0045').closest('li')).toHaveTextContent('Transfer failed');
+  expect(screen.getAllByText(/Re-select the original file/)).toHaveLength(2);
 });
 
 test('shows only explicitly classified source-grounded claims in an artifact section', async () => {
