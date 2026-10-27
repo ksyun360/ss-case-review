@@ -52,6 +52,17 @@ beforeEach(async () => {
       'utf8',
     ),
   );
+  await database.exec(
+    (
+      await readFile(
+        new URL(
+          '../../case-repository/migrations/202610270001_case_revision_events.sql',
+          import.meta.url,
+        ),
+        'utf8',
+      )
+    ).replace(/-- Down Migration[\s\S]*$/, ''),
+  );
   const processingMigration = await readFile(
     new URL(
       '../../case-repository/migrations/202610010001_document_processing_attempts.sql',

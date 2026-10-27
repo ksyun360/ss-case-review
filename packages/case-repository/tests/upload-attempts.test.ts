@@ -32,6 +32,14 @@ beforeEach(async () => {
       'utf8',
     ),
   );
+  await database.exec(
+    (
+      await readFile(
+        new URL('../migrations/202610270001_case_revision_events.sql', import.meta.url),
+        'utf8',
+      )
+    ).split('\n-- Down Migration')[0] ?? '',
+  );
 });
 
 afterAll(async () => {
@@ -93,6 +101,38 @@ test('advances the case record revision when an original upload is registered', 
 
   expect((await database.query('SELECT record_revision FROM cases')).rows).toEqual([
     { record_revision: 2 },
+  ]);
+});
+
+test('records the registered document in the case revision history', async () => {
+  await createCase(database, { caseId, reviewerId, label: 'Revision history case' });
+  await reserveOriginalUpload(database, {
+    caseId,
+    reviewerId,
+    documentVersionId,
+    maximumBytes: 16,
+  });
+
+  await completeOriginalUpload(database, reviewerId, {
+    caseId,
+    documentVersionId,
+    sha256: 'c'.repeat(64),
+    byteLength: 3,
+  });
+
+  expect(
+    (
+      await database.query(
+        'SELECT case_id, record_revision, event_type, document_version_id FROM case_revision_events',
+      )
+    ).rows,
+  ).toEqual([
+    {
+      case_id: caseId,
+      record_revision: 2,
+      event_type: 'original_registered',
+      document_version_id: documentVersionId,
+    },
   ]);
 });
 

@@ -16,13 +16,13 @@ async function migrateForTest(database: PGlite) {
   for (const migration of [
     '202609230001_initial_case_metadata.sql',
     '202609230002_original_upload_attempts.sql',
+    '202610270001_case_revision_events.sql',
   ]) {
-    await database.exec(
-      await readFile(
-        new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
-        'utf8',
-      ),
+    const sql = await readFile(
+      new URL(`../../case-repository/migrations/${migration}`, import.meta.url),
+      'utf8',
     );
+    await database.exec(sql.replace(/-- Down Migration[\s\S]*$/, ''));
   }
 }
 

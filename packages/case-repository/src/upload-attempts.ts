@@ -51,13 +51,22 @@ export async function completeOriginalUpload(
       SET record_revision = cases.record_revision + 1
       FROM inserted
       WHERE cases.case_id = inserted.case_id
-      RETURNING cases.case_id
+      RETURNING cases.case_id, cases.record_revision
+    ), history AS (
+      INSERT INTO case_revision_events (
+        case_id, record_revision, event_type, document_version_id
+      )
+      SELECT revised.case_id, revised.record_revision, 'original_registered',
+        inserted.document_version_id
+      FROM revised JOIN inserted USING (case_id)
+      RETURNING case_id
     )
     SELECT inserted.case_id AS "caseId", inserted.document_version_id AS "documentVersionId",
       inserted.sha256, inserted.byte_length::float8 AS "byteLength"
     FROM inserted
     JOIN completed USING (case_id, document_version_id)
-    JOIN revised USING (case_id)`,
+    JOIN revised USING (case_id)
+    JOIN history USING (case_id)`,
     [
       reference.caseId,
       reference.documentVersionId,
