@@ -1050,6 +1050,7 @@ test('lists registered synthetic originals on the saved case page', async () => 
       documentVersionId,
       sha256: 'a'.repeat(64),
       byteLength: 12 + index,
+      ...(index === 0 ? { fileName: '7-brief.pdf', mediaType: 'application/pdf' } : {}),
     })),
   );
   let resolveQueued!: (value: SyntheticDocumentProcessing) => void;
@@ -1077,6 +1078,8 @@ test('lists registered synthetic originals on the saved case page', async () => 
   );
   expect(await screen.findByRole('heading', { name: 'Registered originals' })).toBeVisible();
   expect(await screen.findByText(documentVersionIds[0] as string)).toBeVisible();
+  expect(screen.getByText('7-brief.pdf')).toBeVisible();
+  expect(screen.getByText('application/pdf')).toBeVisible();
   expect(screen.getByText('12 bytes')).toBeVisible();
   expect(screen.getAllByText('Loading processing status…')[0]).toBeVisible();
   resolveQueued({

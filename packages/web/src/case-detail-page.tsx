@@ -747,6 +747,8 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
         <ul className="original-list">
           {originals.map((original) => (
             <li key={original.documentVersionId}>
+              {original.fileName ? <strong>{original.fileName}</strong> : null}
+              {original.mediaType ? <small>{original.mediaType}</small> : null}
               <code>{original.documentVersionId}</code> <span>{original.byteLength} bytes</span>
               <button
                 className="source-link"
