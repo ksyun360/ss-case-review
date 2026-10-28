@@ -733,6 +733,12 @@ export function SyntheticOriginalInventory({ caseId }: { caseId: string }) {
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    const url = openedOriginal?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [openedOriginal]);
   const current = inventory?.caseId === caseId ? inventory : undefined;
   const originals = current?.status === 'available' ? current.originals : undefined;
   const openOriginal = async (documentVersionId: string) => {

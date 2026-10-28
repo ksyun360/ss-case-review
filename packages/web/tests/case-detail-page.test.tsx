@@ -1205,6 +1205,26 @@ test('opens a registered original in a new document tab', async () => {
   open.mockRestore();
 });
 
+test('releases an opened original object URL when the inventory unmounts', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const documentVersionId = '00000000-0000-4000-8000-000000000021';
+  vi.mocked(listSyntheticOriginals).mockResolvedValueOnce([
+    { caseId, documentVersionId, sha256: 'a'.repeat(64), byteLength: 12 },
+  ]);
+  vi.mocked(getSyntheticOriginal).mockResolvedValueOnce(
+    new Blob(['synthetic pdf bytes'], { type: 'application/pdf' }),
+  );
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:releasable');
+  const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+  const user = userEvent.setup();
+  const view = render(<SyntheticOriginalInventory caseId={caseId} />);
+
+  await user.click(await screen.findByRole('button', { name: 'Open original document' }));
+  view.unmount();
+
+  expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:releasable');
+});
+
 test('reports an unavailable original without opening a tab', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const documentVersionId = '00000000-0000-4000-8000-000000000021';
