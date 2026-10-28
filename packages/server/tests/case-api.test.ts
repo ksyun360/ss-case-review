@@ -1374,6 +1374,30 @@ test('returns the persisted media type when a member opens an original', async (
   }
 });
 
+test('accepts an explicitly declared PDF upload media type', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-pdf-media-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000015';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 32 });
+    await createCase(database, { caseId, reviewerId, label: 'Declared PDF case' });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: {
+        ...requestHeaders,
+        'content-type': 'application/pdf',
+        'x-record-review-file-name': 'decision.pdf',
+        'x-record-review-media-type': 'application/pdf',
+      },
+      payload: Buffer.from('%PDF-1.4 synthetic'),
+    });
+    expect(response.statusCode).toBe(201);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('hides another reviewer original even when its reference and bytes exist', async () => {
   const root = await mkdtemp(join(tmpdir(), 'record-review-api-private-download-test-'));
   const caseId = '00000000-0000-4000-8000-000000000014';

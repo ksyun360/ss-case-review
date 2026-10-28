@@ -43,6 +43,15 @@ const syntheticPdfProcessing = {
   maximumPages: 800,
   extractionVersion: 'pdfjs-native-v1',
 } as const;
+const syntheticUploadMediaTypes = [
+  'application/octet-stream',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/tiff',
+] as const;
+const syntheticUploadMediaTypeSet = new Set<string>(syntheticUploadMediaTypes);
 
 export function createDevelopmentApi(
   environment: ServerEnvironment,
@@ -547,9 +556,11 @@ export function createDevelopmentApi(
           .send(bytes);
       },
     );
-    api.addContentTypeParser('application/octet-stream', (_request, payload, done) => {
-      done(null, payload);
-    });
+    for (const mediaType of syntheticUploadMediaTypes) {
+      api.addContentTypeParser(mediaType, (_request, payload, done) => {
+        done(null, payload);
+      });
+    }
     api.post<{ Params: { caseId: string }; Body: AsyncIterable<Uint8Array> }>(
       '/api/v1/cases/:caseId/synthetic-originals',
       {
@@ -561,7 +572,7 @@ export function createDevelopmentApi(
         },
       },
       async (request, reply) => {
-        if (request.headers['content-type'] !== 'application/octet-stream')
+        if (!syntheticUploadMediaTypeSet.has(request.headers['content-type'] ?? ''))
           return reply.code(415).send({ code: 'unsupported_media_type' });
         const fileName = request.headers['x-record-review-file-name'];
         const mediaType = request.headers['x-record-review-media-type'];
