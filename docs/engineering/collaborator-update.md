@@ -1,6 +1,10 @@
 # Phase 4 collaborator update
 
-Date: October 18, 2026. Status: Phase 4 remains in progress. The application is not ready for court testing or real records.
+Date: October 28, 2026. Status: Phase 4 remains in progress. The application is not ready for court testing or real records.
+
+## Latest increment
+
+The upload workflow now carries a browser-validated filename and media type through the guarded synthetic upload route. The server persists those values beside each original reference, the member-scoped inventory returns them, and the case workspace displays them while preserving the inline PDF viewer and downloadable original. The client rejects partial or malformed metadata before display. Vitest now uses thread workers, which keeps the complete local gate stable alongside PostgreSQL integration tests. The latest gate passes 359 fast tests, 10 native PostgreSQL tests, 9 Chromium workflows, 98.01% statement coverage, 96.42% branch coverage, and 100% mutation coverage across 4,127 mutants.
 
 ## Shareable update
 
