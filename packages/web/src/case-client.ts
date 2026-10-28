@@ -569,6 +569,8 @@ export async function uploadSyntheticOriginal(
     headers: {
       'content-type': 'application/octet-stream',
       'x-record-review-client': 'synthetic-workspace',
+      'x-record-review-file-name': file.name,
+      'x-record-review-media-type': file.type || 'application/octet-stream',
     },
     body: file,
     cache: 'no-store',

@@ -1098,8 +1098,27 @@ test('streams one selected synthetic file to its saved case through the same-ori
     headers: {
       'content-type': 'application/octet-stream',
       'x-record-review-client': 'synthetic-workspace',
+      'x-record-review-file-name': 'synthetic.pdf',
+      'x-record-review-media-type': 'application/pdf',
     },
     body: file,
+    cache: 'no-store',
+    redirect: 'error',
+  });
+
+  const noTypeFile = new File(['synthetic bytes'], 'synthetic.bin');
+  const noTypeOriginal = { ...original, byteLength: noTypeFile.size };
+  fetch.mockResolvedValueOnce({ ok: true, json: async () => ({ original: noTypeOriginal }) });
+  expect(await uploadSyntheticOriginal(caseId, noTypeFile)).toEqual(noTypeOriginal);
+  expect(fetch).toHaveBeenNthCalledWith(2, `/api/v1/cases/${caseId}/synthetic-originals`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-record-review-client': 'synthetic-workspace',
+      'x-record-review-file-name': 'synthetic.bin',
+      'x-record-review-media-type': 'application/octet-stream',
+    },
+    body: noTypeFile,
     cache: 'no-store',
     redirect: 'error',
   });
