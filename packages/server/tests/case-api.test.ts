@@ -1342,6 +1342,38 @@ test('downloads a member original as non-inline bytes after verifying its stored
   }
 });
 
+test('returns the persisted media type when a member opens an original', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-media-type-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000014';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 32 });
+    await createCase(database, { caseId, reviewerId, label: 'Media type case' });
+    const uploaded = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: {
+        ...requestHeaders,
+        'content-type': 'application/octet-stream',
+        'x-record-review-file-name': 'decision.pdf',
+        'x-record-review-media-type': 'application/pdf',
+      },
+      payload: Buffer.from('%PDF-1.4 synthetic'),
+    });
+    const versionId = uploaded.json<{ original: { documentVersionId: string } }>().original
+      .documentVersionId;
+    const downloaded = await api.inject({
+      method: 'GET',
+      url: `/api/v1/cases/${caseId}/synthetic-originals/${versionId}`,
+      headers: requestHeaders,
+    });
+    expect(downloaded.statusCode).toBe(200);
+    expect(downloaded.headers['content-type']).toMatch(/^application\/pdf/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('hides another reviewer original even when its reference and bytes exist', async () => {
   const root = await mkdtemp(join(tmpdir(), 'record-review-api-private-download-test-'));
   const caseId = '00000000-0000-4000-8000-000000000014';

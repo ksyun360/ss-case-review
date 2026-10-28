@@ -28,7 +28,10 @@ import {
   updateCorrectionSuggestionStatusForReviewer,
 } from '@record-review/case-repository/corrections';
 import { listOriginalUploadsForReviewer } from '@record-review/case-repository/upload-attempts';
-import { listOriginalDocumentMetadataForReviewer } from '@record-review/case-repository/original-document-metadata';
+import {
+  findOriginalDocumentMetadata,
+  listOriginalDocumentMetadataForReviewer,
+} from '@record-review/case-repository/original-document-metadata';
 import {
   locateSourceSpan,
   type SourceSpanCandidate,
@@ -531,7 +534,14 @@ export function createDevelopmentApi(
         if (!reference) return reply.code(404).send({ code: 'original_not_found' });
         const bytes = await readOriginal(originalStorage.root, request.params.caseId, reference);
         if (!bytes) return reply.code(404).send({ code: 'original_not_found' });
+        const metadata = await findOriginalDocumentMetadata(
+          database,
+          identity.reviewerId,
+          request.params.caseId,
+          request.params.documentVersionId,
+        );
         return reply
+          .header('content-type', metadata?.mediaType ?? 'application/octet-stream')
           .header('content-disposition', 'attachment')
           .header('x-content-type-options', 'nosniff')
           .send(bytes);
