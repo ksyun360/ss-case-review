@@ -118,6 +118,16 @@ test('provides curated reference links without presenting them as case evidence'
   );
 });
 
+test('provides expandable definitions separately from case evidence', async () => {
+  const user = userEvent.setup();
+  render(<SyntheticReferenceDesk />);
+
+  await user.click(screen.getByText('Residual functional capacity', { selector: 'summary' }));
+  expect(screen.getByText(/what a person can still do despite limitations/i)).toBeVisible();
+  expect(screen.getByText('Substantial gainful activity', { selector: 'summary' })).toBeVisible();
+  expect(screen.getByText('Intervertebral disc disease', { selector: 'summary' })).toBeVisible();
+});
+
 test('submits a correction suggestion and displays the pending revision-scoped item', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const existing: SyntheticCorrectionSuggestion = {

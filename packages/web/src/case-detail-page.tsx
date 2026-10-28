@@ -402,6 +402,27 @@ export function SyntheticReferenceDesk() {
         Curated public references help explain medical and regulatory terms. Reference material is
         not case evidence and does not add an argument to the review.
       </p>
+      <div className="reference-definitions" aria-label="Definitions">
+        <details aria-labelledby="definition-rfc">
+          <summary id="definition-rfc">Residual functional capacity</summary>
+          <p>
+            Residual functional capacity describes what a person can still do despite limitations.
+          </p>
+        </details>
+        <details aria-labelledby="definition-sga">
+          <summary id="definition-sga">Substantial gainful activity</summary>
+          <p>
+            Substantial gainful activity describes work activity and earnings used in disability
+            evaluation.
+          </p>
+        </details>
+        <details aria-labelledby="definition-disc-disease">
+          <summary id="definition-disc-disease">Intervertebral disc disease</summary>
+          <p>
+            Intervertebral disc disease describes degeneration or damage involving spinal discs.
+          </p>
+        </details>
+      </div>
       <ul>
         <li>
           <a
