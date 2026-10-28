@@ -101,6 +101,24 @@ test('shows representative case metadata beside the source-linked review', async
   open.mockRestore();
 });
 
+test('opens a substantive fictional multi-page record PDF', async () => {
+  const user = userEvent.setup();
+  const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+  render(<DemoCasePage />);
+
+  await user.click(screen.getByRole('button', { name: 'Open PDF in new tab' }));
+
+  const pdfUrl = open.mock.calls[0]?.[0];
+  expect(typeof pdfUrl).toBe('string');
+  const encodedDocument = (pdfUrl as string).split(',')[1] ?? '';
+  const document = decodeURIComponent(encodedDocument);
+  expect(document).toContain('/Count 3');
+  expect(document).toContain('ALJ DECISION');
+  expect(document).toContain('MEDICAL EVIDENCE');
+  expect(document).toContain('PLAINTIFF BRIEF');
+  open.mockRestore();
+});
+
 test('records a local correction suggestion without replacing the source value', async () => {
   const user = userEvent.setup();
   render(<DemoCasePage />);

@@ -36,9 +36,61 @@ const procedural = [
   ['2022-02-11', 'Appeals Council denied review', 'Demo source · page 5'],
 ];
 
-const DEMO_PDF_DATA_URL = `data:application/pdf,${encodeURIComponent(
-  `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF`,
-)}`;
+function buildDemoPdf(): string {
+  const encoder = new TextEncoder();
+  const chunks: string[] = ['%PDF-1.4\n'];
+  const offsets = [0];
+  const addObject = (body: string) => {
+    offsets.push(encoder.encode(chunks.join('')).byteLength);
+    chunks.push(`${offsets.length - 1} 0 obj\n${body}\nendobj\n`);
+  };
+  const pageTexts = [
+    [
+      'WESTERN DISTRICT OF TEXAS',
+      'ELLIS v. COMMISSIONER OF SOCIAL SECURITY',
+      'ALJ DECISION',
+      'The claimant alleges disability beginning January 14, 2019.',
+      'The decision finds severe lumbar degenerative disc disease.',
+      'The residual functional capacity permits sedentary work.',
+    ],
+    [
+      'MEDICAL EVIDENCE',
+      '2019-04-12  Dr. Maya Chen  Lumbar pain and reduced range of motion.',
+      '2020-08-03  Hill Country Imaging  MRI: multilevel degenerative changes.',
+      '2021-02-19  Dr. Luis Romero  Persistent radicular symptoms.',
+      'The treatment record includes conservative care and medication changes.',
+    ],
+    [
+      'PLAINTIFF BRIEF',
+      'Plaintiff argues that the longitudinal treatment record supports greater limits.',
+      'COMMISSIONER BRIEF',
+      'The Commissioner argues that the ALJ addressed objective findings and activities.',
+      'HEARING TRANSCRIPT',
+      'The vocational expert identified sedentary occupations under the hypothetical.',
+    ],
+  ];
+  addObject('<< /Type /Catalog /Pages 2 0 R >>');
+  addObject('<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>');
+  for (let index = 0; index < pageTexts.length; index += 1) {
+    const pageId = 3 + index * 2;
+    const contentsId = pageId + 1;
+    const lines = pageTexts[index]?.map((line) => `(${line}) Tj 0 -30 Td`).join('\n');
+    const stream = `BT\n/F1 12 Tf\n72 720 Td\n${lines}\nET`;
+    addObject(
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 9 0 R >> >> /Contents ${contentsId} 0 R >>`,
+    );
+    addObject(`<< /Length ${encoder.encode(stream).byteLength} >>\nstream\n${stream}\nendstream`);
+  }
+  addObject('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  const xref = encoder.encode(chunks.join('')).byteLength;
+  chunks.push(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);
+  for (const offset of offsets.slice(1))
+    chunks.push(`${String(offset).padStart(10, '0')} 00000 n \n`);
+  chunks.push(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return chunks.join('');
+}
+
+const DEMO_PDF_DATA_URL = `data:application/pdf,${encodeURIComponent(buildDemoPdf())}`;
 
 type DemoSourceExcerpt = Readonly<{
   page: number;
