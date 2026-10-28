@@ -14,7 +14,10 @@ import {
   insertTextSourceForReviewer,
 } from '@record-review/case-repository/source-units';
 import { reserveOriginalUpload } from '@record-review/case-repository/upload-attempts';
-import { registerOriginalDocumentMetadata } from '@record-review/case-repository/original-document-metadata';
+import {
+  findOriginalDocumentMetadata,
+  registerOriginalDocumentMetadata,
+} from '@record-review/case-repository/original-document-metadata';
 import { readOriginal, writeOriginalStream } from '@record-review/record-storage/originals';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest';
 import { createDevelopmentApi } from '../src/case-api.ts';
@@ -1029,6 +1032,40 @@ test('accepts one synthetic original as streamed bytes for a member case', async
     expect(
       (await database.query('SELECT count(*)::int AS count FROM original_upload_attempts')).rows,
     ).toEqual([{ count: 1 }]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('stores upload filename and media metadata supplied by the guarded client', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'record-review-api-original-metadata-test-'));
+  const caseId = '00000000-0000-4000-8000-000000000016';
+  try {
+    await api.close();
+    api = createDevelopmentApi(environment, database, { root, maximumBytes: 3 });
+    await createCase(database, { caseId, reviewerId, label: 'Named upload case' });
+    const response = await api.inject({
+      method: 'POST',
+      url: `/api/v1/cases/${caseId}/synthetic-originals`,
+      headers: {
+        ...requestHeaders,
+        'content-type': 'application/octet-stream',
+        'x-record-review-file-name': '7-brief.pdf',
+        'x-record-review-media-type': 'application/pdf',
+      },
+      payload: Buffer.from('abc'),
+    });
+    expect(response.statusCode).toBe(201);
+    const documentVersionId = response.json<{ original: { documentVersionId: string } }>().original
+      .documentVersionId;
+    await expect(
+      findOriginalDocumentMetadata(database, reviewerId, caseId, documentVersionId),
+    ).resolves.toEqual({
+      caseId,
+      documentVersionId,
+      fileName: '7-brief.pdf',
+      mediaType: 'application/pdf',
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

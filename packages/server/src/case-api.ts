@@ -553,6 +553,15 @@ export function createDevelopmentApi(
       async (request, reply) => {
         if (request.headers['content-type'] !== 'application/octet-stream')
           return reply.code(415).send({ code: 'unsupported_media_type' });
+        const fileName = request.headers['x-record-review-file-name'];
+        const mediaType = request.headers['x-record-review-media-type'];
+        const metadata =
+          typeof fileName === 'string' &&
+          fileName.trim().length > 0 &&
+          typeof mediaType === 'string' &&
+          mediaType.trim().length > 0
+            ? { fileName, mediaType }
+            : undefined;
         const original = await storeOriginalAndQueueForReviewer({
           database,
           reviewerId: identity.reviewerId,
@@ -562,6 +571,7 @@ export function createDevelopmentApi(
           maximumBytes: originalStorage.maximumBytes,
           maximumPages: syntheticPdfProcessing.maximumPages,
           extractionVersion: syntheticPdfProcessing.extractionVersion,
+          ...(metadata ? { metadata } : {}),
         });
         if (!original) return reply.code(404).send({ code: 'case_not_found' });
         return reply.code(201).send({ original });
