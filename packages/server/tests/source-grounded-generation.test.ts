@@ -100,6 +100,41 @@ test('preserves an approved artifact section and speaker on a verified claim', a
   });
 });
 
+test('preserves investigation flags on a verified claim without treating them as findings', async () => {
+  const generate = async () => ({
+    status: 'generated' as const,
+    text: JSON.stringify([
+      {
+        claimId: 'claim-flagged',
+        text: 'The record includes a sitting limitation.',
+        flags: ['possible_cherry_pick', 'possible_specialist_mismatch'],
+        source: {
+          recordRevision: 1,
+          documentVersionId: 'document-version-a',
+          documentSha256: 'a'.repeat(64),
+          extractionVersion: 'extraction-v1',
+          sourceUnitId: 'source-unit-a',
+          start: 13,
+          end: 60,
+          quote: source.rawText.slice(13),
+        },
+      },
+    ]),
+  });
+
+  await expect(
+    generateValidatedClaims(generate, 'Review the record context.', 'case-a', [source]),
+  ).resolves.toMatchObject({
+    status: 'validated',
+    claims: [
+      {
+        status: 'verified',
+        flags: ['possible_cherry_pick', 'possible_specialist_mismatch'],
+      },
+    ],
+  });
+});
+
 test('preserves a bounded Gemini refusal without parsing model text', async () => {
   const generate = async () => ({ status: 'refused' as const, code: 'safety_refusal' as const });
 
@@ -152,6 +187,11 @@ test('rejects each malformed claim field before source validation', async () => 
     { ...valid, step: 6 },
     { ...valid, step: 1.5 },
     { ...valid, step: '3' },
+    { ...valid, flags: [] },
+    { ...valid, flags: 'possible_cherry_pick' },
+    { ...valid, flags: [1] },
+    { ...valid, flags: ['unknown'] },
+    { ...valid, flags: ['possible_cherry_pick', 'unknown'] },
     { ...valid, chronology: null },
     { ...valid, chronology: { date: '' } },
     { ...valid, chronology: { date: '2024-03-12', provider: 1 } },

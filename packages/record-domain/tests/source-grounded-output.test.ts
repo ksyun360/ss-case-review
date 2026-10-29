@@ -86,6 +86,7 @@ test('preserves approved artifact context on verified and unverified claims', ()
     text: 'The ALJ assessed sedentary work.',
     section: 'five_step',
     speaker: 'alj',
+    flags: ['possible_cherry_pick'],
     source: {
       recordRevision: 1,
       documentVersionId: 'document-version-a',
@@ -97,7 +98,12 @@ test('preserves approved artifact context on verified and unverified claims', ()
       quote: source.rawText.slice(0, 20),
     },
   });
-  expect(verified).toMatchObject({ status: 'verified', section: 'five_step', speaker: 'alj' });
+  expect(verified).toMatchObject({
+    status: 'verified',
+    section: 'five_step',
+    speaker: 'alj',
+    flags: ['possible_cherry_pick'],
+  });
 
   const unverified = validateGeneratedClaim('case-a', [source], {
     claimId: 'claim-context-unverified',
@@ -105,6 +111,7 @@ test('preserves approved artifact context on verified and unverified claims', ()
     section: 'summary',
     speaker: 'commissioner',
     step: 2,
+    flags: ['possible_specialist_mismatch'],
     chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
     source: {
       recordRevision: 1,
@@ -122,6 +129,7 @@ test('preserves approved artifact context on verified and unverified claims', ()
     section: 'summary',
     speaker: 'commissioner',
     step: 2,
+    flags: ['possible_specialist_mismatch'],
     chronology: { date: '2024-03-12', name: 'Appeals Council denial' },
   });
 });

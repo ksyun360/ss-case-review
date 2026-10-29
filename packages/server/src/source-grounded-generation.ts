@@ -2,6 +2,7 @@ import {
   validateGeneratedClaim,
   type GeneratedClaim,
   type GeneratedClaimChronology,
+  type GeneratedClaimFlag,
   type GeneratedClaimSection,
   type GeneratedClaimSpeaker,
   type GeneratedClaimValidation,
@@ -27,6 +28,10 @@ const GENERATED_CLAIM_SPEAKERS = new Set<GeneratedClaimSpeaker>([
   'vocational_expert',
 ]);
 const GENERATED_CLAIM_STEPS = new Set([1, 2, 3, 4, 5]);
+const GENERATED_CLAIM_FLAGS = new Set<GeneratedClaimFlag>([
+  'possible_cherry_pick',
+  'possible_specialist_mismatch',
+]);
 
 export type ValidatedClaimsResult =
   | Readonly<{
@@ -46,6 +51,8 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
   const candidate = source as Record<string, unknown>;
   const chronology = claim.chronology;
   const hasValidChronology = chronology === undefined || isGeneratedClaimChronology(chronology);
+  const flags = claim.flags;
+  const hasValidFlags = flags === undefined || isGeneratedClaimFlags(flags);
   return (
     typeof claim.claimId === 'string' &&
     claim.claimId.length > 0 &&
@@ -58,6 +65,7 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
     (claim.step === undefined ||
       (Number.isSafeInteger(claim.step) && GENERATED_CLAIM_STEPS.has(claim.step as number))) &&
     hasValidChronology &&
+    hasValidFlags &&
     Number.isSafeInteger(candidate.recordRevision) &&
     typeof candidate.documentVersionId === 'string' &&
     typeof candidate.documentSha256 === 'string' &&
@@ -66,6 +74,14 @@ function isGeneratedClaim(value: unknown): value is GeneratedClaim {
     Number.isSafeInteger(candidate.start) &&
     Number.isSafeInteger(candidate.end) &&
     typeof candidate.quote === 'string'
+  );
+}
+
+function isGeneratedClaimFlags(value: unknown): value is readonly GeneratedClaimFlag[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((flag) => GENERATED_CLAIM_FLAGS.has(flag))
   );
 }
 
@@ -87,7 +103,7 @@ export async function generateValidatedClaims(
   sources: readonly SourceUnit[],
 ): Promise<ValidatedClaimsResult> {
   const result = await generate({
-    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. For five_step claims, optionally include step as an integer from 1 through 5. For medical or procedural entries, optionally include chronology with a source-supported date and optional provider, reason, prescription, or name. Use only the supplied case record; do not invent claims, chronology values, or citations.`,
+    prompt: `${task}\n\nReturn only a JSON array of claims. Each claim must contain claimId, text, and source with recordRevision, documentVersionId, documentSha256, extractionVersion, sourceUnitId, start, end, and quote. Optionally classify each claim with section summary, medical, procedural, or five_step and speaker alj, plaintiff, commissioner, or vocational_expert. For five_step claims, optionally include step as an integer from 1 through 5. For medical or procedural entries, optionally include chronology with a source-supported date and optional provider, reason, prescription, or name. Optionally include flags possible_cherry_pick or possible_specialist_mismatch only as investigation prompts, never as findings. Use only the supplied case record; do not invent claims, chronology values, flags, or citations.`,
     maxOutputTokens: 2_048,
   });
   if (result.status === 'refused') return result;

@@ -3,6 +3,7 @@ import { locateSourceSpan, type SourceSpanCandidate, type SourceUnit } from './s
 export type GeneratedClaimSection = 'summary' | 'medical' | 'procedural' | 'five_step';
 export type GeneratedClaimSpeaker = 'alj' | 'plaintiff' | 'commissioner' | 'vocational_expert';
 export type GeneratedClaimStep = 1 | 2 | 3 | 4 | 5;
+export type GeneratedClaimFlag = 'possible_cherry_pick' | 'possible_specialist_mismatch';
 export type GeneratedClaimChronology = Readonly<{
   date: string;
   provider?: string;
@@ -18,6 +19,7 @@ export type GeneratedClaim = Readonly<{
   section?: GeneratedClaimSection;
   speaker?: GeneratedClaimSpeaker;
   step?: GeneratedClaimStep;
+  flags?: readonly GeneratedClaimFlag[];
   chronology?: GeneratedClaimChronology;
 }>;
 
@@ -30,6 +32,7 @@ export type GeneratedClaimValidation =
       section?: GeneratedClaimSection;
       speaker?: GeneratedClaimSpeaker;
       step?: GeneratedClaimStep;
+      flags?: readonly GeneratedClaimFlag[];
       chronology?: GeneratedClaimChronology;
     }>
   | Readonly<{
@@ -41,6 +44,7 @@ export type GeneratedClaimValidation =
       section?: GeneratedClaimSection;
       speaker?: GeneratedClaimSpeaker;
       step?: GeneratedClaimStep;
+      flags?: readonly GeneratedClaimFlag[];
       chronology?: GeneratedClaimChronology;
     }>;
 
@@ -65,6 +69,7 @@ export function validateGeneratedClaim(
       ...(claim.section ? { section: claim.section } : {}),
       ...(claim.speaker ? { speaker: claim.speaker } : {}),
       ...(claim.step ? { step: claim.step } : {}),
+      ...(claim.flags ? { flags: claim.flags } : {}),
       ...(claim.chronology ? { chronology: claim.chronology } : {}),
     };
   return {
@@ -76,6 +81,7 @@ export function validateGeneratedClaim(
     ...(claim.section ? { section: claim.section } : {}),
     ...(claim.speaker ? { speaker: claim.speaker } : {}),
     ...(claim.step ? { step: claim.step } : {}),
+    ...(claim.flags ? { flags: claim.flags } : {}),
     ...(claim.chronology ? { chronology: claim.chronology } : {}),
   };
 }
