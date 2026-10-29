@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     maxWorkers: 4,
     pool: 'threads',
+    fileParallelism: false,
     include: ['packages/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     exclude: ['**/node_modules/**', '**/dist/**', '.stryker-tmp/**', '.tools/**'],
     allowOnly: false,

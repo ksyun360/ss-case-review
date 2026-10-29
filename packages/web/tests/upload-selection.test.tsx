@@ -3,7 +3,7 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { afterEach, expect, test } from 'vitest';
-import { UploadPage } from '../src/upload-page.tsx';
+import { isPdfFile, UploadPage } from '../src/upload-page.tsx';
 
 afterEach(cleanup);
 
@@ -70,4 +70,36 @@ test('lists selected file names and sizes without enabling processing', async ()
   expect(rows[1]).toHaveTextContent('synthetic-record.tiff');
   expect(rows[1]).toHaveTextContent('9 bytes');
   expect(screen.getByRole('button', { name: 'Register synthetic originals' })).toBeDisabled();
+});
+
+test('warns when a selected document needs non-PDF extraction review', async () => {
+  const user = userEvent.setup();
+  render(<UploadPage />);
+
+  await user.upload(
+    screen.getByLabelText('Choose case documents'),
+    new File(['123'], 'medical-record.tiff', { type: 'image/tiff' }),
+  );
+
+  const documents = within(screen.getByRole('list', { name: 'Selected documents' }));
+  expect(documents.getByRole('listitem')).toHaveTextContent(
+    'Needs review: native PDF extraction is unavailable for this file.',
+  );
+});
+
+test('recognizes PDF selections by MIME type or case-insensitive extension', async () => {
+  const user = userEvent.setup();
+  render(<UploadPage />);
+
+  await user.upload(screen.getByLabelText('Choose case documents'), [
+    new File(['one'], 'decision.PDF', { type: '' }),
+    new File(['two'], 'record.bin', { type: 'application/pdf' }),
+  ]);
+
+  const documents = within(screen.getByRole('list', { name: 'Selected documents' }));
+  for (const row of documents.getAllByRole('listitem')) {
+    expect(row).not.toHaveTextContent('Needs review: native PDF extraction is unavailable');
+  }
+  expect(isPdfFile(new File(['three'], 'record.tiff', { type: 'application/pdf' }))).toBe(true);
+  expect(isPdfFile(new File(['four'], 'record.PDF', { type: '' }))).toBe(true);
 });

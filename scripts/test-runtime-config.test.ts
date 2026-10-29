@@ -6,6 +6,7 @@ test('bounds fast-test worker concurrency without relaxing quality gates', () =>
     test: {
       maxWorkers: 4,
       pool: 'threads',
+      fileParallelism: false,
       allowOnly: false,
       passWithNoTests: false,
       coverage: {

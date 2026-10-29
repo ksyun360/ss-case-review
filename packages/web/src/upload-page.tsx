@@ -5,6 +5,10 @@ import {
   uploadSyntheticOriginal,
 } from './case-client.ts';
 
+export function isPdfFile(file: File): boolean {
+  return file.type === 'application/pdf' || file.name.toLocaleLowerCase().endsWith('.pdf');
+}
+
 export function UploadPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [transferStatus, setTransferStatus] = useState('Checking synthetic original transfer.');
@@ -121,6 +125,9 @@ export function UploadPage() {
                           ? 'Unconfirmed'
                           : 'Ready'}
                     </span>
+                    {!isPdfFile(file) ? (
+                      <span>Needs review: native PDF extraction is unavailable for this file.</span>
+                    ) : null}
                   </div>
                   <button
                     className="button secondary-button remove-file"
