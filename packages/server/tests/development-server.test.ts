@@ -154,6 +154,20 @@ test('enables bounded synthetic original storage only for an explicit absolute r
   );
   const scheduler = vi.mocked(startDocumentProcessingScheduler).mock.calls[0]?.[0];
   if (!scheduler) throw new Error('Expected scheduler configuration');
+  expect(scheduler.recoverStale).toEqual(expect.any(Function));
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date('2026-10-04T18:00:00Z'));
+    await scheduler.recoverStale?.();
+    expect(recoverStaleOriginalUploads).toHaveBeenNthCalledWith(2, {
+      database,
+      root,
+      olderThan: new Date('2026-10-04T17:45:00Z'),
+      limit: 25,
+    });
+  } finally {
+    vi.useRealTimers();
+  }
   expect(scheduler.now()).toBeInstanceOf(Date);
   expect(scheduler.createId()).toMatch(/^[a-f0-9-]{36}$/);
   vi.useFakeTimers();

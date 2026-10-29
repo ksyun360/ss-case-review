@@ -68,6 +68,14 @@ export async function startDevelopmentServer(environment: ServerEnvironment) {
         schedule: (callback, delay) => setTimeout(callback, delay),
         clear: (timer) => clearTimeout(timer as ReturnType<typeof setTimeout>),
         runNext: runNextDocumentProcessing,
+        recoverStale: async () => {
+          await recoverStaleOriginalUploads({
+            database,
+            root: originalStorage.root,
+            olderThan: new Date(Date.now() - STALE_UPLOAD_AGE_MILLISECONDS),
+            limit: UPLOAD_RECOVERY_LIMIT,
+          });
+        },
         ...(generateClaims ? { generateClaims } : {}),
       });
     }

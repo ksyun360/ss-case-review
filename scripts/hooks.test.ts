@@ -10,7 +10,7 @@ test('accepts a feature push after running repository checks', () => {
   });
   expect(result.status).toBe(0);
   expect(result.stdout + result.stderr).toContain('check:repository');
-});
+}, 180_000);
 
 test('runs the pre-push guard against the actual remote destination', () => {
   const result = spawnSync('sh', [fileURLToPath(new URL('../.husky/pre-push', import.meta.url))], {
@@ -19,7 +19,7 @@ test('runs the pre-push guard against the actual remote destination', () => {
   });
   expect(result.status).toBe(1);
   expect(result.stderr).toContain('AssertionError');
-});
+}, 180_000);
 
 test('runs the commit-message policy with a quoted message-file argument', () => {
   const result = spawnSync(

@@ -11,6 +11,7 @@ type SchedulerInput = Readonly<{
   schedule: (callback: () => Promise<void>, delay: number) => unknown;
   clear: (timer: unknown) => void;
   runNext: typeof runNextDocumentProcessing;
+  recoverStale?: () => Promise<void>;
   generateClaims?: ClaimGenerator;
 }>;
 
@@ -22,6 +23,7 @@ export function startDocumentProcessingScheduler(input: SchedulerInput): () => v
     if (stopped) return;
     const startedAt = input.now();
     try {
+      if (input.recoverStale) await input.recoverStale();
       await input.runNext({
         database: input.database,
         root: input.root,

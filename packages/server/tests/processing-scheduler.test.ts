@@ -120,3 +120,32 @@ test('forwards the configured claim generator to each leased job', async () => {
   expect(runNext).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ generateClaims }));
   stop();
 });
+
+test('runs bounded upload recovery before each processing cycle', async () => {
+  const scheduled: Array<() => Promise<void>> = [];
+  const recoverStale = vi.fn(async () => undefined);
+  const runNext = vi.fn(async () => ({ status: 'idle' as const }));
+  const stop = startDocumentProcessingScheduler({
+    database: { query: vi.fn() },
+    root: '/synthetic/private/originals',
+    intervalMilliseconds: 250,
+    leaseMilliseconds: 300_000,
+    now: () => new Date('2026-10-02T12:00:00.000Z'),
+    createId: () => '00000000-0000-4000-8000-000000000001',
+    schedule: (callback) => {
+      scheduled.push(callback);
+      return scheduled.length;
+    },
+    clear: vi.fn(),
+    runNext,
+    recoverStale,
+  });
+
+  await scheduled[0]?.();
+
+  expect(recoverStale).toHaveBeenCalledExactlyOnceWith();
+  expect(recoverStale.mock.invocationCallOrder[0]).toBeLessThan(
+    runNext.mock.invocationCallOrder[0] as number,
+  );
+  stop();
+});
