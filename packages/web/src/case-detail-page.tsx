@@ -866,6 +866,12 @@ export function SyntheticSourceWorkspace({ caseId }: { caseId: string }) {
   const [originalPageError, setOriginalPageError] = useState<boolean>();
   const sourceHash = window.location.hash;
   const sourceTarget = sourceTargetFromHash(sourceHash);
+  useEffect(() => {
+    const url = originalPage?.url;
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [originalPage]);
   const loadInventory = useCallback(() => {
     setReferences(undefined);
     setSelected(undefined);

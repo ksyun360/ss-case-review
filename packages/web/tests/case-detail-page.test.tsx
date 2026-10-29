@@ -1644,6 +1644,37 @@ test('opens the selected source page in the original PDF viewer', async () => {
   createObjectURL.mockRestore();
 });
 
+test('releases the source-page object URL when the workspace unmounts', async () => {
+  const caseId = '00000000-0000-4000-8000-000000000002';
+  const sourceUnitId = '00000000-0000-4000-8000-000000000031';
+  const reference: SyntheticTextSourceReference = {
+    sourceUnitId,
+    caseId,
+    documentVersionId: '00000000-0000-4000-8000-000000000021',
+    recordRevision: 1,
+    documentSha256: 'a'.repeat(64),
+    extractionVersion: 'synthetic-native-v1',
+    pageNumber: 7,
+  };
+  vi.mocked(listSyntheticTextSources).mockResolvedValueOnce([reference]);
+  vi.mocked(getSyntheticTextSource).mockResolvedValueOnce({
+    ...reference,
+    rawText: 'Source page text.',
+  });
+  vi.mocked(getSyntheticOriginal).mockResolvedValueOnce(new Blob(['%PDF-1.7']));
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:source-page-releasable');
+  const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+  const user = userEvent.setup();
+  const view = render(<SyntheticSourceWorkspace caseId={caseId} />);
+
+  await user.click(await screen.findByRole('button', { name: 'Open document 0021, page 7' }));
+  await user.click(await screen.findByRole('button', { name: 'Open original page 7' }));
+  expect(await screen.findByTitle('Original page 7 preview')).toBeVisible();
+  view.unmount();
+
+  expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:source-page-releasable');
+});
+
 test('does not highlight a cited span outside the persisted source page', async () => {
   const caseId = '00000000-0000-4000-8000-000000000002';
   const sourceUnitId = '00000000-0000-4000-8000-000000000031';
